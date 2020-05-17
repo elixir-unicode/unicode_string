@@ -8,6 +8,17 @@ In this initial release the following functions are defined:
 
 * `Unicode.String.equals_ignoring_case?/2` that compares two strings for equality after applying `Unicode.String.fold/2` to the arguments.
 
+## Examples
+
+		iex> Unicode.String.equals_ignoring_case? "ABC", "abc"
+		true
+
+		iex> Unicode.String.equals_ignoring_case? "beißen", "beissen"
+		true
+
+		iex> Unicode.String.equals_ignoring_case? "grüßen", "grussen"
+		false
+
 ## Installation
 
 The package can be installed by adding `unicode_string` to your list of dependencies in `mix.exs`:
