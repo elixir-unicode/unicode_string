@@ -35,7 +35,8 @@ defmodule Unicode.String.Segments do
           ~x".//rule"l,
            name: ~x"./@id"f,
            value: ~x"./text()"s
-        ]
+        ],
+        supressions: ~x".//suppression/text()"ls
       )
 
     content = Enum.map(content, fn c ->
@@ -44,7 +45,7 @@ defmodule Unicode.String.Segments do
       |> String.replace("__", "_")
       |> String.to_atom
 
-      {type, %{rules: c.rules, variables: c.variables}}
+      {type, %{rules: c.rules, variables: c.variables, supressions: c.supressions}}
     end)
     |> Map.new
 
