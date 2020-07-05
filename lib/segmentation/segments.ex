@@ -88,28 +88,28 @@ defmodule Unicode.String.Segments do
     end
   end
 
-  defp substitute_variables("", _variables) do
+  def substitute_variables("", _variables) do
     ""
   end
 
-  defp substitute_variables(<< "$", char :: binary-1, rest :: binary >>, variables)
+  def substitute_variables(<< "$", char :: utf8, rest :: binary >>, variables)
       when is_id_start(char) do
-    {name, rest} = extract_variable_name(char <> rest)
+    {name, rest} = extract_variable_name(<< char >> <> rest)
     Map.fetch!(variables, name) <> substitute_variables(rest, variables)
   end
 
-  defp substitute_variables(<< char :: binary-1, rest :: binary >>, variables) do
-    char <> substitute_variables(rest, variables)
+  def substitute_variables(<< char :: binary-1, rest :: binary >>, variables) do
+    << char, substitute_variables(rest, variables) >>
   end
 
   defp extract_variable_name("" = string) do
     {string, ""}
   end
 
-  defp extract_variable_name(<< char :: binary-1, rest :: binary >>)
-      when is_id_continue(char) do
+  defp extract_variable_name(<< char :: utf8, rest :: binary >>)
+       when is_id_continue(char) do
     {string, rest} = extract_variable_name(rest)
-    {char <> string, rest}
+    {<< char >> <> string, rest}
   end
 
   defp extract_variable_name(rest) do
