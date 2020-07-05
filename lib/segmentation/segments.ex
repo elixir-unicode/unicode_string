@@ -57,5 +57,21 @@ defmodule Unicode.String.Segments do
     def segments(unquote(locale)) do
       unquote(Macro.escape(Map.get(@segments, locale)))
     end
+
+    for segment_type <- Map.get(@segments, "root") |> Map.keys do
+      def segments(unquote(locale), unquote(segment_type)) do
+        unquote(locale)
+        |> segments
+        |> Map.get(unquote(segment_type))
+      end
+    end
+  end
+
+  def segments(locale) do
+    {:error, "Unknown locale #{inspect locale}}"}
+  end
+
+  def segments(locale, segment_type) do
+    {:error, "Unknown locale #{inspect locale} or segment type #{inspect segment_type}"}
   end
 end
