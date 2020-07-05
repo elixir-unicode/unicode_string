@@ -1,4 +1,6 @@
 defmodule Unicode.String.Segments do
+  @moduledoc false
+
   import SweetXml
 
   @app_name Mix.Project.config[:app]
