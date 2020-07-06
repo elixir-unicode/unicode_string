@@ -61,14 +61,13 @@ defmodule Unicode.String.Segments do
 
   for {locale, _file} <- @locale_map do
     def segments(unquote(locale)) do
-      unquote(Macro.escape(Map.get(@segments, locale)))
+      {:ok, unquote(Macro.escape(Map.get(@segments, locale)))}
     end
 
     for segment_type <- Map.get(@segments, "root") |> Map.keys do
       def segments(unquote(locale), unquote(segment_type)) do
-        unquote(locale)
-        |> segments
-        |> Map.get(unquote(segment_type))
+        {:ok, segments} = segments(unquote(locale))
+        Map.fetch(segments, unquote(segment_type))
       end
     end
   end
@@ -81,25 +80,46 @@ defmodule Unicode.String.Segments do
     {:error, "Unknown locale #{inspect locale} or segment type #{inspect segment_type}"}
   end
 
-  def expand_variables(variable_list) do
-    Enum.reduce variable_list, %{}, fn %{name: name, value: value}, variables ->
-      new_value = substitute_variables(value, variables)
-      Map.put(variables, name, new_value)
+  def rules(locale, segment_type) do
+    with {:ok, segment} <- segments(locale, segment_type) do
+      variables = Map.fetch!(segment, :variables) |> expand_variables()
+      rules = Map.fetch!(segment, :rules)
+      expand_rules(rules, variables)
     end
   end
 
-  def substitute_variables("", _variables) do
+  defp expand_rules(rules, variables) do
+    Enum.reduce(rules, [], fn %{name: sequence, value: rule}, acc ->
+      rule =
+        rule
+        |> String.trim
+        |> substitute_variables(variables)
+
+      [{sequence, rule} | acc]
+    end)
+    |> Enum.sort
+  end
+
+  defp expand_variables(variable_list) do
+    Enum.reduce variable_list, %{}, fn
+      %{name: << "$", name :: binary >>, value: value}, variables ->
+        new_value = substitute_variables(value, variables)
+        Map.put(variables, name, new_value)
+    end
+  end
+
+  defp substitute_variables("", _variables) do
     ""
   end
 
-  def substitute_variables(<< "$", char :: utf8, rest :: binary >>, variables)
+  defp substitute_variables(<< "$", char :: utf8, rest :: binary >>, variables)
       when is_id_start(char) do
     {name, rest} = extract_variable_name(<< char >> <> rest)
     Map.fetch!(variables, name) <> substitute_variables(rest, variables)
   end
 
-  def substitute_variables(<< char :: binary-1, rest :: binary >>, variables) do
-    << char, substitute_variables(rest, variables) >>
+  defp substitute_variables(<< char :: binary-1, rest :: binary >>, variables) do
+    char <> substitute_variables(rest, variables)
   end
 
   defp extract_variable_name("" = string) do
