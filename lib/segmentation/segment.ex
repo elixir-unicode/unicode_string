@@ -14,7 +14,7 @@ defmodule Unicode.String.Segment do
 
       rules
       |> expand_rules(variables)
-      # |> compile_rules
+      |> compile_rules
       |> wrap(:ok)
     end
   end
@@ -23,21 +23,39 @@ defmodule Unicode.String.Segment do
     {atom, term}
   end
 
+  # THese options set unicode mode. Interpreset certain
+  # codes like \B and \w in the unicode space, ignore
+  # unescaped whitespace in regexs
+  @regex_options [:unicode, :anchored, :extended, :ucp]
   @rule_splitter ~r/[×÷]/u
-  @regex_options [:unicode]
+
   defp compile_rules(rules) do
     Enum.map(rules, fn {sequence, rule} ->
       [left, operator, right] = Regex.split(@rule_splitter, rule, include_captures: true)
-      compiled_left = Unicode.Regex.compile!(String.trim(left), @regex_options)
-      compiled_right = Unicode.Regex.compile!(String.trim(right), @regex_options)
+      compiled_left = compile_regex(left)
+      compiled_right = compile_regex(right)
       {sequence, {operator, compiled_left, compiled_right}}
     end)
   end
 
+  defp compile_regex("") do
+    :any
+  end
+
+  defp compile_regex(string) do
+    string
+    |> String.trim
+    |> Unicode.Regex.compile!(@regex_options)
+  end
+
   def test(string, locale, type) do
     with {:ok, rules} <- rules(locale, type) do
-      Enum.each rules, fn {seq, {op, b, a}} ->
-        Regex.split(b, string, parts: 2, include_captures: true, trim: true) |> IO.inspect(label: inspect(seq))
+      Enum.each rules, fn
+        {seq, {_op, :any, _a}} ->
+          IO.inspect([string], label: inspect(seq))
+        {seq, {_op, b, _a}} ->
+          Regex.split(b, string, parts: 2, include_captures: true, trim: true)
+          |> IO.inspect(label: inspect(seq))
       end
     end
   end
