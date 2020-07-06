@@ -14,20 +14,38 @@ defmodule Unicode.String.Segment do
 
       rules
       |> expand_rules(variables)
-      |> compile_rules
+      # |> compile_rules
+      |> wrap(:ok)
     end
   end
 
+  defp wrap(term, atom) do
+    {atom, term}
+  end
+
   @rule_splitter ~r/[×÷]/u
+  @regex_options [:unicode]
   defp compile_rules(rules) do
     Enum.map(rules, fn {sequence, rule} ->
       [left, operator, right] = Regex.split(@rule_splitter, rule, include_captures: true)
-      IO.inspect left, label: "Left"
-      compiled_left = Unicode.Regex.compile!(String.trim(left))
-      IO.inspect right, label: "Right"
-      compiled_right = Unicode.Regex.compile!(String.trim(right))
-      {sequence, [operator, compiled_left, compiled_right]}
+      compiled_left = Unicode.Regex.compile!(String.trim(left), @regex_options)
+      compiled_right = Unicode.Regex.compile!(String.trim(right), @regex_options)
+      {sequence, {operator, compiled_left, compiled_right}}
     end)
+  end
+
+  def test(string, locale, type) do
+    with {:ok, rules} <- rules(locale, type) do
+      Enum.each rules, fn {seq, {op, b, a}} ->
+        Regex.split(b, string, parts: 2, include_captures: true, trim: true) |> IO.inspect(label: inspect(seq))
+      end
+    end
+  end
+
+  def get_rule(rule, locale, type) when is_float(rule) do
+    with {:ok, rules} <- rules(locale, type) do
+      Enum.find(rules, &(elem(&1, 0) == rule))
+    end
   end
 
   defp expand_rules(rules, variables) do
