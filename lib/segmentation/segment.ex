@@ -32,17 +32,15 @@ defmodule Unicode.String.Segment do
   defp compile_rules(rules) do
     Enum.map(rules, fn {sequence, rule} ->
       [left, operator, right] = Regex.split(@rule_splitter, rule, include_captures: true)
-      compiled_left = compile_regex(left)
-      compiled_right = compile_regex(right)
-      {sequence, {operator, compiled_left, compiled_right}}
+      {sequence, {operator, compile_regex!(left), compile_regex!(right)}}
     end)
   end
 
-  defp compile_regex("") do
+  defp compile_regex!("") do
     :any
   end
 
-  defp compile_regex(string) do
+  defp compile_regex!(string) do
     string
     |> String.trim
     |> Unicode.Regex.compile!(@regex_options)
@@ -52,7 +50,8 @@ defmodule Unicode.String.Segment do
     with {:ok, rules} <- rules(locale, type) do
       Enum.each rules, fn
         {seq, {_op, :any, _a}} ->
-          IO.inspect([string], label: inspect(seq))
+          [:any, string]
+          |> IO.inspect(label: inspect(seq))
         {seq, {_op, b, _a}} ->
           Regex.split(b, string, parts: 2, include_captures: true, trim: true)
           |> IO.inspect(label: inspect(seq))
