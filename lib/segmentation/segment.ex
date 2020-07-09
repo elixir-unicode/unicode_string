@@ -10,7 +10,7 @@ defmodule Unicode.String.Segment do
   # defguard is_id_continue(char) when Unicode.Set.match?(char, "\\p{ID_continue}")
 
   defguard is_id_start(char) when char in ?A..?Z
-  defguard is_id_continue(char) when char in ?a..?z or char in ?A..?Z or char == ?_
+  defguard is_id_continue(char) when char in ?a..?z or char in ?A..?Z or char in ?0..?9 or char == ?_
 
   def rules(locale, segment_type) do
     with {:ok, segment} <- segments(locale, segment_type) do
@@ -22,10 +22,6 @@ defmodule Unicode.String.Segment do
       |> compile_rules
       |> wrap(:ok)
     end
-  end
-
-  defp wrap(term, atom) do
-    {atom, term}
   end
 
   # These options set unicode mode. Interpreset certain
@@ -176,7 +172,57 @@ defmodule Unicode.String.Segment do
     |> Map.new
   end
 
-  defp segments(locale) do
+  def ancestors(locale_name) do
+    if Map.get(locale_map(), locale_name) do
+      case String.split(locale_name, "-") do
+        [locale] -> [locale, "root"]
+        [locale, _territory] -> [locale_name, locale, "root"]
+        [locale, script, _territory] -> [locale_name, "#{locale}-#{script}", locale, "root"]
+      end
+      |> wrap(:ok)
+    else
+      {:error, "Unknown locale #{inspect locale_name}"}
+    end
+  end
+
+  def merge_ancestors("root") do
+    raw_segments!("root")
+    |> wrap(:ok)
+  end
+
+  def merge_ancestors(locale) when is_binary(locale) do
+    with {:ok, ancestors} <- ancestors(locale) do
+      merge_ancestors(ancestors)
+      |> wrap(:ok)
+    end
+  end
+
+  def merge_ancestors([locale, root]) do
+    merge_ancestor(locale, raw_segments!(root))
+  end
+
+  def merge_ancestors([locale | rest]) do
+    merge_ancestor(locale, merge_ancestors(rest))
+  end
+
+  # For each segement type, add the variables, rules and
+  # suppressions from locale to other
+  defp merge_ancestor(locale, other) do
+    locale_segments = raw_segments!(locale)
+
+    Enum.map(other, fn {segment_type, content} ->
+      variables = Map.fetch!(content, :variables) ++
+        (get_in(locale_segments, [segment_type, :variables]) || [])
+      rules = Map.fetch!(content, :rules) ++
+        (get_in(locale_segments, [segment_type, :rules]) || [])
+      suppressions = Map.fetch!(content, :suppressions) ++
+        (get_in(locale_segments, [segment_type, :suppressions]) || [])
+      {segment_type, %{content | variables: variables, rules: rules, suppressions: suppressions}}
+    end)
+    |> Map.new
+  end
+
+  defp raw_segments(locale) do
     if file = Map.get(locale_map(), locale) do
       content =
         @segments_dir
@@ -195,7 +241,7 @@ defmodule Unicode.String.Segment do
              name: ~x"./@id"f,
              value: ~x"./text()"s
           ],
-          supressions: ~x".//suppression/text()"ls
+          suppressions: ~x".//suppression/text()"ls
         )
 
       Enum.map(content, fn c ->
@@ -204,16 +250,27 @@ defmodule Unicode.String.Segment do
         |> String.replace("__", "_")
         |> String.to_atom
 
-        {type, %{rules: c.rules, variables: c.variables, supressions: c.supressions}}
+        {type, %{rules: c.rules, variables: c.variables, suppressions: c.suppressions}}
       end)
       |> Map.new
       |> wrap(:ok)
     else
-      {:error, "Unknown locale #{inspect locale}}"}
+      {:error, "Unknown locale #{inspect locale}"}
     end
   end
 
-  defp segments(locale, segment_type) do
+  defp raw_segments!(locale) do
+    case raw_segments(locale) do
+      {:ok, segments} -> segments
+      {:error, reason} -> raise ArgumentError, reason
+    end
+  end
+
+  defp segments(locale) do
+    merge_ancestors(locale)
+  end
+
+  defp segments(locale, segment_type) when is_binary(locale) do
     with {:ok, segments} <- segments(locale) do
       if segment = Map.get(segments, segment_type) do
         {:ok, segment}
@@ -221,6 +278,10 @@ defmodule Unicode.String.Segment do
         {:error, "Unknown segment type #{inspect segment_type}"}
       end
     end
+  end
+
+  defp wrap(term, atom) do
+    {atom, term}
   end
 
 end
