@@ -55,6 +55,16 @@ defmodule Unicode.String.Segment do
         {:fail, result} -> {:cont, {:fail, operator, result}}
       end
     end)
+    |> default_to_break
+  end
+
+  def default_to_break({:fail, _, string}) do
+    << char :: utf8, rest :: binary >> = string
+    {:break, [<< char >>, rest]}
+  end
+
+  def default_to_break({:pass, operator, result}) do
+    {operator, result}
   end
 
   def evaluate_rule(string, {_seq, {_operator, :any, aft}}) do
