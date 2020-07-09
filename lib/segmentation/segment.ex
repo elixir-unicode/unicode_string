@@ -32,6 +32,7 @@ defmodule Unicode.String.Segment do
   defp compile_rules(rules) do
     Enum.map(rules, fn {sequence, rule} ->
       [left, operator, right] = Regex.split(@rule_splitter, rule, include_captures: true)
+      operator = if operator == "×", do: :no_break, else: :break
       {sequence, {operator, compile_regex!(left), compile_regex!(right)}}
     end)
   end
@@ -46,16 +47,40 @@ defmodule Unicode.String.Segment do
     |> Unicode.Regex.compile!(@regex_options)
   end
 
-  def test(string, locale, type) do
-    with {:ok, rules} <- rules(locale, type) do
-      Enum.each rules, fn
-        {seq, {_op, :any, _a}} ->
-          [:any, string]
-          |> IO.inspect(label: inspect(seq))
-        {seq, {_op, b, _a}} ->
-          Regex.split(b, string, parts: 2, include_captures: true, trim: true)
-          |> IO.inspect(label: inspect(seq))
+  def evaluate_rules(string, rules) do
+    Enum.reduce_while(rules, [], fn rule, _acc ->
+      {_sequence, {operator, _fore, _aft}} = rule
+      case evaluate_rule(string, rule) do
+        {:pass, result} -> {:halt, {:pass, operator, result}}
+        {:fail, result} -> {:cont, {:fail, operator, result}}
       end
+    end)
+  end
+
+  def evaluate_rule(string, {_seq, {_operator, :any, aft}}) do
+    << char :: utf8, rest :: binary >> = string
+    if Regex.match?(aft, rest) do
+      {:pass, [<< char >>, rest]}
+    else
+      {:fail, string}
+    end
+  end
+
+  def evaluate_rule(string, {_seq, {_operator, fore, :any}}) do
+    case Regex.split(fore, string, parts: 2, include_captures: true, trim: true) do
+      [match, rest] ->
+        {:pass, [match, rest]}
+      [_other] ->
+        {:fail, string}
+    end
+  end
+
+  def evaluate_rule(string, {_seq, {_operator, fore, aft}}) do
+    case Regex.split(fore, string, parts: 2, include_captures: true, trim: true) do
+      [match, rest] ->
+        if Regex.match?(aft, rest), do: {:pass, [match, rest]}, else: {:fail, string}
+      [_other] ->
+        {:fail, string}
     end
   end
 
