@@ -2,6 +2,7 @@ defmodule Unicode.String do
 
   alias Unicode.String.Segment
   alias Unicode.String.Break
+  alias Unicode.Property
 
   defdelegate fold(string), to: Unicode.String.Case.Folding
   defdelegate fold(string, type), to: Unicode.String.Case.Folding
@@ -67,7 +68,7 @@ defmodule Unicode.String do
   end
 
   defp maybe_trim(list, true) do
-    Enum.reject(list, &Unicode.Property.white_space?/1)
+    Enum.reject(list, &Property.white_space?/1)
   end
 
   defp maybe_trim(list, _) do

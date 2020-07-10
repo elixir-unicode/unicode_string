@@ -24,27 +24,27 @@ defmodule Unicode.String.Break do
 
   defp break_at(string, locale, segment_type, options) do
     suppress? = Keyword.get(options, :suppressions, true)
-    {:ok, rules} = rules(locale, segment_type)
+    {:ok, rules} = rules(locale, segment_type, suppress?)
 
     string
     |> Segment.evaluate_rules(rules)
-    |> break(rules, segment_type, suppress?, [""])
+    |> break(rules, [""])
   end
 
-  defp break({_break, [fore, ""]}, _rules, _segment_type, _suppress?, [head | rest]) do
+  defp break({_break, [fore, ""]}, _rules, [head | rest]) do
     Enum.reverse([head <> fore | rest])
   end
 
-  defp break({:break, [fore, aft]}, rules, segment_type, suppress?, [head | rest]) do
+  defp break({:break, [fore, aft]}, rules, [head | rest]) do
     aft
     |> Segment.evaluate_rules(rules)
-    |> break(rules, segment_type, suppress?, ["" | [head <> fore | rest]])
+    |> break(rules, ["" | [head <> fore | rest]])
   end
 
-  defp break({:no_break, [fore, aft]}, rules, segment_type, suppress?, [head | rest]) do
+  defp break({:no_break, [fore, aft]}, rules, [head | rest]) do
     aft
     |> Segment.evaluate_rules(rules)
-    |> break(rules, segment_type, suppress?, [head <> fore | rest])
+    |> break(rules, [head <> fore | rest])
   end
 
   # Recompile this module if any of the segment
@@ -76,8 +76,20 @@ defmodule Unicode.String.Break do
     Unicode.String.Segment.rules(@default_locale, segment_type)
   end
 
+  def rules(locale, segment_type, true) do
+    suppression_rule = {0.0, {:no_break, locale, segment_type}}
+
+    with {:ok, rules} <- rules(locale, segment_type) do
+      {:ok, [suppression_rule | rules]}
+    end
+  end
+
+  def rules(locale, segment_type, false) do
+    rules(locale, segment_type)
+  end
+
   def suppress(string, _other, _segment_type) do
-    ["", string]
+    string
   end
 
 end

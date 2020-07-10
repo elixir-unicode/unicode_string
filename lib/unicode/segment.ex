@@ -3,6 +3,7 @@ defmodule Unicode.String.Segment do
 
   import SweetXml
   require Unicode.Set
+  alias Unicode.String.Break
 
   # This is the formal definition but it takes a while to compile
   # and all of the known variable names are in the Latin-1 set
@@ -96,6 +97,13 @@ defmodule Unicode.String.Segment do
 
   defp return_break_or_no_break({:pass, operator, result}) do
     {operator, result}
+  end
+
+  defp evaluate_rule(string, {0.0, {:no_break, locale, segment_type}}) do
+    case Break.suppress(string, locale, segment_type) do
+      [fore, aft] -> {:pass, [fore, aft]}
+      other -> {:fail, other}
+    end
   end
 
   defp evaluate_rule(string, {_seq, {_operator, :any, aft}}) do
