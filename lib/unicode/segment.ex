@@ -99,6 +99,9 @@ defmodule Unicode.String.Segment do
     {operator, result}
   end
 
+  # This rule implements suppressions and is only inserted into
+  # a rule set if `suppress: true` is passed as an option to
+  # `Unnicode.String.break/2`
   defp evaluate_rule(string, {0.0, {:no_break, locale, segment_type}}) do
     case Break.suppress(string, locale, segment_type) do
       [fore, aft] -> {:pass, [fore, aft]}
@@ -115,8 +118,10 @@ defmodule Unicode.String.Segment do
     end
   end
 
+  @split_options [parts: 2, include_captures: true, trim: true]
+
   defp evaluate_rule(string, {_seq, {_operator, fore, :any}}) do
-    case Regex.split(fore, string, parts: 2, include_captures: true, trim: true) do
+    case Regex.split(fore, string, @split_options) do
       [match, rest] ->
         {:pass, [match, rest]}
       [_other] ->
@@ -125,7 +130,7 @@ defmodule Unicode.String.Segment do
   end
 
   defp evaluate_rule(string, {_seq, {_operator, fore, aft}}) do
-    case Regex.split(fore, string, parts: 2, include_captures: true, trim: true) do
+    case Regex.split(fore, string, @split_options) do
       [match, rest] ->
         if Regex.match?(aft, rest), do: {:pass, [match, rest]}, else: {:fail, string}
       [_other] ->
