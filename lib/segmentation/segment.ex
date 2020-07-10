@@ -9,8 +9,16 @@ defmodule Unicode.String.Segment do
   # defguard is_id_start(char) when Unicode.Set.match?(char, "\\p{ID_start}")
   # defguard is_id_continue(char) when Unicode.Set.match?(char, "\\p{ID_continue}")
 
-  defguard is_id_start(char) when char in ?A..?Z
-  defguard is_id_continue(char) when char in ?a..?z or char in ?A..?Z or char in ?0..?9 or char == ?_
+  defguard is_id_start(char)
+    when char in ?A..?Z
+
+  defguard is_id_continue(char)
+    when char in ?a..?z or char in ?A..?Z or char in ?0..?9 or char == ?_
+
+  def locales do
+    locale_map()
+    |> Map.keys
+  end
 
   def rules(locale, segment_type) do
     with {:ok, segment} <- segments(locale, segment_type) do
@@ -21,6 +29,26 @@ defmodule Unicode.String.Segment do
       |> expand_rules(variables)
       |> compile_rules
       |> wrap(:ok)
+    end
+  end
+
+  def rules!(locale, segment_type) do
+    case rules(locale, segment_type) do
+      {:ok, rules} -> rules
+      {:error, reason} -> raise ArgumentError, reason
+    end
+  end
+
+  def suppressions(locale, segment_type) do
+    with {:ok, segment} <- segments(locale, segment_type) do
+      {:ok, Map.fetch!(segment, :suppressions)}
+    end
+  end
+
+  def suppressions!(locale, segment_type) do
+    case suppressions(locale, segment_type) do
+      {:ok, suppressions} -> suppressions
+      {:error, reason} -> raise ArgumentError, reason
     end
   end
 
@@ -266,11 +294,13 @@ defmodule Unicode.String.Segment do
     end
   end
 
-  defp segments(locale) do
+  @doc false
+  def segments(locale) do
     merge_ancestors(locale)
   end
 
-  defp segments(locale, segment_type) when is_binary(locale) do
+  @doc false
+  def segments(locale, segment_type) when is_binary(locale) do
     with {:ok, segments} <- segments(locale) do
       if segment = Map.get(segments, segment_type) do
         {:ok, segment}
