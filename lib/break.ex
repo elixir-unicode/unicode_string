@@ -3,6 +3,32 @@ defmodule Unicode.String.Break do
 
 
   """
+  alias Unicode.String.Segment
+
+  def word(string, locale) do
+    {:ok, rules} = rules(locale, :word_break)
+
+    string
+    |> Segment.evaluate_rules(rules)
+    |> break(rules, [""])
+  end
+
+  def break({_break, [fore, ""]}, _rules, [head | rest]) do
+    Enum.reverse([head <> fore | rest])
+  end
+
+  def break({:break, [fore, aft]}, rules, [head | rest]) do
+    aft
+    |> Segment.evaluate_rules(rules)
+    |> break(rules, ["" | [head <> fore | rest]])
+  end
+
+  def break({:no_break, [fore, aft]}, rules, [head | rest]) do
+    aft
+    |> Segment.evaluate_rules(rules)
+    |> break(rules, [head <> fore | rest])
+  end
+
   for locale <- Unicode.String.Segment.locales do
     {:ok, segments} = Unicode.String.Segment.segments(locale)
 
