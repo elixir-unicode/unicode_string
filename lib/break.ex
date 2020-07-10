@@ -5,48 +5,52 @@ defmodule Unicode.String.Break do
   """
   alias Unicode.String.Segment
 
-  def grapheme(string, locale) do
-    break_at(string, locale, :grapheme_cluster_break)
+  def grapheme(string, locale, options \\ []) do
+    suppress? = Keyword.get(options, :suppressions, true)
+    break_at(string, locale, :grapheme_cluster_break, suppress?)
   end
 
-  def word(string, locale) do
-    break_at(string, locale, :word_break)
+  def word(string, locale, options \\ []) do
+    suppress? = Keyword.get(options, :suppressions, true)
+    break_at(string, locale, :word_break, suppress?)
   end
 
-  def line(string, locale) do
-    break_at(string, locale, :line_break)
+  def line(string, locale, options \\ []) do
+    suppress? = Keyword.get(options, :suppressions, true)
+    break_at(string, locale, :line_break, suppress?)
   end
 
-  def sentence(string, locale) do
-    break_at(string, locale, :sentence_break)
+  def sentence(string, locale, options \\ []) do
+    suppress? = Keyword.get(options, :suppressions, true)
+    break_at(string, locale, :sentence_break, suppress?)
   end
 
-  defp break_at(string, locale, segment_type) do
+  defp break_at(string, locale, segment_type, suppress?) do
     if locale in Segment.locales do
       {:ok, rules} = rules(locale, segment_type)
 
       string
       |> Segment.evaluate_rules(rules)
-      |> break(rules, [""])
+      |> break(rules, segment_type, suppress?, [""])
     else
       {:error, Segment.unknown_locale_error(locale)}
     end
   end
 
-  defp break({_break, [fore, ""]}, _rules, [head | rest]) do
+  defp break({_break, [fore, ""]}, _rules, _segment_type, _suppress?, [head | rest]) do
     Enum.reverse([head <> fore | rest])
   end
 
-  defp break({:break, [fore, aft]}, rules, [head | rest]) do
+  defp break({:break, [fore, aft]}, rules, segment_type, suppress?, [head | rest]) do
     aft
     |> Segment.evaluate_rules(rules)
-    |> break(rules, ["" | [head <> fore | rest]])
+    |> break(rules, segment_type, suppress?, ["" | [head <> fore | rest]])
   end
 
-  defp break({:no_break, [fore, aft]}, rules, [head | rest]) do
+  defp break({:no_break, [fore, aft]}, rules, segment_type, suppress?, [head | rest]) do
     aft
     |> Segment.evaluate_rules(rules)
-    |> break(rules, [head <> fore | rest])
+    |> break(rules, segment_type, suppress?, [head <> fore | rest])
   end
 
   for locale <- Unicode.String.Segment.locales do

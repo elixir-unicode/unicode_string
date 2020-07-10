@@ -91,37 +91,38 @@ defmodule Unicode.String.Segment do
   # to break. ie: :any ÷ :any
   defp return_break_or_no_break({:fail, _, string}) do
     << char :: utf8, rest :: binary >> = string
-    {:break, [<< char >>, rest]}
+    {:break, [<< char >>, rest]} |> IO.inspect(label: "Default fail")
   end
 
   defp return_break_or_no_break({:pass, operator, result}) do
-    {operator, result}
+    {operator, result} |> IO.inspect(label: "Default pass")
   end
 
-  defp evaluate_rule(string, {_seq, {_operator, :any, aft}}) do
+  defp evaluate_rule(string, {seq, {_operator, :any, aft}}) do
     << char :: utf8, rest :: binary >> = string
     if Regex.match?(aft, rest) do
-      {:pass, [<< char >>, rest]}
+      {:pass, [<< char >>, rest]} |> IO.inspect(label: "Rule: #{seq}")
     else
-      {:fail, string}
+      {:fail, string} |> IO.inspect(label: "Rule: #{seq}")
     end
   end
 
-  defp evaluate_rule(string, {_seq, {_operator, fore, :any}}) do
+  defp evaluate_rule(string, {seq, {_operator, fore, :any}}) do
     case Regex.split(fore, string, parts: 2, include_captures: true, trim: true) do
       [match, rest] ->
-        {:pass, [match, rest]}
+        {:pass, [match, rest]} |> IO.inspect(label: "Rule: #{seq}")
       [_other] ->
-        {:fail, string}
+        {:fail, string} |> IO.inspect(label: "Rule: #{seq}")
     end
   end
 
-  defp evaluate_rule(string, {_seq, {_operator, fore, aft}}) do
+  defp evaluate_rule(string, {seq, {_operator, fore, aft}}) do
     case Regex.split(fore, string, parts: 2, include_captures: true, trim: true) do
       [match, rest] ->
         if Regex.match?(aft, rest), do: {:pass, [match, rest]}, else: {:fail, string}
+        |> IO.inspect(label: "Rule: #{seq}")
       [_other] ->
-        {:fail, string}
+        {:fail, string} |> IO.inspect(label: "Rule: #{seq}")
     end
   end
 
