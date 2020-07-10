@@ -5,25 +5,45 @@ defmodule Unicode.String.Break do
   """
   alias Unicode.String.Segment
 
-  def word(string, locale) do
-    {:ok, rules} = rules(locale, :word_break)
-
-    string
-    |> Segment.evaluate_rules(rules)
-    |> break(rules, [""])
+  def grapheme(string, locale) do
+    break_at(string, locale, :grapheme_cluster_break)
   end
 
-  def break({_break, [fore, ""]}, _rules, [head | rest]) do
+  def word(string, locale) do
+    break_at(string, locale, :word_break)
+  end
+
+  def line(string, locale) do
+    break_at(string, locale, :line_break)
+  end
+
+  def sentence(string, locale) do
+    break_at(string, locale, :sentence_break)
+  end
+
+  defp break_at(string, locale, segment_type) do
+    if locale in Segment.locales do
+      {:ok, rules} = rules(locale, segment_type)
+
+      string
+      |> Segment.evaluate_rules(rules)
+      |> break(rules, [""])
+    else
+      {:error, Segment.unknown_locale_error(locale)}
+    end
+  end
+
+  defp break({_break, [fore, ""]}, _rules, [head | rest]) do
     Enum.reverse([head <> fore | rest])
   end
 
-  def break({:break, [fore, aft]}, rules, [head | rest]) do
+  defp break({:break, [fore, aft]}, rules, [head | rest]) do
     aft
     |> Segment.evaluate_rules(rules)
     |> break(rules, ["" | [head <> fore | rest]])
   end
 
-  def break({:no_break, [fore, aft]}, rules, [head | rest]) do
+  defp break({:no_break, [fore, aft]}, rules, [head | rest]) do
     aft
     |> Segment.evaluate_rules(rules)
     |> break(rules, [head <> fore | rest])

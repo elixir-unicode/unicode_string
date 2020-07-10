@@ -209,7 +209,7 @@ defmodule Unicode.String.Segment do
       end
       |> wrap(:ok)
     else
-      {:error, "Unknown locale #{inspect locale_name}"}
+      {:error, unknown_locale_error(locale_name)}
     end
   end
 
@@ -283,7 +283,7 @@ defmodule Unicode.String.Segment do
       |> Map.new
       |> wrap(:ok)
     else
-      {:error, "Unknown locale #{inspect locale}"}
+      {:error, unknown_locale_error(locale)}
     end
   end
 
@@ -305,7 +305,7 @@ defmodule Unicode.String.Segment do
       if segment = Map.get(segments, segment_type) do
         {:ok, segment}
       else
-        {:error, "Unknown segment type #{inspect segment_type}"}
+        {:error, unknown_segment_type_error(segment_type)}
       end
     end
   end
@@ -314,4 +314,13 @@ defmodule Unicode.String.Segment do
     {atom, term}
   end
 
+  @doc false
+  def unknown_locale_error(locale) do
+    "Unknown locale #{inspect locale}"
+  end
+
+  @doc false
+  def unknown_segment_type_error(segment_type) do
+    "Unknown segment type #{inspect segment_type}"
+  end
 end
