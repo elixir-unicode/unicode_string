@@ -91,38 +91,37 @@ defmodule Unicode.String.Segment do
   # to break. ie: :any ÷ :any
   defp return_break_or_no_break({:fail, _, string}) do
     << char :: utf8, rest :: binary >> = string
-    {:break, [<< char >>, rest]} |> IO.inspect(label: "Default fail")
+    {:break, [<< char :: utf8 >>, rest]}
   end
 
   defp return_break_or_no_break({:pass, operator, result}) do
-    {operator, result} |> IO.inspect(label: "Default pass")
+    {operator, result}
   end
 
-  defp evaluate_rule(string, {seq, {_operator, :any, aft}}) do
+  defp evaluate_rule(string, {_seq, {_operator, :any, aft}}) do
     << char :: utf8, rest :: binary >> = string
     if Regex.match?(aft, rest) do
-      {:pass, [<< char >>, rest]} |> IO.inspect(label: "Rule: #{seq}")
+      {:pass, [<< char :: utf8 >>, rest]}
     else
-      {:fail, string} |> IO.inspect(label: "Rule: #{seq}")
+      {:fail, string}
     end
   end
 
-  defp evaluate_rule(string, {seq, {_operator, fore, :any}}) do
+  defp evaluate_rule(string, {_seq, {_operator, fore, :any}}) do
     case Regex.split(fore, string, parts: 2, include_captures: true, trim: true) do
       [match, rest] ->
-        {:pass, [match, rest]} |> IO.inspect(label: "Rule: #{seq}")
+        {:pass, [match, rest]}
       [_other] ->
-        {:fail, string} |> IO.inspect(label: "Rule: #{seq}")
+        {:fail, string}
     end
   end
 
-  defp evaluate_rule(string, {seq, {_operator, fore, aft}}) do
+  defp evaluate_rule(string, {_seq, {_operator, fore, aft}}) do
     case Regex.split(fore, string, parts: 2, include_captures: true, trim: true) do
       [match, rest] ->
         if Regex.match?(aft, rest), do: {:pass, [match, rest]}, else: {:fail, string}
-        |> IO.inspect(label: "Rule: #{seq}")
       [_other] ->
-        {:fail, string} |> IO.inspect(label: "Rule: #{seq}")
+        {:fail, string}
     end
   end
 
@@ -159,7 +158,7 @@ defmodule Unicode.String.Segment do
 
   defp substitute_variables(<< "$", char :: utf8, rest :: binary >>, variables)
       when is_id_start(char) do
-    {name, rest} = extract_variable_name(<< char >> <> rest)
+    {name, rest} = extract_variable_name(<< char :: utf8 >> <> rest)
     Map.fetch!(variables, name) <> substitute_variables(rest, variables)
   end
 
@@ -174,7 +173,7 @@ defmodule Unicode.String.Segment do
   defp extract_variable_name(<< char :: utf8, rest :: binary >>)
        when is_id_continue(char) do
     {string, rest} = extract_variable_name(rest)
-    {<< char >> <> string, rest}
+    {<< char :: utf8 >> <> string, rest}
   end
 
   defp extract_variable_name(rest) do
@@ -186,7 +185,13 @@ defmodule Unicode.String.Segment do
 
   @doctype "<!DOCTYPE ldml SYSTEM \"../../common/dtd/ldml.dtd\">"
 
-  defp locale_map do
+  @doc false
+  def segments_dir do
+    @segments_dir
+  end
+
+  @doc false
+  def locale_map do
     @segments_dir
     |> File.ls!()
     |> Enum.map(fn locale_file ->

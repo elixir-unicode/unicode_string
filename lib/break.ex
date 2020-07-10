@@ -3,29 +3,28 @@ defmodule Unicode.String.Break do
 
 
   """
+
   alias Unicode.String.Segment
 
   def grapheme(string, locale, options \\ []) do
-    suppress? = Keyword.get(options, :suppressions, true)
-    break_at(string, locale, :grapheme_cluster_break, suppress?)
+    break_at(string, locale, :grapheme_cluster_break, options)
   end
 
   def word(string, locale, options \\ []) do
-    suppress? = Keyword.get(options, :suppressions, true)
-    break_at(string, locale, :word_break, suppress?)
+    break_at(string, locale, :word_break, options)
   end
 
   def line(string, locale, options \\ []) do
-    suppress? = Keyword.get(options, :suppressions, true)
-    break_at(string, locale, :line_break, suppress?)
+    break_at(string, locale, :line_break, options)
   end
 
   def sentence(string, locale, options \\ []) do
-    suppress? = Keyword.get(options, :suppressions, true)
-    break_at(string, locale, :sentence_break, suppress?)
+    break_at(string, locale, :sentence_break, options)
   end
 
-  defp break_at(string, locale, segment_type, suppress?) do
+  defp break_at(string, locale, segment_type, options) do
+    suppress? = Keyword.get(options, :suppressions, true)
+
     if locale in Segment.locales do
       {:ok, rules} = rules(locale, segment_type)
 
@@ -51,6 +50,13 @@ defmodule Unicode.String.Break do
     aft
     |> Segment.evaluate_rules(rules)
     |> break(rules, segment_type, suppress?, [head <> fore | rest])
+  end
+
+  # Recompile this module if any of the segment
+  # files change.
+
+  for {_locale, file} <- Segment.locale_map do
+    @external_resource Path.join(Segment.segments_dir(), file)
   end
 
   for locale <- Unicode.String.Segment.locales do
