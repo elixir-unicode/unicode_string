@@ -6,34 +6,29 @@ defmodule Unicode.String.Break do
 
   alias Unicode.String.Segment
 
-  def grapheme(string, locale, options \\ []) do
+  def break(string, locale, :grapheme, options) do
     break_at(string, locale, :grapheme_cluster_break, options)
   end
 
-  def word(string, locale, options \\ []) do
+  def break(string, locale, :word, options) do
     break_at(string, locale, :word_break, options)
   end
 
-  def line(string, locale, options \\ []) do
+  def break(string, locale, :line, options) do
     break_at(string, locale, :line_break, options)
   end
 
-  def sentence(string, locale, options \\ []) do
+  def break(string, locale, :sentence, options) do
     break_at(string, locale, :sentence_break, options)
   end
 
   defp break_at(string, locale, segment_type, options) do
     suppress? = Keyword.get(options, :suppressions, true)
+    {:ok, rules} = rules(locale, segment_type)
 
-    if locale in Segment.locales do
-      {:ok, rules} = rules(locale, segment_type)
-
-      string
-      |> Segment.evaluate_rules(rules)
-      |> break(rules, segment_type, suppress?, [""])
-    else
-      {:error, Segment.unknown_locale_error(locale)}
-    end
+    string
+    |> Segment.evaluate_rules(rules)
+    |> break(rules, segment_type, suppress?, [""])
   end
 
   defp break({_break, [fore, ""]}, _rules, _segment_type, _suppress?, [head | rest]) do

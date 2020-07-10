@@ -1,5 +1,8 @@
 defmodule Unicode.String do
 
+  alias Unicode.String.Segment
+  alias Unicode.String.Break
+
   defdelegate fold(string), to: Unicode.String.Case.Folding
   defdelegate fold(string, type), to: Unicode.String.Case.Folding
 
@@ -48,6 +51,45 @@ defmodule Unicode.String do
   """
   def equals_ignoring_case?(string_a, string_b, type \\ :full) do
     fold(string_a, type) == fold(string_b, type)
+  end
+
+  @default_locale "root"
+
+  def split(string, options \\ []) when is_binary(string) do
+    locale = Keyword.get(options, :locale, @default_locale)
+    break = Keyword.get(options, :break, :word)
+
+    with {:ok, break} <- validate(:break, break),
+         {:ok, locale} <- validate(:locale, locale) do
+      Break.break(string, locale, break, options)
+    end
+    |> maybe_trim(options[:trim])
+  end
+
+  defp maybe_trim(list, true) do
+    Enum.reject(list, &Unicode.Property.white_space?/1)
+  end
+
+  defp maybe_trim(list, _) do
+    list
+  end
+
+  defp validate(:locale, locale) do
+    if locale in Segment.locales() do
+      {:ok, locale}
+    else
+      {:error, Segment.unknown_locale_error(locale)}
+    end
+  end
+
+  @breaks [:word, :grapheme, :line, :sentence]
+
+  defp validate(:break, break) do
+    if break in @breaks do
+      {:ok, break}
+    else
+      {:error, "Unknown break #{inspect break}. Valid breaks are #{inspect @breaks}"}
+    end
   end
 
 end
