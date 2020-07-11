@@ -6,45 +6,82 @@ defmodule Unicode.String.Break do
 
   alias Unicode.String.Segment
 
-  def break(string, locale, :grapheme, options) do
-    break_at(string, locale, :grapheme_cluster_break, options)
+  @break_map %{
+    grapheme: :grapheme_cluster_break,
+    word: :word_break,
+    sentence: :sentence_break,
+    line: :line_break
+  }
+
+  @break_keys Map.keys(@break_map)
+
+  @doc """
+
+
+
+  """
+  def break(string, locale, break, options) when break in @break_keys do
+    break_at(string, locale, Map.fetch!(@break_map, break), options)
   end
 
-  def break(string, locale, :word, options) do
-    break_at(string, locale, :word_break, options)
+  defp break_at(string, locale, segment_type, options) when is_binary(string) do
+    break_at({"", string}, locale, segment_type, options)
   end
 
-  def break(string, locale, :line, options) do
-    break_at(string, locale, :line_break, options)
-  end
-
-  def break(string, locale, :sentence, options) do
-    break_at(string, locale, :sentence_break, options)
-  end
-
-  defp break_at(string, locale, segment_type, options) do
+  defp break_at({string_before, string_after}, locale, segment_type, options) do
     suppress? = Keyword.get(options, :suppressions, true)
     {:ok, rules} = rules(locale, segment_type, suppress?)
 
-    string
+    {string_before, string_after}
     |> Segment.evaluate_rules(rules)
-    |> break(rules, [""])
   end
 
-  defp break({_break, [fore, ""]}, _rules, [head | rest]) do
-    Enum.reverse([head <> fore | rest])
+  @doc """
+
+
+
+  """
+  def split(string, locale, break, options) when break in @break_keys do
+    split_at(string, locale, Map.fetch!(@break_map, break), options)
   end
 
-  defp break({:break, [fore, aft]}, rules, [head | rest]) do
-    aft
-    |> Segment.evaluate_rules(rules)
-    |> break(rules, ["" | [head <> fore | rest]])
+  defp split_at(string, locale, segment_type, options) when is_binary(string) do
+    split_at({"", string}, locale, segment_type, options)
   end
 
-  defp break({:no_break, [fore, aft]}, rules, [head | rest]) do
-    aft
+  defp split_at({string_before, string_after}, locale, segment_type, options) do
+    suppress? = Keyword.get(options, :suppressions, true)
+    {:ok, rules} = rules(locale, segment_type, suppress?)
+
+    {string_before, string_after}
     |> Segment.evaluate_rules(rules)
-    |> break(rules, [head <> fore | rest])
+    |> split(rules, [""])
+  end
+
+  defp split({:break, {_string_before, ["", ""]}}, _rules, [head | rest]) do
+    Enum.reverse([head | rest])
+  end
+
+  defp split({:break, {_string_before, [fore, ""]}}, _rules, [head | rest]) do
+    Enum.reverse([fore | [head | rest]])
+  end
+
+  defp split({:break, {_string_before, [fore, aft]}}, rules, ["" | rest]) do
+    {fore, aft}
+    |> Segment.evaluate_rules(rules)
+    |> split(rules, [fore | rest])
+  end
+
+  defp split({:break, {_string_before, [fore, aft]}}, rules, [head | rest]) do
+    {head <> fore, aft}
+    |> Segment.evaluate_rules(rules)
+    |> split(rules, [fore | [head | rest]])
+  end
+
+  defp split({:no_break, {_string_before, [fore, aft]}}, rules, [head | rest]) do
+    {head <> fore, aft}
+    |> Segment.evaluate_rules(rules)
+    |> split(rules, [head <> fore | rest])
   end
 
   # Recompile this module if any of the segment

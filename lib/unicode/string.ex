@@ -56,13 +56,35 @@ defmodule Unicode.String do
 
   @default_locale "root"
 
-  def split(string, options \\ []) when is_binary(string) do
+  def break?(string, options \\ []) do
+    case break(string, options) do
+      {:break, _} -> true
+      {:no_break, _} -> false
+      {:error, reason} -> raise ArgumentError, reason
+    end
+  end
+
+  def break(string, options \\ [])
+
+  def break(string, options) when is_binary(string) do
     locale = Keyword.get(options, :locale, @default_locale)
     break = Keyword.get(options, :break, :word)
 
     with {:ok, break} <- validate(:break, break),
          {:ok, locale} <- validate(:locale, locale) do
       Break.break(string, locale, break, options)
+    end
+  end
+
+  def split(string, options \\ [])
+
+  def split(string, options) when is_binary(string) do
+    locale = Keyword.get(options, :locale, @default_locale)
+    break = Keyword.get(options, :break, :word)
+
+    with {:ok, break} <- validate(:break, break),
+         {:ok, locale} <- validate(:locale, locale) do
+      Break.split(string, locale, break, options)
     end
     |> maybe_trim(options[:trim])
   end
