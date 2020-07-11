@@ -56,6 +56,11 @@ defmodule Unicode.String do
 
   @default_locale "root"
 
+  @doc """
+
+
+
+  """
   def break?(string, options \\ []) do
     case break(string, options) do
       {:break, _} -> true
@@ -80,6 +85,11 @@ defmodule Unicode.String do
     end
   end
 
+  @doc """
+
+
+
+  """
   def split(string, options) when is_binary(string) do
     locale = Keyword.get(options, :locale, @default_locale)
     break = Keyword.get(options, :break, :word)
