@@ -1,11 +1,13 @@
 defmodule Unicode.String do
   @moduledoc """
-  Elixir provides native support for UTF-8 string
-  providing a firm foundation for manipulating strings
-  in multiple scripts.
+  This module provides functions that implement somee
+  of the [Unicode](https://unicode.org) stanards:
 
-  The functions in this module complement the
-  functions in the `String` module.
+  * The [Unicode Case Folding](https://www.unicode.org/versions/Unicode13.0.0/ch03.pdf) algorithm
+    to provide case-independent equality checking irrespective of language or script.
+
+  * The [Unicode Segmentation](https://unicode.org/reports/tr29/) algorithm to detect,
+    break or splut strings into grapheme clusters, works and sentences.
 
   """
 
@@ -15,6 +17,29 @@ defmodule Unicode.String do
 
   defdelegate fold(string), to: Unicode.String.Case.Folding
   defdelegate fold(string, type), to: Unicode.String.Case.Folding
+
+  @type string_interval :: {String.t, String.t}
+  @type break_type :: :grapheme | :word | :line | :sentence
+  @type error_return :: {:error, String.t}
+
+  @type options :: [
+    {:locale, String.t},
+    {:break, break_type},
+    {:suppressions, boolean}
+  ]
+
+  @type split_options :: [
+    {:locale, String.t},
+    {:break, break_type},
+    {:suppressions, boolean},
+    {:trim, boolean}
+  ]
+
+  @type break_or_no_break :: :break | :no_break
+
+  @type break_match ::
+    {break_or_no_break, {String.t, {String.t, String.t}}} |
+    {break_or_no_break, {String.t, String.t}}
 
   @doc """
   Compares two strings in a case insensitive
@@ -59,6 +84,7 @@ defmodule Unicode.String do
       false
 
   """
+  @spec equals_ignoring_case?(String.t, String.t, atom()) :: boolean
   def equals_ignoring_case?(string_a, string_b, type \\ :full) do
     fold(string_a, type) == fold(string_b, type)
   end
@@ -80,7 +106,9 @@ defmodule Unicode.String do
 
   ## Returns
 
-  * `true` or `false`
+  * `true` or `false` or
+
+  * raises an exception if there is an error
 
   ## Options
 
@@ -111,6 +139,7 @@ defmodule Unicode.String do
       true
 
   """
+  @spec break?(string_interval, options) :: boolean
   def break?({string_before, string_after}, options \\ []) do
     case break({string_before, string_after}, options) do
       {:break, _} -> true
@@ -138,9 +167,11 @@ defmodule Unicode.String do
   be applicable at this point between
   `string_before` and `string_after`.
 
-  * `{:break, {string_before, [matched_string, remaining_string]}}` or
+  * `{:break, {string_before, {matched_string, remaining_string}}}` or
 
-  * `{:no_break, {string_before, [matched_string, remaining_string]}}`
+  * `{:no_break, {string_before, {matched_string, remaining_string}}}` or
+
+  * `{:error, reason}`
 
   ## Options
 
@@ -162,15 +193,16 @@ defmodule Unicode.String do
   ## Examples
 
       iex> Unicode.String.break {"This is ", "some words"}
-      {:break, {"This is ", ["s", "ome words"]}}
+      {:break, {"This is ", {"s", "ome words"}}}
 
       iex> Unicode.String.break {"This is ", "some words"}, break: :sentence
-      {:no_break, {"This is ", ["s", "ome words"]}}
+      {:no_break, {"This is ", {"s", "ome words"}}}
 
       iex> Unicode.String.break {"This is one. ", "This is some words."}, break: :sentence
-      {:break, {"This is one. ", ["T", "his is some words."]}}
+      {:break, {"This is one. ", {"T", "his is some words."}}}
 
   """
+  @spec break(string_interval, options) :: break_match | error_return
   def break({string_before, string_after}, options \\ []) do
     locale = Keyword.get(options, :locale, @default_locale)
     break = Keyword.get(options, :break, :word)
@@ -193,8 +225,10 @@ defmodule Unicode.String do
 
   ## Returns
 
-  A function that implements the enumerable
-  protocol.
+  * A function that implements the enumerable
+    protocol or
+
+  * `{:error, reason}`
 
   ## Options
 
@@ -225,6 +259,7 @@ defmodule Unicode.String do
       ["This", "is", "a"]
 
   """
+  @spec splitter(String.t, split_options) :: function | error_return
   def splitter(string, options) when is_binary(string) do
     locale = Keyword.get(options, :locale, @default_locale)
     break = Keyword.get(options, :break, :word)
@@ -250,7 +285,9 @@ defmodule Unicode.String do
   A tuple with the segment and the remainder of the string or `""`
   in case the String reached its end.
 
-  * `{next_string, rest_of_the_string}`
+  * `{next_string, rest_of_the_string}` or
+
+  * `{:error, reason}`
 
   ## Options
 
@@ -278,6 +315,7 @@ defmodule Unicode.String do
       {"This is a sentence. ", "And another."}
 
   """
+  @spec next(String.t, split_options) :: String.t | nil | error_return
   def next(string, options) when is_binary(string) do
     locale = Keyword.get(options, :locale, @default_locale)
     break = Keyword.get(options, :break, :word)
@@ -301,8 +339,10 @@ defmodule Unicode.String do
 
   ## Returns
 
-  A list of strings after applying the
-  specified break rules.
+  * A list of strings after applying the
+    specified break rules or
+
+  * `{:error, reason}`
 
   ## Options
 
@@ -329,8 +369,7 @@ defmodule Unicode.String do
   ## Examples
 
       iex> Unicode.String.split "This is a sentence. And another.", break: :word
-      ["This", " ", "is", " ", "a", " ", "sentence", ".", " ", "And", " ", "another",
-       "."]
+      ["This", " ", "is", " ", "a", " ", "sentence", ".", " ", "And", " ", "another", "."]
 
       iex> Unicode.String.split "This is a sentence. And another.", break: :word, trim: true
       ["This", "is", "a", "sentence", ".", "And", "another", "."]
@@ -339,6 +378,7 @@ defmodule Unicode.String do
       ["This is a sentence. ", "And another."]
 
   """
+  @spec split(String.t, split_options) :: [String.t, ...]
   def split(string, options) when is_binary(string) do
     locale = Keyword.get(options, :locale, @default_locale)
     break = Keyword.get(options, :break, :word)
@@ -350,7 +390,7 @@ defmodule Unicode.String do
     |> maybe_trim(options[:trim])
   end
 
-  defp maybe_trim(list, true) do
+  defp maybe_trim(list, true) when is_list(list) do
     Enum.reject(list, &Property.white_space?/1)
   end
 

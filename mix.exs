@@ -18,7 +18,7 @@ defmodule UnicodeString.MixProject do
       package: package(),
       elixirc_paths: elixirc_paths(Mix.env()),
       dialyzer: [
-        plt_add_apps: ~w(mix)a
+        plt_add_apps: ~w(mix sweet_xml)a
       ]
     ]
   end

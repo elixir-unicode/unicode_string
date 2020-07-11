@@ -60,27 +60,27 @@ defmodule Unicode.String.Break do
     |> split(rules, [""])
   end
 
-  defp split({:break, {_string_before, ["", ""]}}, _rules, [head | rest]) do
+  defp split({:break, {_string_before, {"", ""}}}, _rules, [head | rest]) do
     Enum.reverse([head | rest])
   end
 
-  defp split({:break, {_string_before, [fore, ""]}}, _rules, [head | rest]) do
+  defp split({:break, {_string_before, {fore, ""}}}, _rules, [head | rest]) do
     Enum.reverse([fore | [head | rest]])
   end
 
-  defp split({:break, {_string_before, [fore, aft]}}, rules, ["" | rest]) do
+  defp split({:break, {_string_before, {fore, aft}}}, rules, ["" | rest]) do
     {fore, aft}
     |> Segment.evaluate_rules(rules)
     |> split(rules, [fore | rest])
   end
 
-  defp split({:break, {_string_before, [fore, aft]}}, rules, [head | rest]) do
+  defp split({:break, {_string_before, {fore, aft}}}, rules, [head | rest]) do
     {head <> fore, aft}
     |> Segment.evaluate_rules(rules)
     |> split(rules, [fore | [head | rest]])
   end
 
-  defp split({:no_break, {_string_before, [fore, aft]}}, rules, [head | rest]) do
+  defp split({:no_break, {_string_before, {fore, aft}}}, rules, [head | rest]) do
     {head <> fore, aft}
     |> Segment.evaluate_rules(rules)
     |> split(rules, [head <> fore | rest])
@@ -99,7 +99,7 @@ defmodule Unicode.String.Break do
     << char :: utf8, rest :: binary>> = string
 
     case next_at({<< char :: utf8 >>, rest}, locale, Map.fetch!(@break_map, break), options) do
-      {fore, [match, rest]} ->
+      {fore, {match, rest}} ->
         {<< char :: utf8 >> <> fore, match <> rest}
       {fore, rest} ->
         {<< char :: utf8 >> <> fore, rest}
@@ -125,22 +125,22 @@ defmodule Unicode.String.Break do
 
     {string_before, string_after}
     |> Segment.evaluate_rules(rules)
-    |> next(rules, "")
+    |> do_next(rules, "")
   end
 
-  defp next({:break, {_string_before, ["", ""]}}, _rules, acc) do
+  defp do_next({:break, {_string_before, {"", ""}}}, _rules, acc) do
     {acc, ""}
   end
 
-  defp next({:break, {_string_before, [fore, ""]}}, _rules, acc) do
+  defp do_next({:break, {_string_before, {fore, ""}}}, _rules, acc) do
     {acc, fore}
   end
 
-  defp next({:break, {_string_before, rest}}, _rules, acc) do
+  defp do_next({:break, {_string_before, rest}}, _rules, acc) do
     {acc, rest}
   end
 
-  defp next({:no_break, {_string_before, [fore, aft]}}, rules, acc) do
+  defp do_next({:no_break, {_string_before, {fore, aft}}}, rules, acc) do
     {acc <> fore, aft}
     |> Segment.evaluate_rules(rules)
     |> next(rules, acc <> fore)
@@ -153,15 +153,15 @@ defmodule Unicode.String.Break do
     @external_resource Path.join(Segment.segments_dir(), file)
   end
 
-  for locale <- Unicode.String.Segment.locales do
-    {:ok, segments} = Unicode.String.Segment.segments(locale)
+  for locale <- Segment.locales do
+    {:ok, segments} = Segment.segments(locale)
 
     for segment_type <- Map.keys(segments) do
       def rules(unquote(locale), unquote(segment_type)) do
-        unquote(Macro.escape(Unicode.String.Segment.rules(locale, segment_type)))
+        unquote(Macro.escape(Segment.rules(locale, segment_type)))
       end
 
-      for suppression <- Unicode.String.Segment.suppressions!(locale, segment_type) do
+      for suppression <- Segment.suppressions!(locale, segment_type) do
         def suppress(<< unquote(suppression), rest :: binary >>, unquote(locale), unquote(segment_type)) do
           [unquote(suppression), rest]
         end
@@ -172,7 +172,7 @@ defmodule Unicode.String.Break do
   @default_locale "root"
 
   def rules(_other, segment_type) do
-    Unicode.String.Segment.rules(@default_locale, segment_type)
+    Segment.rules(@default_locale, segment_type)
   end
 
   def rules(locale, segment_type, true) do

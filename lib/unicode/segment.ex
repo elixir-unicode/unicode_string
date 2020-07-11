@@ -99,12 +99,12 @@ defmodule Unicode.String.Segment do
   # The final implicit rule is to
   # to break. ie: :any ÷ :any
   defp return_break_or_no_break({:fail, {before_string, ""}}) do
-    {:break, {before_string, ["", ""]}}
+    {:break, {before_string, {"", ""}}}
   end
 
   defp return_break_or_no_break({:fail, {before_string, after_string}}) do
     << char :: utf8, rest :: binary >> = after_string
-    {:break, {before_string, [<< char :: utf8 >>, rest]}}
+    {:break, {before_string, {<< char :: utf8 >>, rest}}}
   end
 
   defp return_break_or_no_break({:pass, operator, result}) do
@@ -115,10 +115,11 @@ defmodule Unicode.String.Segment do
 
   # This rule implements suppressions and is only inserted into
   # a rule set if `suppress: true` is passed as an option to
-  # `Unnicode.String.break/2`
+  # `Unnicode.String.break/2`. We append the <<0>> so that the
+  # next rules won't match against this suppression as a break.
   defp evaluate_rule({string_before, string_after}, {0.0, {:no_break, locale, segment_type}}) do
     case Break.suppress(string_after, locale, segment_type) do
-      [match, rest] -> {:pass, {string_before, [match, rest]}}
+      [match, rest] -> {:pass, {string_before, {match <> << 0 >>, rest}}}
       _other -> {:fail, {string_before, string_after}}
     end
   end
@@ -126,7 +127,7 @@ defmodule Unicode.String.Segment do
   # Process an `:any op regex` rule at end of string
   defp evaluate_rule({string_before, <<_::utf8>> = string_after}, {_seq, {_operator, :any, aft}}) do
     if Regex.match?(aft, string_after) do
-      {:pass, {string_before, [string_after, ""]}}
+      {:pass, {string_before, {string_after, ""}}}
     else
       {:fail, {string_before, string_after}}
     end
@@ -134,7 +135,7 @@ defmodule Unicode.String.Segment do
 
   defp evaluate_rule({string_before, string_after}, {_seq, {_operator, :any, aft}}) do
     case Regex.split(aft, string_after, @split_options) do
-      [match, rest] -> {:pass, {string_before, [match, rest]}}
+      [match, rest] -> {:pass, {string_before, {match, rest}}}
       _other -> {:fail, {string_before, string_after}}
     end
   end
@@ -142,7 +143,7 @@ defmodule Unicode.String.Segment do
   # :any matches end of string
   defp evaluate_rule({string_before, "" = string_after}, {_seq, {_operator, fore, :any}}) do
     if Regex.match?(fore, string_before) do
-      {:pass, {string_before, ["", ""]}}
+      {:pass, {string_before, {"", ""}}}
     else
       {:fail, {string_before, string_after}}
     end
@@ -151,7 +152,7 @@ defmodule Unicode.String.Segment do
   defp evaluate_rule({string_before, string_after}, {_seq, {_operator, fore, :any}}) do
     if Regex.match?(fore, string_before) do
       << char :: utf8, rest :: binary >> = string_after
-      {:pass, {string_before, [<< char :: utf8 >>, rest]}}
+      {:pass, {string_before, {<< char :: utf8 >>, rest}}}
     else
       {:fail, {string_before, string_after}}
     end
@@ -160,7 +161,7 @@ defmodule Unicode.String.Segment do
   defp evaluate_rule({string_before, string_after}, {_seq, {_operator, fore, aft}}) do
     if Regex.match?(fore, string_before) do
       case Regex.split(aft, string_after, @split_options) do
-        [match, rest] -> {:pass, {string_before, [match, rest]}}
+        [match, rest] -> {:pass, {string_before, {match, rest}}}
         _other -> {:fail, {string_before, string_after}}
       end
     else
