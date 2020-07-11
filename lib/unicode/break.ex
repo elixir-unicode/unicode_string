@@ -1,8 +1,5 @@
 defmodule Unicode.String.Break do
-  @moduledoc """
-
-
-  """
+  @moduledoc false
 
   alias Unicode.String.Segment
 
@@ -10,7 +7,12 @@ defmodule Unicode.String.Break do
     grapheme: :grapheme_cluster_break,
     word: :word_break,
     sentence: :sentence_break,
-    line: :line_break
+    line: :line_break,
+    graphemes: :grapheme_cluster_break,
+    grapheme_cluster: :grapheme_cluster_break,
+    words: :word_break,
+    sentences: :sentence_break,
+    lines: :line_break
   }
 
   @break_keys Map.keys(@break_map)

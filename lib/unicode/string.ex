@@ -67,16 +67,18 @@ defmodule Unicode.String do
   def break(string, options \\ [])
 
   def break(string, options) when is_binary(string) do
+    break({"", string}, options)
+  end
+
+  def break({string_before, string_after}, options) do
     locale = Keyword.get(options, :locale, @default_locale)
     break = Keyword.get(options, :break, :word)
 
     with {:ok, break} <- validate(:break, break),
          {:ok, locale} <- validate(:locale, locale) do
-      Break.break(string, locale, break, options)
+      Break.break({string_before, string_after}, locale, break, options)
     end
   end
-
-  def split(string, options \\ [])
 
   def split(string, options) when is_binary(string) do
     locale = Keyword.get(options, :locale, @default_locale)
