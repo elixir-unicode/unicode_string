@@ -102,7 +102,7 @@ defmodule Unicode.String.Break do
       {fore, [match, rest]} ->
         {<< char :: utf8 >> <> fore, match <> rest}
       {fore, rest} ->
-        {<< char :: utf8 >> <> fore <> rest, ""}
+        {<< char :: utf8 >> <> fore, rest}
     end
     |> repeat_if_trimming_required(locale, break, options, options[:trim])
   end
