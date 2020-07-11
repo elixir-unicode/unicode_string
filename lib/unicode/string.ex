@@ -1,4 +1,13 @@
 defmodule Unicode.String do
+  @moduledoc """
+  Elixir provides native support for UTF-8 string
+  providing a firm foundation for manipulating strings
+  in multiple scripts.
+
+  The functions in this module complement the
+  functions in the `String` module.
+
+  """
 
   alias Unicode.String.Segment
   alias Unicode.String.Break
@@ -57,25 +66,112 @@ defmodule Unicode.String do
   @default_locale "root"
 
   @doc """
+  Returns a boolean indicating if the
+  requested break is applicable
+  at the point between the two string
+  segments represented by `{string_before, string_after}`.
 
+  ## Arguments
 
+  * `string` is any `String.t`.
+
+  * `options` is a keyword list of
+    options.
+
+  ## Returns
+
+  * `true` or `false`
+
+  ## Options
+
+  * `:locale` is any locale returned by
+    `Unicode.String.Segment.known_locales/0`.
+    The default is "root" which corresponds
+    to the break rules defined by the
+    [Unicode Segmentation](https://unicode.org/reports/tr29/) rules.
+
+  * `:break` is the type of break. It is one of
+    `:grapheme`, `:word`, `:line` or `:sentence`. The
+    default is `:word`.
+
+  * `:suppressions` is a boolean which,
+    if `true`, will suppress breaks for common
+    abbreviations defined for the `locale`. The
+    default is `true`.
+
+  ## Examples
+
+      iex> Unicode.String.break? {"This is ", "some words"}
+      true
+
+      iex> Unicode.String.break? {"This is ", "some words"}, break: :sentence
+      false
+
+      iex> Unicode.String.break? {"This is one. ", "This is some words."}, break: :sentence
+      true
 
   """
-  def break?(string, options \\ []) do
-    case break(string, options) do
+  def break?({string_before, string_after}, options \\ []) do
+    case break({string_before, string_after}, options) do
       {:break, _} -> true
       {:no_break, _} -> false
       {:error, reason} -> raise ArgumentError, reason
     end
   end
 
-  def break(string, options \\ [])
+  @doc """
+  Returns match data indicating if the
+  requested break is applicable
+  at the point between the two string
+  segments represented by `{string_before, string_after}`.
 
-  def break(string, options) when is_binary(string) do
-    break({"", string}, options)
-  end
+  ## Arguments
 
-  def break({string_before, string_after}, options) do
+  * `string` is any `String.t`.
+
+  * `options` is a keyword list of
+    options.
+
+  ## Returns
+
+  A tuple indicating if a break would
+  be applicable at this point between
+  `string_before` and `string_after`.
+
+  * `{:break, {string_before, [matched_string, remaining_string]}}` or
+
+  * `{:no_break, {string_before, [matched_string, remaining_string]}}`
+
+  ## Options
+
+  * `:locale` is any locale returned by
+    `Unicode.String.Segment.known_locales/0`.
+    The default is "root" which corresponds
+    to the break rules defined by the
+    [Unicode Segmentation](https://unicode.org/reports/tr29/) rules.
+
+  * `:break` is the type of break. It is one of
+    `:grapheme`, `:word`, `:line` or `:sentence`. The
+    default is `:word`.
+
+  * `:suppressions` is a boolean which,
+    if `true`, will suppress breaks for common
+    abbreviations defined for the `locale`. The
+    default is `true`.
+
+  ## Examples
+
+      iex> Unicode.String.break {"This is ", "some words"}
+      {:break, {"This is ", ["s", "ome words"]}}
+
+      iex> Unicode.String.break {"This is ", "some words"}, break: :sentence
+      {:no_break, {"This is ", ["s", "ome words"]}}
+
+      iex> Unicode.String.break {"This is one. ", "This is some words."}, break: :sentence
+      {:break, {"This is one. ", ["T", "his is some words."]}}
+
+  """
+  def break({string_before, string_after}, options \\ []) do
     locale = Keyword.get(options, :locale, @default_locale)
     break = Keyword.get(options, :break, :word)
 
@@ -86,8 +182,47 @@ defmodule Unicode.String do
   end
 
   @doc """
+  Returns an enumerable that splits a string on demand.
 
+  ## Arguments
 
+  * `string` is any `String.t`.
+
+  * `options` is a keyword list of
+    options.
+
+  ## Returns
+
+  A function that implements the enumerable
+  protocol.
+
+  ## Options
+
+  * `:locale` is any locale returned by
+    `Unicode.String.Segment.known_locales/0`.
+    The default is "root" which corresponds
+    to the break rules defined by the
+    [Unicode Segmentation](https://unicode.org/reports/tr29/) rules.
+
+  * `:break` is the type of break. It is one of
+    `:grapheme`, `:word`, `:line` or `:sentence`. The
+    default is `:word`.
+
+  * `:suppressions` is a boolean which,
+    if `true`, will suppress breaks for common
+    abbreviations defined for the `locale`. The
+    default is `true`.
+
+  * `:trim` is a boolean indicating if segments
+    the are comprised of only white space are to be
+    excluded fromt the returned list.  The default
+    is `false`.
+
+  ## Examples
+
+      iex> enum = Unicode.String.splitter "This is a sentence. And another.", break: :word, trim: true
+      iex> Enum.take enum, 3
+      ["This", "is", "a"]
 
   """
   def splitter(string, options) when is_binary(string) do
@@ -101,8 +236,46 @@ defmodule Unicode.String do
   end
 
   @doc """
+  Returns next segment in a string.
 
+  ## Arguments
 
+  * `string` is any `String.t`.
+
+  * `options` is a keyword list of
+    options.
+
+  ## Returns
+
+  A tuple with the segment and the remainder of the string or `""`
+  in case the String reached its end.
+
+  * `{next_string, rest_of_the_string}`
+
+  ## Options
+
+  * `:locale` is any locale returned by
+    `Unicode.String.Segment.known_locales/0`.
+    The default is "root" which corresponds
+    to the break rules defined by the
+    [Unicode Segmentation](https://unicode.org/reports/tr29/) rules.
+
+  * `:break` is the type of break. It is one of
+    `:grapheme`, `:word`, `:line` or `:sentence`. The
+    default is `:word`.
+
+  * `:suppressions` is a boolean which,
+    if `true`, will suppress breaks for common
+    abbreviations defined for the `locale`. The
+    default is `true`.
+
+  ## Examples
+
+      iex> Unicode.String.next "This is a sentence. And another.", break: :word
+      {"This", " is a sentence. And another."}
+
+      iex> Unicode.String.next "This is a sentence. And another.", break: :sentence
+      {"This is a sentence. ", "And another."}
 
   """
   def next(string, options) when is_binary(string) do
@@ -116,8 +289,54 @@ defmodule Unicode.String do
   end
 
   @doc """
+  Splits a string according to the
+  specified break type.
 
+  ## Arguments
 
+  * `string` is any `String.t`.
+
+  * `options` is a keyword list of
+    options.
+
+  ## Returns
+
+  A list of strings after applying the
+  specified break rules.
+
+  ## Options
+
+  * `:locale` is any locale returned by
+    `Unicode.String.Segment.known_locales/0`.
+    The default is "root" which corresponds
+    to the break rules defined by the
+    [Unicode Segmentation](https://unicode.org/reports/tr29/) rules.
+
+  * `:break` is the type of break. It is one of
+    `:grapheme`, `:word`, `:line` or `:sentence`. The
+    default is `:word`.
+
+  * `:suppressions` is a boolean which,
+    if `true`, will suppress breaks for common
+    abbreviations defined for the `locale`. The
+    default is `true`.
+
+  * `:trim` is a boolean indicating if segments
+    the are comprised of only white space are to be
+    excluded fromt the returned list.  The default
+    is `false`.
+
+  ## Examples
+
+      iex> Unicode.String.split "This is a sentence. And another.", break: :word
+      ["This", " ", "is", " ", "a", " ", "sentence", ".", " ", "And", " ", "another",
+       "."]
+
+      iex> Unicode.String.split "This is a sentence. And another.", break: :word, trim: true
+      ["This", "is", "a", "sentence", ".", "And", "another", "."]
+
+      iex> Unicode.String.split "This is a sentence. And another.", break: :sentence
+      ["This is a sentence. ", "And another."]
 
   """
   def split(string, options) when is_binary(string) do

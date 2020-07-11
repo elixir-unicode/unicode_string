@@ -57,7 +57,7 @@ defmodule UnicodeString.MixProject do
     [
       {:unicode_set, path: "../unicode_set"},
       {:ex_unicode, path: "../unicode"},
-      {:sweet_xml, "~> 0.6", only: :dev, runtime: false},
+      {:sweet_xml, "~> 0.6", runtime: false},
       {:benchee, "~> 1.0", only: :dev, optional: true},
       {:ex_doc, "~> 0.19", only: [:release, :dev], optional: true},
       {:dialyxir, "~> 1.0", only: [:dev], runtime: false, optional: true}
