@@ -86,6 +86,66 @@ defmodule Unicode.String.Break do
     |> split(rules, [head <> fore | rest])
   end
 
+  @doc """
+
+
+
+  """
+  def next("", _locale, _break, _options) do
+    nil
+  end
+
+  def next(string, locale, break, options) when break in @break_keys and is_binary(string) do
+    << char :: utf8, rest :: binary>> = string
+
+    case next_at({<< char :: utf8 >>, rest}, locale, Map.fetch!(@break_map, break), options) do
+      {fore, [match, rest]} ->
+        {<< char :: utf8 >> <> fore, match <> rest}
+      {fore, rest} ->
+        {<< char :: utf8 >> <> fore <> rest, ""}
+    end
+    |> repeat_if_trimming_required(locale, break, options, options[:trim])
+  end
+
+  defp repeat_if_trimming_required({match, rest}, locale, break, options, true) do
+    if Unicode.Property.white_space?(match) do
+      next(rest, locale, break, options)
+    else
+      {match, rest}
+    end
+  end
+
+  defp repeat_if_trimming_required({match, rest}, _locale, _break, _options, _) do
+    {match, rest}
+  end
+
+  defp next_at({string_before, string_after}, locale, segment_type, options) do
+    suppress? = Keyword.get(options, :suppressions, true)
+    {:ok, rules} = rules(locale, segment_type, suppress?)
+
+    {string_before, string_after}
+    |> Segment.evaluate_rules(rules)
+    |> next(rules, "")
+  end
+
+  defp next({:break, {_string_before, ["", ""]}}, _rules, acc) do
+    {acc, ""}
+  end
+
+  defp next({:break, {_string_before, [fore, ""]}}, _rules, acc) do
+    {acc, fore}
+  end
+
+  defp next({:break, {_string_before, rest}}, _rules, acc) do
+    {acc, rest}
+  end
+
+  defp next({:no_break, {_string_before, [fore, aft]}}, rules, acc) do
+    {acc <> fore, aft}
+    |> Segment.evaluate_rules(rules)
+    |> next(rules, acc <> fore)
+  end
+
   # Recompile this module if any of the segment
   # files change.
 

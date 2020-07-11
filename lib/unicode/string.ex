@@ -90,6 +90,21 @@ defmodule Unicode.String do
 
 
   """
+  def splitter(string, options) when is_binary(string) do
+    locale = Keyword.get(options, :locale, @default_locale)
+    break = Keyword.get(options, :break, :word)
+
+    with {:ok, break} <- validate(:break, break),
+         {:ok, locale} <- validate(:locale, locale) do
+      Stream.unfold(string, &Break.next(&1, locale, break, options))
+    end
+  end
+
+  @doc """
+
+
+
+  """
   def split(string, options) when is_binary(string) do
     locale = Keyword.get(options, :locale, @default_locale)
     break = Keyword.get(options, :break, :word)
