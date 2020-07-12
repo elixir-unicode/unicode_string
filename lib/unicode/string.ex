@@ -399,7 +399,7 @@ defmodule Unicode.String do
   end
 
   defp validate(:locale, locale) do
-    if locale in Segment.locales() do
+    if locale in Segment.known_locales() do
       {:ok, locale}
     else
       {:error, Segment.unknown_locale_error(locale)}

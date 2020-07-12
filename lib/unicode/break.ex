@@ -157,7 +157,37 @@ defmodule Unicode.String.Break do
     sentence_break: %{name: 10.5, value: "$Suppressions $Close* $Sp* $ParaSep? ×"}
   }
 
-  for locale <- Segment.locales do
+  @doc """
+  Returns a list of rules applicable for
+  a given locale and segment type.
+
+  """
+  def rules(locale, segment_type)
+
+  @doc """
+  Returns the variable definitions for
+  a given locale and segment typ.
+
+  """
+  def variables(locale, segment_type)
+
+  @doc """
+  Returns a list of suppressions
+  (abbreviations) that can be used
+  to suppress an otherwise acceptable
+  break point.
+
+  """
+  def suppressions(locale, segment_type)
+
+  @doc """
+  Returns the suppression rule for a
+  given locale and segment type.
+
+  """
+  def suppressions_rule(locale, segment_type)
+
+  for locale <- Segment.known_locales do
     {:ok, segments} = Segment.segments(locale)
 
     for segment_type <- Map.keys(segments) do
@@ -165,11 +195,11 @@ defmodule Unicode.String.Break do
         unquote(Macro.escape(Segment.rules(locale, segment_type)))
       end
 
-      def variables!(unquote(locale), unquote(segment_type)) do
+      def variables(unquote(locale), unquote(segment_type)) do
         unquote(Macro.escape(get_in(segments, [segment_type, :variables])))
       end
 
-      def suppressions!(unquote(locale), unquote(segment_type)) do
+      def suppressions(unquote(locale), unquote(segment_type)) do
         unquote(Macro.escape(Segment.suppressions!(locale, segment_type)))
       end
 
@@ -200,6 +230,7 @@ defmodule Unicode.String.Break do
     nil
   end
 
+  @doc false
   def rules(locale, break_type, true) do
     if suppressions_rule = suppressions_rule(locale, break_type) do
       {:ok, rules} = rules(locale, break_type)

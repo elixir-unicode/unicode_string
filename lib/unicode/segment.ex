@@ -11,19 +11,23 @@ defmodule Unicode.String.Segment do
   # defguard is_id_start(char) when Unicode.Set.match?(char, "\\p{ID_start}")
   # defguard is_id_continue(char) when Unicode.Set.match?(char, "\\p{ID_continue}")
 
+  @doc "Identifies if a codepoint is a valid start of an indentifier"
   defguard is_id_start(char)
     when char in ?A..?Z
 
+  @doc "Identifies if a codepoint is a valid identifier character"
   defguard is_id_continue(char)
     when char in ?a..?z or char in ?A..?Z or char in ?0..?9 or char == ?_
 
-  def locales do
+  @doc "Returns a list of the locales known to `Unicode.String.Break`"
+  def known_locales do
     locale_map()
     |> Map.keys
   end
 
   @doc """
-  Return the rules as defined by CLDR.
+  Return the rules as defined by CLDR for a given
+  locale and break type.
 
   """
   def rules(locale, segment_type, additional_variables \\ []) do
@@ -37,6 +41,11 @@ defmodule Unicode.String.Segment do
     end
   end
 
+  @doc """
+  Return the rules as defined by CLDR for a given
+  locale and break type and raises on error.
+
+  """
   def rules!(locale, segment_type, additional_variables \\ []) do
     case rules(locale, segment_type, additional_variables) do
       {:ok, rules} -> rules
@@ -50,6 +59,14 @@ defmodule Unicode.String.Segment do
     |> compile_rules
   end
 
+  @doc """
+  Compiles a segment rule in the context of a list
+  of variables.
+
+  The compile rule can then be inserted into a
+  rule set.
+
+  """
   def compile_rule(rule, variables) when is_map(rule) do
     compile_rules([rule], variables)
     |> hd
@@ -73,6 +90,7 @@ defmodule Unicode.String.Segment do
     end)
   end
 
+  @doc false
   def suppressions_variable(locale, segment_type) do
     variable =
       locale
@@ -99,12 +117,22 @@ defmodule Unicode.String.Segment do
     "(" <> suppression_regex <> ")"
   end
 
+  @doc """
+  Returns a list of the suppressions for a given
+  locale and segment type.
+
+  """
   def suppressions(locale, segment_type) do
     with {:ok, segment} <- segments(locale, segment_type) do
       {:ok, Map.get(segment, :suppressions, [])}
     end
   end
 
+  @doc """
+  Returns a list of the suppressions for a given
+  locale and segment type and raises on error.
+
+  """
   def suppressions!(locale, segment_type) do
     case suppressions(locale, segment_type) do
       {:ok, suppressions} -> suppressions
@@ -122,10 +150,21 @@ defmodule Unicode.String.Segment do
     |> Unicode.Regex.compile!(@regex_options)
   end
 
+  @doc """
+  Evaludates a list of rules against a given
+  string.
+
+  """
   def evaluate_rules(string, rules) when is_binary(string) do
     evaluate_rules({"", string}, rules)
   end
 
+  @doc """
+  Evaludates a list of rules against a given
+  2-tuple of string representing a break point
+  in a string.
+
+  """
   def evaluate_rules({string_before, string_after}, rules) do
     Enum.reduce_while(rules, [], fn rule, _acc ->
       {_sequence, {operator, _fore, _aft}} = rule
@@ -274,6 +313,13 @@ defmodule Unicode.String.Segment do
     |> Map.new
   end
 
+  @doc """
+  Returns a list of the ancestor locales
+  of the a given locale.
+
+  The list includes the given locale.
+
+  """
   def ancestors(locale_name) do
     if Map.get(locale_map(), locale_name) do
       case String.split(locale_name, "-") do
@@ -287,6 +333,7 @@ defmodule Unicode.String.Segment do
     end
   end
 
+  @doc false
   def merge_ancestors("root") do
     raw_segments!("root")
     |> wrap(:ok)
@@ -299,6 +346,7 @@ defmodule Unicode.String.Segment do
     end
   end
 
+  @doc false
   def merge_ancestors([locale, root]) do
     merge_ancestor(locale, raw_segments!(root))
   end
