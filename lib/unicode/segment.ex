@@ -239,7 +239,7 @@ defmodule Unicode.String.Segment do
   end
 
   defp expand_rules(rules, variables) do
-    Enum.reduce(rules, [], fn %{name: sequence, value: rule}, acc ->
+    Enum.reduce(rules, [], fn %{id: sequence, value: rule}, acc ->
       rule =
         rule
         |> String.trim
@@ -388,7 +388,7 @@ defmodule Unicode.String.Segment do
           ],
           rules: [
             ~x".//rule"l,
-             name: ~x"./@id"f,
+             id: ~x"./@id"f,
              value: ~x"./text()"s
           ],
           suppressions: ~x".//suppression/text()"ls

@@ -154,7 +154,7 @@ defmodule Unicode.String.Break do
   end
 
   @suppression_rules %{
-    sentence_break: %{name: 10.5, value: "$Suppressions $Close* $Sp* $ParaSep? ×"}
+    sentence_break: %{id: 10.5, value: "$Suppressions $Close* $Sp* $ParaSep? ×"}
   }
 
   @doc """
