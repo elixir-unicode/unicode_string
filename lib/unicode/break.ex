@@ -143,7 +143,7 @@ defmodule Unicode.String.Break do
   defp do_next({:no_break, {_string_before, {fore, aft}}}, rules, acc) do
     {acc <> fore, aft}
     |> Segment.evaluate_rules(rules)
-    |> next(rules, acc <> fore)
+    |> do_next(rules, acc <> fore)
   end
 
   # Recompile this module if any of the segment
@@ -153,6 +153,10 @@ defmodule Unicode.String.Break do
     @external_resource Path.join(Segment.segments_dir(), file)
   end
 
+  @suppression_rules %{
+    sentence_break: %{name: 10.5, value: "$Suppressions $Close* $Sp* $ParaSep? ×"}
+  }
+
   for locale <- Segment.locales do
     {:ok, segments} = Segment.segments(locale)
 
@@ -161,9 +165,26 @@ defmodule Unicode.String.Break do
         unquote(Macro.escape(Segment.rules(locale, segment_type)))
       end
 
-      for suppression <- Segment.suppressions!(locale, segment_type) do
-        def suppress(<< unquote(suppression), rest :: binary >>, unquote(locale), unquote(segment_type)) do
-          [unquote(suppression), rest]
+      def variables!(unquote(locale), unquote(segment_type)) do
+        unquote(Macro.escape(get_in(segments, [segment_type, :variables])))
+      end
+
+      def suppressions!(unquote(locale), unquote(segment_type)) do
+        unquote(Macro.escape(Segment.suppressions!(locale, segment_type)))
+      end
+
+      suppressions_rule = Map.get(@suppression_rules, segment_type)
+      suppressions_variable = Segment.suppressions_variable(locale, segment_type)
+
+      if suppressions_rule && suppressions_variable do
+        variables =
+          get_in(segments, [segment_type, :variables])
+          |> Segment.expand_variables([suppressions_variable])
+
+        rule = Segment.compile_rule(suppressions_rule, variables)
+
+        def suppressions_rule(unquote(locale), unquote(segment_type)) do
+          unquote(Macro.escape(rule))
         end
       end
     end
@@ -175,20 +196,21 @@ defmodule Unicode.String.Break do
     Segment.rules(@default_locale, segment_type)
   end
 
-  def rules(locale, segment_type, true) do
-    suppression_rule = {0.0, {:no_break, locale, segment_type}}
+  def suppressions_rule(_locale, _segment_type) do
+    nil
+  end
 
-    with {:ok, rules} <- rules(locale, segment_type) do
-      {:ok, [suppression_rule | rules]}
+  def rules(locale, break_type, true) do
+    if suppressions_rule = suppressions_rule(locale, break_type) do
+      {:ok, rules} = rules(locale, break_type)
+      {:ok, [suppressions_rule | rules]}
+    else
+      rules(locale, break_type)
     end
   end
 
-  def rules(locale, segment_type, false) do
+  def rules(locale, segment_type, _) do
     rules(locale, segment_type)
-  end
-
-  def suppress(string, _other, _segment_type) do
-    string
   end
 
 end

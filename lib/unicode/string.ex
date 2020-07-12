@@ -316,7 +316,7 @@ defmodule Unicode.String do
 
   """
   @spec next(String.t, split_options) :: String.t | nil | error_return
-  def next(string, options) when is_binary(string) do
+  def next(string, options \\ []) when is_binary(string) do
     locale = Keyword.get(options, :locale, @default_locale)
     break = Keyword.get(options, :break, :word)
 
@@ -378,8 +378,8 @@ defmodule Unicode.String do
       ["This is a sentence. ", "And another."]
 
   """
-  @spec split(String.t, split_options) :: [String.t, ...]
-  def split(string, options) when is_binary(string) do
+  @spec split(String.t, split_options) :: [String.t, ...] | error_return
+  def split(string, options \\ []) when is_binary(string) do
     locale = Keyword.get(options, :locale, @default_locale)
     break = Keyword.get(options, :break, :word)
 

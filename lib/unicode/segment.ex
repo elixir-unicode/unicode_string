@@ -3,7 +3,8 @@ defmodule Unicode.String.Segment do
 
   import SweetXml
   require Unicode.Set
-  alias Unicode.String.Break
+
+  @suppressions_variable "$Suppressions"
 
   # This is the formal definition but it takes a while to compile
   # and all of the known variable names are in the Latin-1 set
@@ -21,36 +22,37 @@ defmodule Unicode.String.Segment do
     |> Map.keys
   end
 
-  def rules(locale, segment_type) do
+  @doc """
+  Return the rules as defined by CLDR.
+
+  """
+  def rules(locale, segment_type, additional_variables \\ []) do
     with {:ok, segment} <- segments(locale, segment_type) do
-      variables = Map.fetch!(segment, :variables) |> expand_variables()
+      variables = Map.fetch!(segment, :variables) |> expand_variables(additional_variables)
       rules = Map.fetch!(segment, :rules)
 
       rules
-      |> expand_rules(variables)
-      |> compile_rules
+      |> compile_rules(variables)
       |> wrap(:ok)
     end
   end
 
-  def rules!(locale, segment_type) do
-    case rules(locale, segment_type) do
+  def rules!(locale, segment_type, additional_variables \\ []) do
+    case rules(locale, segment_type, additional_variables) do
       {:ok, rules} -> rules
       {:error, reason} -> raise ArgumentError, reason
     end
   end
 
-  def suppressions(locale, segment_type) do
-    with {:ok, segment} <- segments(locale, segment_type) do
-      {:ok, Map.fetch!(segment, :suppressions)}
-    end
+  def compile_rules(rules, variables) when is_list(rules) do
+    rules
+    |> expand_rules(variables)
+    |> compile_rules
   end
 
-  def suppressions!(locale, segment_type) do
-    case suppressions(locale, segment_type) do
-      {:ok, suppressions} -> suppressions
-      {:error, reason} -> raise ArgumentError, reason
-    end
+  def compile_rule(rule, variables) when is_map(rule) do
+    compile_rules([rule], variables)
+    |> hd
   end
 
   # These options set unicode mode. Interpreset certain
@@ -69,6 +71,45 @@ defmodule Unicode.String.Segment do
 
       {sequence, {operator, compile_regex!(left), compile_regex!(right)}}
     end)
+  end
+
+  def suppressions_variable(locale, segment_type) do
+    variable =
+      locale
+      |> suppressions!(segment_type)
+      |> suppressions_regex
+
+    if variable do
+      %{name: @suppressions_variable, value: variable}
+    else
+      nil
+    end
+  end
+
+  defp suppressions_regex([]) do
+    nil
+  end
+
+  defp suppressions_regex(suppressions) do
+    suppression_regex =
+      suppressions
+      |> Enum.map(&String.replace(&1, ".", "\\."))
+      |> Enum.join("|")
+
+    "(" <> suppression_regex <> ")"
+  end
+
+  def suppressions(locale, segment_type) do
+    with {:ok, segment} <- segments(locale, segment_type) do
+      {:ok, Map.get(segment, :suppressions, [])}
+    end
+  end
+
+  def suppressions!(locale, segment_type) do
+    case suppressions(locale, segment_type) do
+      {:ok, suppressions} -> suppressions
+      {:error, reason} -> raise ArgumentError, reason
+    end
   end
 
   defp compile_regex!("") do
@@ -113,17 +154,6 @@ defmodule Unicode.String.Segment do
 
   @split_options [parts: 2, include_captures: true, trim: true]
 
-  # This rule implements suppressions and is only inserted into
-  # a rule set if `suppress: true` is passed as an option to
-  # `Unnicode.String.break/2`. We append the <<0>> so that the
-  # next rules won't match against this suppression as a break.
-  defp evaluate_rule({string_before, string_after}, {0.0, {:no_break, locale, segment_type}}) do
-    case Break.suppress(string_after, locale, segment_type) do
-      [match, rest] -> {:pass, {string_before, {match <> << 0 >>, rest}}}
-      _other -> {:fail, {string_before, string_after}}
-    end
-  end
-
   # Process an `:any op regex` rule at end of string
   defp evaluate_rule({string_before, <<_::utf8>> = string_after}, {_seq, {_operator, :any, aft}}) do
     if Regex.match?(aft, string_after) do
@@ -159,20 +189,13 @@ defmodule Unicode.String.Segment do
   end
 
   defp evaluate_rule({string_before, string_after}, {_seq, {_operator, fore, aft}}) do
-    if Regex.match?(fore, string_before) do
+    if Regex.match?(fore, string_before) && Regex.match?(aft, string_after) do
       case Regex.split(aft, string_after, @split_options) do
         [match, rest] -> {:pass, {string_before, {match, rest}}}
-        _other -> {:fail, {string_before, string_after}}
+        [match] -> {:pass, {string_before, {match, ""}}}
       end
     else
       {:fail, {string_before, string_after}}
-    end
-  end
-
-  @doc false
-  def get_rule(rule, locale, type) when is_float(rule) do
-    with {:ok, rules} <- rules(locale, type) do
-      Enum.find(rules, &(elem(&1, 0) == rule))
     end
   end
 
@@ -188,8 +211,9 @@ defmodule Unicode.String.Segment do
     |> Enum.sort
   end
 
-  defp expand_variables(variable_list) do
-    Enum.reduce variable_list, %{}, fn
+  def expand_variables(variables, additional_variables)
+      when is_list(variables) and is_list(additional_variables) do
+    Enum.reduce variables ++ additional_variables, %{}, fn
       %{name: << "$", name :: binary >>, value: value}, variables ->
         new_value = substitute_variables(value, variables)
         Map.put(variables, name, new_value)
