@@ -10,7 +10,7 @@ This release implements the Unicode break rules for graphemes, words, lines and 
 
 * Adds `Unicode.String.break?/2`
 
-* Adds `Unicode.String.break/2
+* Adds `Unicode.String.break/2`
 
 * Adds `Unicode.String.splitter/2`
 
