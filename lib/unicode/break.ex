@@ -177,12 +177,36 @@ defmodule Unicode.String.Break do
   to suppress an otherwise acceptable
   break point.
 
+  ## Examples
+
+      => Unicode.String.Break.variables "en", :sentence_break
+      [
+        %{name: "$CR", value: "\\p{Sentence_Break=CR}"},
+        %{name: "$LF", value: "\\p{Sentence_Break=LF}"},
+        %{name: "$Extend", value: "\\p{Sentence_Break=Extend}"},
+        %{name: "$Format", value: "\\p{Sentence_Break=Format}"},
+        %{name: "$Sep", value: "\\p{Sentence_Break=Sep}"},
+        %{name: "$Sp", value: "\\p{Sentence_Break=Sp}"},
+        %{name: "$Lower", value: "\\p{Sentence_Break=Lower}"},
+        ...
+      ]
+
   """
   def suppressions(locale, segment_type)
 
   @doc """
   Returns the suppression rule for a
   given locale and segment type.
+
+  ## Examples
+
+      => Unicode.String.Break.suppressions "en", :sentence_break
+      ["L.P.", "Alt.", "Approx.", "E.G.", "O.", "Maj.", "Misc.", "P.O.", "J.D.",
+       "Jam.", "Card.", "Dec.", "Sept.", "MR.", "Long.", "Hat.", "G.", "Link.", "DC.",
+       "D.C.", "M.T.", "Hz.", "Mrs.", "By.", "Act.", "Var.", "N.V.", "Aug.", "B.",
+       "S.A.", "Up.", "Job.", "Num.", "M.I.T.", "Ok.", "Org.", "Ex.", "Cont.", "U.",
+       "Mart.", "Fn.", "Abs.", "Lt.", "OK.", "Z.", "E.", "Kb.", "Est.", "A.M.",
+       "L.A.", ...]
 
   """
   def suppressions_rule(locale, segment_type)
