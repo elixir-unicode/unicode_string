@@ -26,7 +26,8 @@ defmodule UnicodeString.MixProject do
   defp description do
     """
     Functions to perform Unicode string operations like case
-    folding and case-insensitive equality.
+    folding, case-insensitive equality as well as word, line,
+    grapheme and sentence breaking.
     """
   end
 
@@ -55,8 +56,7 @@ defmodule UnicodeString.MixProject do
 
   defp deps do
     [
-      {:unicode_set, path: "../unicode_set"},
-      {:ex_unicode, path: "../unicode"},
+      {:unicode_set, "~> 0.8.0"},
       {:sweet_xml, "~> 0.6", runtime: false},
       {:benchee, "~> 1.0", only: :dev, optional: true},
       {:ex_doc, "~> 0.19", only: [:release, :dev], optional: true},
