@@ -1,7 +1,7 @@
 defmodule UnicodeString.MixProject do
   use Mix.Project
 
-  @version "0.2.0"
+  @version "0.3.0"
 
   def project do
     [
@@ -56,10 +56,10 @@ defmodule UnicodeString.MixProject do
 
   defp deps do
     [
-      {:unicode_set, "~> 0.8.0"},
+      {:unicode_set, "~> 0.8"},
       {:sweet_xml, "~> 0.6", runtime: false},
       {:benchee, "~> 1.0", only: :dev, optional: true},
-      {:ex_doc, "~> 0.19", only: [:release, :dev], optional: true},
+      {:ex_doc, "~> 0.19", optional: true, runtime: false},
       {:dialyxir, "~> 1.0", only: [:dev], runtime: false, optional: true}
     ]
   end

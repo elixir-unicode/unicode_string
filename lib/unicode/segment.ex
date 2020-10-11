@@ -159,12 +159,6 @@ defmodule Unicode.String.Segment do
     evaluate_rules({"", string}, rules)
   end
 
-  @doc """
-  Evaludates a list of rules against a given
-  2-tuple of string representing a break point
-  in a string.
-
-  """
   def evaluate_rules({string_before, string_after}, rules) do
     Enum.reduce_while(rules, [], fn rule, _acc ->
       {_sequence, {operator, _fore, _aft}} = rule

@@ -1,3 +1,11 @@
+# Changelog for Unicode String v0.3.0
+
+This is the changelog for Unicode String v0.3.0 released on October 11th, 2020.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
+
+### Bug Fixes
+
+* Correct deps and docs to align with Elixir 1.11 and recent releases of `ex_unicode`.
+
 # Changelog for Unicode String v0.2.0
 
 This is the changelog for Unicode String v0.2.0 released on July 12th, 2020.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
