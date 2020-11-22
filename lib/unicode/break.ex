@@ -17,11 +17,7 @@ defmodule Unicode.String.Break do
 
   @break_keys Map.keys(@break_map)
 
-  @doc """
-
-
-
-  """
+  @doc false
   def break(string, locale, break, options) when break in @break_keys do
     break_at(string, locale, Map.fetch!(@break_map, break), options)
   end
@@ -38,11 +34,7 @@ defmodule Unicode.String.Break do
     |> Segment.evaluate_rules(rules)
   end
 
-  @doc """
-
-
-
-  """
+  @doc false
   def split(string, locale, break, options) when break in @break_keys do
     split_at(string, locale, Map.fetch!(@break_map, break), options)
   end
@@ -86,11 +78,7 @@ defmodule Unicode.String.Break do
     |> split(rules, [head <> fore | rest])
   end
 
-  @doc """
-
-
-
-  """
+  @doc false
   def next("", _locale, _break, _options) do
     nil
   end
@@ -157,73 +145,61 @@ defmodule Unicode.String.Break do
     sentence_break: %{id: 10.5, value: "$Suppressions $Close* $Sp* $ParaSep? ×"}
   }
 
-  @doc """
-  Returns a list of rules applicable for
-  a given locale and segment type.
+  # Returns a list of rules applicable for
+  # a given locale and segment type.
+  defp rules(locale, segment_type)
 
-  """
-  def rules(locale, segment_type)
+  # Returns the variable definitions for
+  # a given locale and segment typ.
+  defp variables(locale, segment_type)
 
-  @doc """
-  Returns the variable definitions for
-  a given locale and segment typ.
+  # Returns a list of suppressions
+  # (abbreviations) that can be used
+  # to suppress an otherwise acceptable
+  # break point.
 
-  """
-  def variables(locale, segment_type)
+  # Examples
+  #
+  #     => Unicode.String.Break.variables "en", :sentence_break
+  #     [
+  #       %{name: "$CR", value: "\\p{Sentence_Break=CR}"},
+  #       %{name: "$LF", value: "\\p{Sentence_Break=LF}"},
+  #       %{name: "$Extend", value: "\\p{Sentence_Break=Extend}"},
+  #       %{name: "$Format", value: "\\p{Sentence_Break=Format}"},
+  #       %{name: "$Sep", value: "\\p{Sentence_Break=Sep}"},
+  #       %{name: "$Sp", value: "\\p{Sentence_Break=Sp}"},
+  #       %{name: "$Lower", value: "\\p{Sentence_Break=Lower}"},
+  #       ...
+  #     ]
+  defp suppressions(locale, segment_type)
 
-  @doc """
-  Returns a list of suppressions
-  (abbreviations) that can be used
-  to suppress an otherwise acceptable
-  break point.
-
-  ## Examples
-
-      => Unicode.String.Break.variables "en", :sentence_break
-      [
-        %{name: "$CR", value: "\\p{Sentence_Break=CR}"},
-        %{name: "$LF", value: "\\p{Sentence_Break=LF}"},
-        %{name: "$Extend", value: "\\p{Sentence_Break=Extend}"},
-        %{name: "$Format", value: "\\p{Sentence_Break=Format}"},
-        %{name: "$Sep", value: "\\p{Sentence_Break=Sep}"},
-        %{name: "$Sp", value: "\\p{Sentence_Break=Sp}"},
-        %{name: "$Lower", value: "\\p{Sentence_Break=Lower}"},
-        ...
-      ]
-
-  """
-  def suppressions(locale, segment_type)
-
-  @doc """
-  Returns the suppression rule for a
-  given locale and segment type.
-
-  ## Examples
-
-      => Unicode.String.Break.suppressions "en", :sentence_break
-      ["L.P.", "Alt.", "Approx.", "E.G.", "O.", "Maj.", "Misc.", "P.O.", "J.D.",
-       "Jam.", "Card.", "Dec.", "Sept.", "MR.", "Long.", "Hat.", "G.", "Link.", "DC.",
-       "D.C.", "M.T.", "Hz.", "Mrs.", "By.", "Act.", "Var.", "N.V.", "Aug.", "B.",
-       "S.A.", "Up.", "Job.", "Num.", "M.I.T.", "Ok.", "Org.", "Ex.", "Cont.", "U.",
-       "Mart.", "Fn.", "Abs.", "Lt.", "OK.", "Z.", "E.", "Kb.", "Est.", "A.M.",
-       "L.A.", ...]
-
-  """
-  def suppressions_rule(locale, segment_type)
+  # Returns the suppression rule for a
+  # given locale and segment type.
+  #
+  # Examples
+  #
+  #     => Unicode.String.Break.suppressions "en", :sentence_break
+  #     ["L.P.", "Alt.", "Approx.", "E.G.", "O.", "Maj.", "Misc.", "P.O.", "J.D.",
+  #      "Jam.", "Card.", "Dec.", "Sept.", "MR.", "Long.", "Hat.", "G.", "Link.", "DC.",
+  #      "D.C.", "M.T.", "Hz.", "Mrs.", "By.", "Act.", "Var.", "N.V.", "Aug.", "B.",
+  #      "S.A.", "Up.", "Job.", "Num.", "M.I.T.", "Ok.", "Org.", "Ex.", "Cont.", "U.",
+  #      "Mart.", "Fn.", "Abs.", "Lt.", "OK.", "Z.", "E.", "Kb.", "Est.", "A.M.",
+  #      "L.A.", ...]
+  defp suppressions_rule(locale, segment_type)
 
   for locale <- Segment.known_locales do
     {:ok, segments} = Segment.segments(locale)
 
     for segment_type <- Map.keys(segments) do
-      def rules(unquote(locale), unquote(segment_type)) do
+      defp rules(unquote(locale), unquote(segment_type)) do
         unquote(Macro.escape(Segment.rules(locale, segment_type)))
       end
 
-      def variables(unquote(locale), unquote(segment_type)) do
+      defp variables(unquote(locale), unquote(segment_type)) do
         unquote(Macro.escape(get_in(segments, [segment_type, :variables])))
       end
 
-      def suppressions(unquote(locale), unquote(segment_type)) do
+      defp suppressions(unquote(locale), unquote(segment_type)) do
         unquote(Macro.escape(Segment.suppressions!(locale, segment_type)))
       end
 
@@ -237,7 +213,7 @@ defmodule Unicode.String.Break do
 
         rule = Segment.compile_rule(suppressions_rule, variables)
 
-        def suppressions_rule(unquote(locale), unquote(segment_type)) do
+        defp suppressions_rule(unquote(locale), unquote(segment_type)) do
           unquote(Macro.escape(rule))
         end
       end
@@ -246,16 +222,17 @@ defmodule Unicode.String.Break do
 
   @default_locale "root"
 
-  def rules(_other, segment_type) do
+  defp rules(_other, segment_type) do
     Segment.rules(@default_locale, segment_type)
   end
 
-  def suppressions_rule(_locale, _segment_type) do
+
+  defp suppressions_rule(_locale, _segment_type) do
     nil
   end
 
   @doc false
-  def rules(locale, break_type, true) do
+  defp rules(locale, break_type, true) do
     if suppressions_rule = suppressions_rule(locale, break_type) do
       {:ok, rules} = rules(locale, break_type)
       {:ok, [suppressions_rule | rules]}
@@ -264,7 +241,7 @@ defmodule Unicode.String.Break do
     end
   end
 
-  def rules(locale, segment_type, _) do
+  defp rules(locale, segment_type, _) do
     rules(locale, segment_type)
   end
 

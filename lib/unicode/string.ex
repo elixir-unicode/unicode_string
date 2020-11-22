@@ -249,7 +249,7 @@ defmodule Unicode.String do
 
   * `:trim` is a boolean indicating if segments
     the are comprised of only white space are to be
-    excluded fromt the returned list.  The default
+    excluded from the returned list.  The default
     is `false`.
 
   ## Examples
