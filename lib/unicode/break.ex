@@ -1,5 +1,8 @@
 defmodule Unicode.String.Break do
-  @moduledoc false
+  @moduledoc """
+  Implements the Unicode break algorithm
+
+  """
 
   alias Unicode.String.Segment
 

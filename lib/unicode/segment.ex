@@ -1,5 +1,9 @@
 defmodule Unicode.String.Segment do
-  @moduledoc false
+  @moduledoc """
+  Implements the compilation of the Unicode
+  segment rules.
+
+  """
 
   import SweetXml
   require Unicode.Set
