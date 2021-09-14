@@ -26,7 +26,7 @@ The package can be installed by adding `unicode_string` to your list of dependen
 ```elixir
 def deps do
   [
-    {:unicode_string, "~> 0.1.0"}
+    {:unicode_string, "~> 1.0"}
   ]
 end
 ```
