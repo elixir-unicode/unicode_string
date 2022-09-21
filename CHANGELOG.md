@@ -6,7 +6,7 @@ This is the changelog for Unicode String v1.0.0 released on September 21st, 2022
 
 ### Enhancements
 
-* Updates the segmentation supplemental data (including locales) for CLDR. This adds the "sv" locale.
+* Updates the segmentation supplemental data (including locales) for CLDR. This adds the "sv" and "fi" locale data for sentence break suppressions.
 
 ## Unicode String v1.0.0
 
