@@ -39,6 +39,7 @@ defmodule UnicodeString.MixProject do
       links: links(),
       files: [
         "lib",
+        "priv",
         "logo.png",
         "mix.exs",
         "README*",
