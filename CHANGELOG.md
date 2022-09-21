@@ -1,5 +1,13 @@
 # Changelog
 
+## Unicode String v1.1.0
+
+This is the changelog for Unicode String v1.0.0 released on September 21st, 2022.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
+
+### Enhancements
+
+* Updates the segmentation supplemental data (including locales) for CLDR. This adds the "sv" locale.
+
 ## Unicode String v1.0.0
 
 This is the changelog for Unicode String v1.0.0 released on September 14th, 2021.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
