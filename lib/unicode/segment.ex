@@ -15,7 +15,7 @@ defmodule Unicode.String.Segment do
   # defguard is_id_start(char) when Unicode.Set.match?(char, "\\p{ID_start}")
   # defguard is_id_continue(char) when Unicode.Set.match?(char, "\\p{ID_continue}")
 
-  @doc "Identifies if a codepoint is a valid start of an indentifier"
+  @doc "Identifies if a codepoint is a valid start of an identifier"
   defguard is_id_start(char)
     when char in ?A..?Z
 
@@ -353,7 +353,7 @@ defmodule Unicode.String.Segment do
     merge_ancestor(locale, merge_ancestors(rest))
   end
 
-  # For each segement type, add the variables, rules and
+  # For each segment type, add the variables, rules and
   # suppressions from locale to other
   defp merge_ancestor(locale, other) do
     locale_segments = raw_segments!(locale)
