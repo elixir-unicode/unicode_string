@@ -1,5 +1,13 @@
 # Changelog
 
+## Unicode String v1.0.1
+
+This is the changelog for Unicode String v1.0.1 released on September 15th, 2021.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
+
+### Bug Fixes
+
+* Woops, the priv/segments directory was not included in the build artifact
+
 ## Unicode String v1.0.0
 
 This is the changelog for Unicode String v1.0.0 released on September 14th, 2021.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)

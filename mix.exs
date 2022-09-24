@@ -1,7 +1,7 @@
 defmodule UnicodeString.MixProject do
   use Mix.Project
 
-  @version "1.0.0"
+  @version "1.0.1"
 
   def project do
     [
@@ -39,6 +39,7 @@ defmodule UnicodeString.MixProject do
       links: links(),
       files: [
         "lib",
+        "priv",
         "logo.png",
         "mix.exs",
         "README*",
