@@ -2,7 +2,7 @@ defmodule Unicode.String.Case.Folding do
   @moduledoc """
   Implements the Unicode Case Folding algorithm.
 
-  The intention of case folding is to faciliate
+  The intention of case folding is to facilitate
   case-insensitive string comparisons. It is not
   intended to be a general purpose transformation.
 
