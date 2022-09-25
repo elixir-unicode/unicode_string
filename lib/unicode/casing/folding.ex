@@ -56,30 +56,29 @@ defmodule Unicode.String.Case.Folding do
     fold(string, type, nil)
   end
 
-  for [status, from, to] <- Unicode.Utils.case_folding do
-    to =
-      if is_list(to), do: List.to_string(to), else: List.to_string([to])
+  for [status, from, to] <- Unicode.Utils.case_folding() do
+    to = if is_list(to), do: List.to_string(to), else: List.to_string([to])
 
     case status do
       :turkic ->
-        defp fold(<< unquote(from) :: utf8, rest :: binary >>, _status, :turkic) do
-          << unquote(to), fold(rest, unquote(status)) :: binary >>
+        defp fold(<<unquote(from)::utf8, rest::binary>>, _status, :turkic) do
+          <<unquote(to), fold(rest, unquote(status))::binary>>
         end
 
       :common ->
-        defp fold(<< unquote(from) :: utf8, rest :: binary >>, status, mode) do
-          << unquote(to), fold(rest, status, mode) :: binary >>
+        defp fold(<<unquote(from)::utf8, rest::binary>>, status, mode) do
+          <<unquote(to), fold(rest, status, mode)::binary>>
         end
 
       other ->
-        defp fold(<< unquote(from) :: utf8, rest :: binary >>, unquote(other), mode) do
-          << unquote(to), fold(rest, unquote(status), mode) :: binary >>
+        defp fold(<<unquote(from)::utf8, rest::binary>>, unquote(other), mode) do
+          <<unquote(to), fold(rest, unquote(status), mode)::binary>>
         end
     end
   end
 
-  defp fold(<< from :: utf8, rest :: binary >>, status, mode) do
-    << from, fold(rest, status, mode) :: binary >>
+  defp fold(<<from::utf8, rest::binary>>, status, mode) do
+    <<from, fold(rest, status, mode)::binary>>
   end
 
   defp fold("", _, _) do

@@ -87,13 +87,14 @@ defmodule Unicode.String.Break do
   end
 
   def next(string, locale, break, options) when break in @break_keys and is_binary(string) do
-    << char :: utf8, rest :: binary>> = string
+    <<char::utf8, rest::binary>> = string
 
-    case next_at({<< char :: utf8 >>, rest}, locale, Map.fetch!(@break_map, break), options) do
+    case next_at({<<char::utf8>>, rest}, locale, Map.fetch!(@break_map, break), options) do
       {fore, {match, rest}} ->
-        {<< char :: utf8 >> <> fore, match <> rest}
+        {<<char::utf8>> <> fore, match <> rest}
+
       {fore, rest} ->
-        {<< char :: utf8 >> <> fore, rest}
+        {<<char::utf8>> <> fore, rest}
     end
     |> repeat_if_trimming_required(locale, break, options, options[:trim])
   end
@@ -140,7 +141,7 @@ defmodule Unicode.String.Break do
   # Recompile this module if any of the segment
   # files change.
 
-  for {_locale, file} <- Segment.locale_map do
+  for {_locale, file} <- Segment.locale_map() do
     @external_resource Path.join(Segment.segments_dir(), file)
   end
 
@@ -190,7 +191,7 @@ defmodule Unicode.String.Break do
   #      "L.A.", ...]
   defp suppressions_rule(locale, segment_type)
 
-  for locale <- Segment.known_locales do
+  for locale <- Segment.known_locales() do
     {:ok, segments} = Segment.segments(locale)
 
     for segment_type <- Map.keys(segments) do
@@ -229,7 +230,6 @@ defmodule Unicode.String.Break do
     Segment.rules(@default_locale, segment_type)
   end
 
-
   defp suppressions_rule(_locale, _segment_type) do
     nil
   end
@@ -247,5 +247,4 @@ defmodule Unicode.String.Break do
   defp rules(locale, segment_type, _) do
     rules(locale, segment_type)
   end
-
 end

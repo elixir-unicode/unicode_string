@@ -11,35 +11,35 @@ defmodule Unicode.String do
 
   """
 
-  alias Unicode.String.Segment
-  alias Unicode.String.Break
   alias Unicode.Property
+  alias Unicode.String.Break
+  alias Unicode.String.Segment
 
   defdelegate fold(string), to: Unicode.String.Case.Folding
   defdelegate fold(string, type), to: Unicode.String.Case.Folding
 
-  @type string_interval :: {String.t, String.t}
+  @type string_interval :: {String.t(), String.t()}
   @type break_type :: :grapheme | :word | :line | :sentence
-  @type error_return :: {:error, String.t}
+  @type error_return :: {:error, String.t()}
 
   @type options :: [
-    {:locale, String.t},
-    {:break, break_type},
-    {:suppressions, boolean}
-  ]
+          {:locale, String.t()},
+          {:break, break_type},
+          {:suppressions, boolean}
+        ]
 
   @type split_options :: [
-    {:locale, String.t},
-    {:break, break_type},
-    {:suppressions, boolean},
-    {:trim, boolean}
-  ]
+          {:locale, String.t()},
+          {:break, break_type},
+          {:suppressions, boolean},
+          {:trim, boolean}
+        ]
 
   @type break_or_no_break :: :break | :no_break
 
   @type break_match ::
-    {break_or_no_break, {String.t, {String.t, String.t}}} |
-    {break_or_no_break, {String.t, String.t}}
+          {break_or_no_break, {String.t(), {String.t(), String.t()}}}
+          | {break_or_no_break, {String.t(), String.t()}}
 
   @doc """
   Compares two strings in a case insensitive
@@ -84,7 +84,7 @@ defmodule Unicode.String do
       false
 
   """
-  @spec equals_ignoring_case?(String.t, String.t, atom()) :: boolean
+  @spec equals_ignoring_case?(String.t(), String.t(), atom()) :: boolean
   def equals_ignoring_case?(string_a, string_b, type \\ :full) do
     fold(string_a, type) == fold(string_b, type)
   end
@@ -259,7 +259,7 @@ defmodule Unicode.String do
       ["This", "is", "a"]
 
   """
-  @spec splitter(String.t, split_options) :: function | error_return
+  @spec splitter(String.t(), split_options) :: function | error_return
   def splitter(string, options) when is_binary(string) do
     locale = Keyword.get(options, :locale, @default_locale)
     break = Keyword.get(options, :break, :word)
@@ -315,7 +315,7 @@ defmodule Unicode.String do
       {"This is a sentence. ", "And another."}
 
   """
-  @spec next(String.t, split_options) :: String.t | nil | error_return
+  @spec next(String.t(), split_options) :: String.t() | nil | error_return
   def next(string, options \\ []) when is_binary(string) do
     locale = Keyword.get(options, :locale, @default_locale)
     break = Keyword.get(options, :break, :word)
@@ -378,7 +378,7 @@ defmodule Unicode.String do
       ["This is a sentence. ", "And another."]
 
   """
-  @spec split(String.t, split_options) :: [String.t, ...] | error_return
+  @spec split(String.t(), split_options) :: [String.t(), ...] | error_return
   def split(string, options \\ []) when is_binary(string) do
     locale = Keyword.get(options, :locale, @default_locale)
     break = Keyword.get(options, :break, :word)
@@ -412,8 +412,7 @@ defmodule Unicode.String do
     if break in @breaks do
       {:ok, break}
     else
-      {:error, "Unknown break #{inspect break}. Valid breaks are #{inspect @breaks}"}
+      {:error, "Unknown break #{inspect(break)}. Valid breaks are #{inspect(@breaks)}"}
     end
   end
-
 end
