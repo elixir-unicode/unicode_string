@@ -7,7 +7,7 @@ defmodule UnicodeString.MixProject do
     [
       app: :unicode_string,
       version: @version,
-      elixir: "~> 1.8",
+      elixir: "~> 1.11",
       start_permanent: Mix.env() == :prod,
       build_embedded: Mix.env() == :prod,
       deps: deps(),
