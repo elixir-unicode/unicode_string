@@ -25,9 +25,8 @@ defmodule UnicodeString.MixProject do
 
   defp description do
     """
-    Functions to perform Unicode string operations like case
-    folding, case-insensitive equality as well as word, line,
-    grapheme and sentence breaking.
+    Unicode case folding, case-insensitive equality as well as word,
+    line, grapheme and sentence breaking and streaming.
     """
   end
 
