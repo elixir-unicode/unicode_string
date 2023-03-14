@@ -74,7 +74,7 @@ iex> Unicode.String.split "This is a sentence. And another.", break: :line
 ["This ", "is ", "a ", "sentence. ", "And ", "another."]
 ```
 
-### Streaming
+## Segment Streaming
 
 Segmentation can also be streamed using `Unicode.String.stream/2`. For large strings this may improve memory usage since the intermediate segments will garbage collected when they fall out of scope.
 
