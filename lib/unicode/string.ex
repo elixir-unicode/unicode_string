@@ -118,13 +118,13 @@ defmodule Unicode.String do
 
   * `:locale` is any locale returned by
     `Unicode.String.Segment.known_locales/0`.
-    The default is #{inspect @default_locale} which corresponds
+    The default is #{inspect(@default_locale)} which corresponds
     to the break rules defined by the
     [Unicode Segmentation](https://unicode.org/reports/tr29/) rules.
 
   * `:break` is the type of break. It is one of
     `:grapheme`, `:word`, `:line` or `:sentence`. The
-    default is `#{inspect @default_break}`.
+    default is `#{inspect(@default_break)}`.
 
   * `:suppressions` is a boolean which,
     if `true`, will suppress breaks for common
@@ -181,13 +181,13 @@ defmodule Unicode.String do
 
   * `:locale` is any locale returned by
     `Unicode.String.Segment.known_locales/0`.
-    The default is #{inspect @default_locale} which corresponds
+    The default is #{inspect(@default_locale)} which corresponds
     to the break rules defined by the
     [Unicode Segmentation](https://unicode.org/reports/tr29/) rules.
 
   * `:break` is the type of break. It is one of
     `:grapheme`, `:word`, `:line` or `:sentence`. The
-    default is `#{inspect @default_break}`.
+    default is `#{inspect(@default_break)}`.
 
   * `:suppressions` is a boolean which,
     if `true`, will suppress breaks for common
@@ -238,13 +238,13 @@ defmodule Unicode.String do
 
   * `:locale` is any locale returned by
     `Unicode.String.Segment.known_locales/0`.
-    The default is #{inspect @default_locale} which corresponds
+    The default is #{inspect(@default_locale)} which corresponds
     to the break rules defined by the
     [Unicode Segmentation](https://unicode.org/reports/tr29/) rules.
 
   * `:break` is the type of break. It is one of
     `:grapheme`, `:word`, `:line` or `:sentence`. The
-    default is `#{inspect @default_break}`.
+    default is `#{inspect(@default_break)}`.
 
   * `:suppressions` is a boolean which,
     if `true`, will suppress breaks for common
@@ -297,13 +297,13 @@ defmodule Unicode.String do
 
   * `:locale` is any locale returned by
     `Unicode.String.Segment.known_locales/0`.
-    The default is #{inspect @default_locale} which corresponds
+    The default is #{inspect(@default_locale)} which corresponds
     to the break rules defined by the
     [Unicode Segmentation](https://unicode.org/reports/tr29/) rules.
 
   * `:break` is the type of break. It is one of
     `:grapheme`, `:word`, `:line` or `:sentence`. The
-    default is `#{inspect @default_break}`.
+    default is `#{inspect(@default_break)}`.
 
   * `:suppressions` is a boolean which,
     if `true`, will suppress breaks for common
@@ -352,13 +352,13 @@ defmodule Unicode.String do
 
   * `:locale` is any locale returned by
     `Unicode.String.Segment.known_locales/0`.
-    The default is #{inspect @default_locale} which corresponds
+    The default is #{inspect(@default_locale)} which corresponds
     to the break rules defined by the
     [Unicode Segmentation](https://unicode.org/reports/tr29/) rules.
 
   * `:break` is the type of break. It is one of
     `:grapheme`, `:word`, `:line` or `:sentence`. The
-    default is `#{inspect @default_break}`.
+    default is `#{inspect(@default_break)}`.
 
   * `:suppressions` is a boolean which,
     if `true`, will suppress breaks for common
@@ -425,13 +425,13 @@ defmodule Unicode.String do
 
   * `:locale` is any locale returned by
     `Unicode.String.Segment.known_locales/0`.
-    The default is #{inspect @default_locale} which corresponds
+    The default is #{inspect(@default_locale)} which corresponds
     to the break rules defined by the
     [Unicode Segmentation](https://unicode.org/reports/tr29/) rules.
 
   * `:break` is the type of break. It is one of
     `:grapheme`, `:word`, `:line` or `:sentence`. The
-    default is `#{inspect @default_break}`.
+    default is `#{inspect(@default_break)}`.
 
   * `:suppressions` is a boolean which,
     if `true`, will suppress breaks for common
@@ -454,7 +454,7 @@ defmodule Unicode.String do
   """
   @doc since: "1.2.0"
 
-  @spec stream(String.t, Keyword.t) :: Enumerable.t | {:error, String.t}
+  @spec stream(String.t(), Keyword.t()) :: Enumerable.t() | {:error, String.t()}
   def stream(string, options \\ []) do
     locale = Keyword.get(options, :locale, @default_locale)
     break = Keyword.get(options, :break, @default_break)
