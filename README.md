@@ -76,7 +76,7 @@ iex> Unicode.String.split "This is a sentence. And another.", break: :line
 
 ## Segment Streaming
 
-Segmentation can also be streamed using `Unicode.String.stream/2`. For large strings this may improve memory usage since the intermediate segments will garbage collected when they fall out of scope.
+Segmentation can also be streamed using `Unicode.String.stream/2`. For large strings this may improve memory usage since the intermediate segments will be garbage collected when they fall out of scope.
 
 ```elixir
 iex> Enum.to_list Unicode.String.stream("this is a set of words", trim: true)                       ["this", "is", "a", "set", "of", "words"]
