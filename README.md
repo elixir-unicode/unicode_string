@@ -63,7 +63,8 @@ iex> Unicode.String.Segment.known_locales
 ["de", "el", "en", "en-US", "en-US-POSIX", "es", "fi", "fr", "it", "ja", "pt",
  "root", "ru", "sv", "zh", "zh-Hant"]
 
-iex(1)> Unicode.String.split "Non, c'est M. Dubois.", break: :sentence, trim: true, locale: "fr"    ["Non, c'est M. Dubois."]
+iex(1)> Unicode.String.split "Non, c'est M. Dubois.", break: :sentence, trim: true, locale: "fr"
+["Non, c'est M. Dubois."]
 
 # Note that break: :line does NOT mean split the string
 # at newlines. It splits the string where a line break would be
