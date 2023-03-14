@@ -58,13 +58,12 @@ iex> Unicode.String.split "No, I don't have a Ph.D. but I don't think it matters
 iex> Unicode.String.split "No, I don't have a Ph.D. but I don't think it matters.", break: :sentence, trim: true
 ["No, I don't have a Ph.D. but I don't think it matters."]
 
-# Break suppressions are locale sensitive.
+# Sentence Break suppressions are locale sensitive.
 iex> Unicode.String.Segment.known_locales
 ["de", "el", "en", "en-US", "en-US-POSIX", "es", "fi", "fr", "it", "ja", "pt",
  "root", "ru", "sv", "zh", "zh-Hant"]
 
-iex> Unicode.String.split "Non, c'est M. Dubois.", break: :word, trim: true, locale: "fr"
-["Non", ",", "c'est", "M", ".", "Dubois", "."]
+iex(1)> Unicode.String.split "Non, c'est M. Dubois.", break: :sentence, trim: true, locale: "fr"    ["Non, c'est M. Dubois."]
 
 # Note that break: :line does NOT mean split the string
 # at newlines. It splits the string where a line break would be
