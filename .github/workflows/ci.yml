@@ -39,6 +39,9 @@ jobs:
       - run: mix format --check-formatted
         if: ${{ matrix.lint }}
 
+      - run: mix deps --check-unused
+        if: ${{ matrix.lint }}
+        
       - run: mix deps.compile
 
       - run: mix compile --warnings-as-errors
