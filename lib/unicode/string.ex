@@ -1,13 +1,16 @@
 defmodule Unicode.String do
   @moduledoc """
-  This module provides functions that implement somee
-  of the [Unicode](https://unicode.org) stanards:
+  This module provides functions that implement some
+  of the [Unicode](https://unicode.org) standards:
 
   * The [Unicode Case Folding](https://www.unicode.org/versions/Unicode13.0.0/ch03.pdf) algorithm
     to provide case-independent equality checking irrespective of language or script.
 
   * The [Unicode Segmentation](https://unicode.org/reports/tr29/) algorithm to detect,
     break or splut strings into grapheme clusters, works and sentences.
+
+  * The [Unicode Line Breaking](https://www.unicode.org/reports/tr14/) algorithm to determine
+    line breaks (as in word-wrapping).
 
   """
 
@@ -40,6 +43,9 @@ defmodule Unicode.String do
   @type break_match ::
     {break_or_no_break, {String.t, {String.t, String.t}}} |
     {break_or_no_break, {String.t, String.t}}
+
+  @default_locale "root"
+  @default_break :word
 
   @doc """
   Compares two strings in a case insensitive
@@ -90,6 +96,7 @@ defmodule Unicode.String do
   end
 
   @default_locale "root"
+  @default_break :word
 
   @doc """
   Returns a boolean indicating if the
@@ -99,7 +106,7 @@ defmodule Unicode.String do
 
   ## Arguments
 
-  * `string` is any `String.t`.
+  * `string` is any `t:String.t/0`.
 
   * `options` is a keyword list of
     options.
@@ -114,13 +121,13 @@ defmodule Unicode.String do
 
   * `:locale` is any locale returned by
     `Unicode.String.Segment.known_locales/0`.
-    The default is "root" which corresponds
+    The default is #{inspect @default_locale} which corresponds
     to the break rules defined by the
     [Unicode Segmentation](https://unicode.org/reports/tr29/) rules.
 
   * `:break` is the type of break. It is one of
     `:grapheme`, `:word`, `:line` or `:sentence`. The
-    default is `:word`.
+    default is `#{inspect @default_break}`.
 
   * `:suppressions` is a boolean which,
     if `true`, will suppress breaks for common
@@ -156,7 +163,7 @@ defmodule Unicode.String do
 
   ## Arguments
 
-  * `string` is any `String.t`.
+  * `string` is any `t:String.t/0`.
 
   * `options` is a keyword list of
     options.
@@ -177,13 +184,13 @@ defmodule Unicode.String do
 
   * `:locale` is any locale returned by
     `Unicode.String.Segment.known_locales/0`.
-    The default is "root" which corresponds
+    The default is #{inspect @default_locale} which corresponds
     to the break rules defined by the
     [Unicode Segmentation](https://unicode.org/reports/tr29/) rules.
 
   * `:break` is the type of break. It is one of
     `:grapheme`, `:word`, `:line` or `:sentence`. The
-    default is `:word`.
+    default is `#{inspect @default_break}`.
 
   * `:suppressions` is a boolean which,
     if `true`, will suppress breaks for common
@@ -205,7 +212,7 @@ defmodule Unicode.String do
   @spec break(string_interval, options) :: break_match | error_return
   def break({string_before, string_after}, options \\ []) do
     locale = Keyword.get(options, :locale, @default_locale)
-    break = Keyword.get(options, :break, :word)
+    break = Keyword.get(options, :break, @default_break)
 
     with {:ok, break} <- validate(:break, break),
          {:ok, locale} <- validate(:locale, locale) do
@@ -218,7 +225,7 @@ defmodule Unicode.String do
 
   ## Arguments
 
-  * `string` is any `String.t`.
+  * `string` is any `t:String.t/0`.
 
   * `options` is a keyword list of
     options.
@@ -234,13 +241,13 @@ defmodule Unicode.String do
 
   * `:locale` is any locale returned by
     `Unicode.String.Segment.known_locales/0`.
-    The default is "root" which corresponds
+    The default is #{inspect @default_locale} which corresponds
     to the break rules defined by the
     [Unicode Segmentation](https://unicode.org/reports/tr29/) rules.
 
   * `:break` is the type of break. It is one of
     `:grapheme`, `:word`, `:line` or `:sentence`. The
-    default is `:word`.
+    default is `#{inspect @default_break}`.
 
   * `:suppressions` is a boolean which,
     if `true`, will suppress breaks for common
@@ -262,7 +269,7 @@ defmodule Unicode.String do
   @spec splitter(String.t, split_options) :: function | error_return
   def splitter(string, options) when is_binary(string) do
     locale = Keyword.get(options, :locale, @default_locale)
-    break = Keyword.get(options, :break, :word)
+    break = Keyword.get(options, :break, @default_break)
 
     with {:ok, break} <- validate(:break, break),
          {:ok, locale} <- validate(:locale, locale) do
@@ -275,10 +282,11 @@ defmodule Unicode.String do
 
   ## Arguments
 
-  * `string` is any `String.t`.
+  * `string` is any `t:String.t/0`.
 
   * `options` is a keyword list of
-    options.
+    options. The default is
+    `[break: #{inspect @default_break}, locale: #{inspect @default_locale}]`.
 
   ## Returns
 
@@ -293,13 +301,13 @@ defmodule Unicode.String do
 
   * `:locale` is any locale returned by
     `Unicode.String.Segment.known_locales/0`.
-    The default is "root" which corresponds
+    The default is #{inspect @default_locale} which corresponds
     to the break rules defined by the
     [Unicode Segmentation](https://unicode.org/reports/tr29/) rules.
 
   * `:break` is the type of break. It is one of
     `:grapheme`, `:word`, `:line` or `:sentence`. The
-    default is `:word`.
+    default is `#{inspect @default_break}`.
 
   * `:suppressions` is a boolean which,
     if `true`, will suppress breaks for common
@@ -318,7 +326,7 @@ defmodule Unicode.String do
   @spec next(String.t, split_options) :: String.t | nil | error_return
   def next(string, options \\ []) when is_binary(string) do
     locale = Keyword.get(options, :locale, @default_locale)
-    break = Keyword.get(options, :break, :word)
+    break = Keyword.get(options, :break, @default_break)
 
     with {:ok, break} <- validate(:break, break),
          {:ok, locale} <- validate(:locale, locale) do
@@ -332,7 +340,7 @@ defmodule Unicode.String do
 
   ## Arguments
 
-  * `string` is any `String.t`.
+  * `string` is any `t:String.t/0`.
 
   * `options` is a keyword list of
     options.
@@ -348,13 +356,13 @@ defmodule Unicode.String do
 
   * `:locale` is any locale returned by
     `Unicode.String.Segment.known_locales/0`.
-    The default is "root" which corresponds
+    The default is #{inspect @default_locale} which corresponds
     to the break rules defined by the
     [Unicode Segmentation](https://unicode.org/reports/tr29/) rules.
 
   * `:break` is the type of break. It is one of
     `:grapheme`, `:word`, `:line` or `:sentence`. The
-    default is `:word`.
+    default is `#{inspect @default_break}`.
 
   * `:suppressions` is a boolean which,
     if `true`, will suppress breaks for common
@@ -381,7 +389,7 @@ defmodule Unicode.String do
   @spec split(String.t, split_options) :: [String.t, ...] | error_return
   def split(string, options \\ []) when is_binary(string) do
     locale = Keyword.get(options, :locale, @default_locale)
-    break = Keyword.get(options, :break, :word)
+    break = Keyword.get(options, :break, @default_break)
 
     with {:ok, break} <- validate(:break, break),
          {:ok, locale} <- validate(:locale, locale) do
@@ -398,12 +406,93 @@ defmodule Unicode.String do
     list
   end
 
-  defp validate(:locale, locale) do
+  @doc """
+  Return a stream that breaks a string into
+  graphemes, words, sentences or line breaks.
+
+  ## Arguments
+
+  * `string` is any `t:String.t/0`.
+
+  * `options` is a keyword list of
+    options.
+
+  ## Returns
+
+  * A stream that is an `t:Enumerable.t/0` that
+    can be used with the functions in the `Stream`
+    or `Enum` modules.
+
+  * `{:error, reason}`
+
+  ## Options
+
+  * `:locale` is any locale returned by
+    `Unicode.String.Segment.known_locales/0`.
+    The default is #{inspect @default_locale} which corresponds
+    to the break rules defined by the
+    [Unicode Segmentation](https://unicode.org/reports/tr29/) rules.
+
+  * `:break` is the type of break. It is one of
+    `:grapheme`, `:word`, `:line` or `:sentence`. The
+    default is `#{inspect @default_break}`.
+
+  * `:suppressions` is a boolean which,
+    if `true`, will suppress breaks for common
+    abbreviations defined for the `locale`. The
+    default is `true`.
+
+  * `:trim` is a boolean indicating if segments
+    the are comprised of only white space are to be
+    excluded from the returned list.  The default
+    is `false`.
+
+  ## Examples
+
+    iex> Enum.to_list Unicode.String.stream("this is a set of words", trim: true)
+    ["this", "is", "a", "set", "of", "words"]
+
+    iex> Enum.to_list Unicode.String.stream("this is a set of words", break: :sentence, trim: true)
+    ["this is a set of words"]
+
+  """
+  @doc since: "1.2.0"
+
+  @spec stream(String.t, Keyword.t) :: Enumerable.t | {:error, String.t}
+  def stream(string, options \\ []) do
+    locale = Keyword.get(options, :locale, @default_locale)
+    break = Keyword.get(options, :break, @default_break)
+
+    with {:ok, break} <- validate(:break, break),
+         {:ok, locale} <- validate(:locale, locale) do
+      Stream.resource(
+        fn -> string end,
+        fn string ->
+          case Break.next(string, locale, break, options) do
+            nil -> {:halt, ""}
+            {break, rest} -> {[break], rest}
+          end
+        end,
+        fn _ -> :ok end
+      )
+    end
+  end
+
+  #
+  # Helpers
+  #
+
+  defp validate(:locale, locale) when is_binary(locale) do
     if locale in Segment.known_locales() do
       {:ok, locale}
     else
       {:error, Segment.unknown_locale_error(locale)}
     end
+  end
+
+  defp validate(:locale, locale) when is_atom(locale) do
+    locale = Atom.to_string(locale)
+    validate(:locale, locale)
   end
 
   @breaks [:word, :grapheme, :line, :sentence]

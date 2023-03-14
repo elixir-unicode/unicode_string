@@ -1,8 +1,16 @@
 # Changelog
 
+## Unicode String v1.2.0
+
+This is the changelog for Unicode String v1.2.0 released on March 14th, 2023.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
+
+### Enhancements
+
+* Adds `Unicode.String.stream/2` to support streaming graphemes, words, sentences and line breaks.
+
 ## Unicode String v1.1.0
 
-This is the changelog for Unicode String v1.0.0 released on September 21st, 2022.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
+This is the changelog for Unicode String v1.1.0 released on September 21st, 2022.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
 
 ### Enhancements
 
@@ -38,7 +46,7 @@ This is the changelog for Unicode String v0.2.0 released on July 12th, 2020.  Fo
 
 ### Enhancements
 
-This release implements the Unicode break rules for graphemes, words, lines and sentences.
+This release implements the Unicode break rules for graphemes, words, lines (word-wrapping) and sentences.
 
 * Adds `Unicode.String.split/2`
 
