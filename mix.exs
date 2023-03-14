@@ -7,7 +7,7 @@ defmodule UnicodeString.MixProject do
     [
       app: :unicode_string,
       version: @version,
-      elixir: "~> 1.8",
+      elixir: "~> 1.11",
       start_permanent: Mix.env() == :prod,
       build_embedded: Mix.env() == :prod,
       deps: deps(),
@@ -59,9 +59,10 @@ defmodule UnicodeString.MixProject do
     [
       {:unicode_set, "~> 1.0"},
       {:sweet_xml, "~> 0.6", runtime: false},
+      {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:benchee, "~> 1.0", only: :dev, optional: true},
-      {:ex_doc, "~> 0.19", optional: true, runtime: false},
-      {:dialyxir, "~> 1.0", only: [:dev], runtime: false, optional: true}
+      {:ex_doc, "~> 0.19", only: :dev, optional: true, runtime: false}
     ]
   end
 
@@ -69,7 +70,8 @@ defmodule UnicodeString.MixProject do
     %{
       "GitHub" => "https://github.com/elixir-unicode/unicode_string",
       "Readme" => "https://github.com/elixir-unicode/unicode_string/blob/v#{@version}/README.md",
-      "Changelog" => "https://github.com/elixir-unicode/unicode_string/blob/v#{@version}/CHANGELOG.md"
+      "Changelog" =>
+        "https://github.com/elixir-unicode/unicode_string/blob/v#{@version}/CHANGELOG.md"
     }
   end
 
@@ -83,7 +85,7 @@ defmodule UnicodeString.MixProject do
         "LICENSE.md",
         "CHANGELOG.md"
       ],
-      skip_undefined_reference_warnings_on: ["changelog","CHANGELOG.md"]
+      skip_undefined_reference_warnings_on: ["changelog", "CHANGELOG.md"]
     ]
   end
 

@@ -17,16 +17,16 @@ defmodule Unicode.String.Segment do
 
   @doc "Identifies if a codepoint is a valid start of an identifier"
   defguard is_id_start(char)
-    when char in ?A..?Z
+           when char in ?A..?Z
 
   @doc "Identifies if a codepoint is a valid identifier character"
   defguard is_id_continue(char)
-    when char in ?a..?z or char in ?A..?Z or char in ?0..?9 or char == ?_
+           when char in ?a..?z or char in ?A..?Z or char in ?0..?9 or char == ?_
 
   @doc "Returns a list of the locales known to `Unicode.String.Break`"
   def known_locales do
     locale_map()
-    |> Map.keys
+    |> Map.keys()
   end
 
   @doc """
@@ -113,10 +113,7 @@ defmodule Unicode.String.Segment do
   end
 
   defp suppressions_regex(suppressions) do
-    suppression_regex =
-      suppressions
-      |> Enum.map(&String.replace(&1, ".", "\\."))
-      |> Enum.join("|")
+    suppression_regex = Enum.map_join(suppressions, "|", &String.replace(&1, ".", "\\."))
 
     "(" <> suppression_regex <> ")"
   end
@@ -150,7 +147,7 @@ defmodule Unicode.String.Segment do
 
   defp compile_regex!(string) do
     string
-    |> String.trim
+    |> String.trim()
     |> Unicode.Regex.compile!(@regex_options)
   end
 
@@ -166,6 +163,7 @@ defmodule Unicode.String.Segment do
   def evaluate_rules({string_before, string_after}, rules) do
     Enum.reduce_while(rules, [], fn rule, _acc ->
       {_sequence, {operator, _fore, _aft}} = rule
+
       case evaluate_rule({string_before, string_after}, rule) do
         {:pass, result} -> {:halt, {:pass, operator, result}}
         {:fail, string} -> {:cont, {:fail, string}}
@@ -181,8 +179,8 @@ defmodule Unicode.String.Segment do
   end
 
   defp return_break_or_no_break({:fail, {before_string, after_string}}) do
-    << char :: utf8, rest :: binary >> = after_string
-    {:break, {before_string, {<< char :: utf8 >>, rest}}}
+    <<char::utf8, rest::binary>> = after_string
+    {:break, {before_string, {<<char::utf8>>, rest}}}
   end
 
   defp return_break_or_no_break({:pass, operator, result}) do
@@ -218,8 +216,8 @@ defmodule Unicode.String.Segment do
 
   defp evaluate_rule({string_before, string_after}, {_seq, {_operator, fore, :any}}) do
     if Regex.match?(fore, string_before) do
-      << char :: utf8, rest :: binary >> = string_after
-      {:pass, {string_before, {<< char :: utf8 >>, rest}}}
+      <<char::utf8, rest::binary>> = string_after
+      {:pass, {string_before, {<<char::utf8>>, rest}}}
     else
       {:fail, {string_before, string_after}}
     end
@@ -240,34 +238,34 @@ defmodule Unicode.String.Segment do
     Enum.reduce(rules, [], fn %{id: sequence, value: rule}, acc ->
       rule =
         rule
-        |> String.trim
+        |> String.trim()
         |> substitute_variables(variables)
 
       [{sequence, rule} | acc]
     end)
-    |> Enum.sort
+    |> Enum.sort()
   end
 
   def expand_variables(variables, additional_variables)
       when is_list(variables) and is_list(additional_variables) do
-    Enum.reduce variables ++ additional_variables, %{}, fn
-      %{name: << "$", name :: binary >>, value: value}, variables ->
+    Enum.reduce(variables ++ additional_variables, %{}, fn
+      %{name: <<"$", name::binary>>, value: value}, variables ->
         new_value = substitute_variables(value, variables)
         Map.put(variables, name, new_value)
-    end
+    end)
   end
 
   defp substitute_variables("", _variables) do
     ""
   end
 
-  defp substitute_variables(<< "$", char :: utf8, rest :: binary >>, variables)
-      when is_id_start(char) do
-    {name, rest} = extract_variable_name(<< char :: utf8 >> <> rest)
+  defp substitute_variables(<<"$", char::utf8, rest::binary>>, variables)
+       when is_id_start(char) do
+    {name, rest} = extract_variable_name(<<char::utf8>> <> rest)
     Map.fetch!(variables, name) <> substitute_variables(rest, variables)
   end
 
-  defp substitute_variables(<< char :: binary-1, rest :: binary >>, variables) do
+  defp substitute_variables(<<char::binary-1, rest::binary>>, variables) do
     char <> substitute_variables(rest, variables)
   end
 
@@ -275,17 +273,17 @@ defmodule Unicode.String.Segment do
     {string, ""}
   end
 
-  defp extract_variable_name(<< char :: utf8, rest :: binary >>)
+  defp extract_variable_name(<<char::utf8, rest::binary>>)
        when is_id_continue(char) do
     {string, rest} = extract_variable_name(rest)
-    {<< char :: utf8 >> <> string, rest}
+    {<<char::utf8>> <> string, rest}
   end
 
   defp extract_variable_name(rest) do
     {"", rest}
   end
 
-  @app_name Mix.Project.config[:app]
+  @app_name Mix.Project.config()[:app]
   @segments_dir Path.join(:code.priv_dir(@app_name), "/segments")
 
   @doctype "<!DOCTYPE ldml SYSTEM \"../../common/dtd/ldml.dtd\">"
@@ -308,7 +306,7 @@ defmodule Unicode.String.Segment do
 
       {locale, locale_file}
     end)
-    |> Map.new
+    |> Map.new()
   end
 
   @doc """
@@ -359,15 +357,21 @@ defmodule Unicode.String.Segment do
     locale_segments = raw_segments!(locale)
 
     Enum.map(other, fn {segment_type, content} ->
-      variables = Map.fetch!(content, :variables) ++
-        (get_in(locale_segments, [segment_type, :variables]) || [])
-      rules = Map.fetch!(content, :rules) ++
-        (get_in(locale_segments, [segment_type, :rules]) || [])
-      suppressions = Map.fetch!(content, :suppressions) ++
-        (get_in(locale_segments, [segment_type, :suppressions]) || [])
+      variables =
+        Map.fetch!(content, :variables) ++
+          (get_in(locale_segments, [segment_type, :variables]) || [])
+
+      rules =
+        Map.fetch!(content, :rules) ++
+          (get_in(locale_segments, [segment_type, :rules]) || [])
+
+      suppressions =
+        Map.fetch!(content, :suppressions) ++
+          (get_in(locale_segments, [segment_type, :suppressions]) || [])
+
       {segment_type, %{content | variables: variables, rules: rules, suppressions: suppressions}}
     end)
-    |> Map.new
+    |> Map.new()
   end
 
   defp raw_segments(locale) do
@@ -380,27 +384,28 @@ defmodule Unicode.String.Segment do
         |> xpath(~x"//segmentation"l,
           type: ~x"./@type"s,
           variables: [
-             ~x".//variable"l,
-             name: ~x"./@id"s,
-             value: ~x"./text()"s
+            ~x".//variable"l,
+            name: ~x"./@id"s,
+            value: ~x"./text()"s
           ],
           rules: [
             ~x".//rule"l,
-             id: ~x"./@id"f,
-             value: ~x"./text()"s
+            id: ~x"./@id"f,
+            value: ~x"./text()"s
           ],
           suppressions: ~x".//suppression/text()"ls
         )
 
       Enum.map(content, fn c ->
-        type = c.type
-        |> Macro.underscore()
-        |> String.replace("__", "_")
-        |> String.to_atom
+        type =
+          c.type
+          |> Macro.underscore()
+          |> String.replace("__", "_")
+          |> String.to_atom()
 
         {type, %{rules: c.rules, variables: c.variables, suppressions: c.suppressions}}
       end)
-      |> Map.new
+      |> Map.new()
       |> wrap(:ok)
     else
       {:error, unknown_locale_error(locale)}
@@ -436,11 +441,11 @@ defmodule Unicode.String.Segment do
 
   @doc false
   def unknown_locale_error(locale) do
-    "Unknown locale #{inspect locale}"
+    "Unknown locale #{inspect(locale)}"
   end
 
   @doc false
   def unknown_segment_type_error(segment_type) do
-    "Unknown segment type #{inspect segment_type}"
+    "Unknown segment type #{inspect(segment_type)}"
   end
 end
