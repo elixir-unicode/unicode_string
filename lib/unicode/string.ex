@@ -95,9 +95,6 @@ defmodule Unicode.String do
     fold(string_a, type) == fold(string_b, type)
   end
 
-  @default_locale "root"
-  @default_break :word
-
   @doc """
   Returns a boolean indicating if the
   requested break is applicable
@@ -285,8 +282,7 @@ defmodule Unicode.String do
   * `string` is any `t:String.t/0`.
 
   * `options` is a keyword list of
-    options. The default is
-    `[break: #{inspect @default_break}, locale: #{inspect @default_locale}]`.
+    options.
 
   ## Returns
 
