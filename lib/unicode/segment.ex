@@ -284,18 +284,17 @@ defmodule Unicode.String.Segment do
   end
 
   @app_name Mix.Project.config()[:app]
-  @segments_dir Path.join(:code.priv_dir(@app_name), "/segments")
 
   @doctype "<!DOCTYPE ldml SYSTEM \"../../common/dtd/ldml.dtd\">"
 
   @doc false
   def segments_dir do
-    @segments_dir
+    Path.join(:code.priv_dir(@app_name), "/segments")
   end
 
   @doc false
   def locale_map do
-    @segments_dir
+    segments_dir()
     |> File.ls!()
     |> Enum.map(fn locale_file ->
       locale =
@@ -377,7 +376,7 @@ defmodule Unicode.String.Segment do
   defp raw_segments(locale) do
     if file = Map.get(locale_map(), locale) do
       content =
-        @segments_dir
+        segments_dir()
         |> Path.join(file)
         |> File.read!()
         |> String.replace(@doctype, "")
