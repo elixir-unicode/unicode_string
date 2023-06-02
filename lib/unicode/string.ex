@@ -26,16 +26,16 @@ defmodule Unicode.String do
   @type error_return :: {:error, String.t()}
 
   @type options :: [
-          {:locale, String.t()} |
-          {:break, break_type} |
-          {:suppressions, boolean}
+          {:locale, String.t()}
+          | {:break, break_type}
+          | {:suppressions, boolean}
         ]
 
   @type split_options :: [
-          {:locale, String.t()} |
-          {:break, break_type} |
-          {:suppressions, boolean} |
-          {:trim, boolean}
+          {:locale, String.t()}
+          | {:break, break_type}
+          | {:suppressions, boolean}
+          | {:trim, boolean}
         ]
 
   @type break_or_no_break :: :break | :no_break
