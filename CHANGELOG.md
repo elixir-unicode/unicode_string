@@ -1,8 +1,16 @@
 # Changelog
 
+## Unicode String v1.1.1
+
+This is the changelog for Unicode String v1.1.1 released on June 2nd, 2023.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
+
+### Bug Fixes
+
+* Resolve segments dir at runtime, not compile time. Thanks to @crkent for the report. Closes #4.
+
 ## Unicode String v1.1.0
 
-This is the changelog for Unicode String v1.0.0 released on September 21st, 2022.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
+This is the changelog for Unicode String v1.1.0 released on September 21st, 2022.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
 
 ### Enhancements
 

@@ -1,8 +1,6 @@
 # Unicode String
 
-Adds functions supporting some string algorithms in the Unicode standard.
-
-In this initial release the following functions are defined:
+Adds functions supporting some string algorithms in the Unicode standard. For example:
 
 * `Unicode.String.fold/1,2` that applies the [Unicode Case Folding algorithm](https://www.unicode.org/versions/Unicode14.0.0/ch03.pdf)
 
