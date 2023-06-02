@@ -1,7 +1,7 @@
 defmodule UnicodeString.MixProject do
   use Mix.Project
 
-  @version "1.1.1"
+  @version "1.2.1"
 
   def project do
     [
@@ -25,9 +25,8 @@ defmodule UnicodeString.MixProject do
 
   defp description do
     """
-    Functions to perform Unicode string operations like case
-    folding, case-insensitive equality as well as word, line,
-    grapheme and sentence breaking.
+    Unicode case folding, case-insensitive equality as well as word,
+    line, grapheme and sentence breaking and streaming.
     """
   end
 

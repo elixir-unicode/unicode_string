@@ -189,6 +189,7 @@ defmodule Unicode.String.Break do
   #      "S.A.", "Up.", "Job.", "Num.", "M.I.T.", "Ok.", "Org.", "Ex.", "Cont.", "U.",
   #      "Mart.", "Fn.", "Abs.", "Lt.", "OK.", "Z.", "E.", "Kb.", "Est.", "A.M.",
   #      "L.A.", ...]
+
   defp suppressions_rule(locale, segment_type)
 
   for locale <- Segment.known_locales() do

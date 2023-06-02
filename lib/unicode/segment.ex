@@ -152,7 +152,7 @@ defmodule Unicode.String.Segment do
   end
 
   @doc """
-  Evaludates a list of rules against a given
+  Evaluates a list of rules against a given
   string.
 
   """
