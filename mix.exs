@@ -1,7 +1,7 @@
 defmodule UnicodeString.MixProject do
   use Mix.Project
 
-  @version "1.2.1"
+  @version "1.3.0-dev"
 
   def project do
     [
@@ -56,6 +56,7 @@ defmodule UnicodeString.MixProject do
 
   defp deps do
     [
+      {:unicode, github: "elixir-unicode/unicode", override: true},
       {:unicode_set, "~> 1.0"},
       {:sweet_xml, "~> 0.6", runtime: false},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},

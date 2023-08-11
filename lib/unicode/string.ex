@@ -17,6 +17,7 @@ defmodule Unicode.String do
   alias Unicode.Property
   alias Unicode.String.Break
   alias Unicode.String.Segment
+  alias Unicode.String.Case
 
   defdelegate fold(string), to: Unicode.String.Case.Folding
   defdelegate fold(string, type), to: Unicode.String.Case.Folding
@@ -44,6 +45,8 @@ defmodule Unicode.String do
           {break_or_no_break, {String.t(), {String.t(), String.t()}}}
           | {break_or_no_break, {String.t(), String.t()}}
 
+  @type mode_or_language :: :turkic | nil | %{language: atom()}
+
   @default_locale "root"
   @default_break :word
 
@@ -60,11 +63,6 @@ defmodule Unicode.String do
   * `string_a` and `string_b` are two strings
     to be compared
 
-  * `type` is the case folding type to be
-    applied. The alternatives are `:full`,
-    `:simple` and `:turkic`.  The default is
-    `:full`.
-
   ## Returns
 
   * `true` or `false`
@@ -72,7 +70,7 @@ defmodule Unicode.String do
   ## Notes
 
   * This function applies the [Unicode Case Folding
-    algorithm](https://www.unicode.org/versions/Unicode13.0.0/ch03.pdf)
+    algorithm](https://www.unicode.org/versions/Unicode15.0.0/ch03.pdf)
 
   * The algorithm does not apply any treatment to diacritical
     marks hence "compare strings without accents" is not
@@ -90,9 +88,9 @@ defmodule Unicode.String do
       false
 
   """
-  @spec equals_ignoring_case?(String.t(), String.t(), atom()) :: boolean
-  def equals_ignoring_case?(string_a, string_b, type \\ :full) do
-    fold(string_a, type) == fold(string_b, type)
+  @spec equals_ignoring_case?(String.t(), String.t(), mode_or_language()) :: boolean
+  def equals_ignoring_case?(string_a, string_b, mode_or_language_tag \\ nil) do
+    fold(string_a, mode_or_language_tag) == fold(string_b, mode_or_language_tag)
   end
 
   @doc """
@@ -474,9 +472,65 @@ defmodule Unicode.String do
     end
   end
 
+  @doc """
+  Converts all characters in the given string to upper case
+  according to the Unicode Casing algorithm.
+
+  """
+  def upcase(string, options \\ []) do
+    with {:ok, locale} <- case_locale_from_options(options) do
+      Case.Mapping.upcase(string, locale)
+    end
+  end
+
+  @doc """
+  Converts all characters in the given string to lower case
+  according to the Unicode Casing algorithm.
+
+  """
+  def downcase(string, options \\ []) do
+    with {:ok, locale} <- case_locale_from_options(options) do
+      Case.Mapping.downcase(string, locale)
+    end
+  end
+
+  @doc """
+  Converts all words in the given string to title case
+  according to the Unicode Casing algorithm.
+
+  The string is broken into words (according to the
+  Unicode break algorithm) and each word then has its
+  first character capitalized and all other letters
+  downcased.
+
+  """
+
+  def titlecase(string, options \\ []) do
+    with {:ok, casing_locale} <- case_locale_from_options(options),
+         {:ok, break_locale} <- break_locale_from_options(options) do
+
+      stream_options = Keyword.merge(options, break: :word, locale: break_locale)
+
+      string
+      |> stream(stream_options)
+      |> Enum.map(&Case.Mapping.titlecase(&1, casing_locale))
+      |> Enum.join()
+    end
+  end
+
   #
   # Helpers
   #
+
+  # TODO Implement
+  defp case_locale_from_options(_options) do
+    {:ok, :any}
+  end
+
+  # TODO implement
+  defp break_locale_from_options(_options) do
+    {:ok, :root}
+  end
 
   defp validate(:locale, locale) when is_binary(locale) do
     if locale in Segment.known_locales() do

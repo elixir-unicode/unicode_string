@@ -1,5 +1,19 @@
 # Changelog
 
+## Unicode String v1.3.0
+
+This is the changelog for Unicode String v1.3.0 released on _____, 2023.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
+
+### Bug Fixes
+
+* Fix case folding for codepoints that fold to themselves.
+
+### Enhancements
+
+* Case folding always follows the `:full` path which allows mapping of single code points to multiple code points. There is no practical reason to implement the `:simple` path. As a result, the `type` parameter to `Unicode.String.Case.Folding.fold/2` is no longer required or supported.
+
+* Support an [ex_cldr](https://hex.pm/packages/ex_cldr) [Language Tag](https://hexdocs.pm/ex_cldr/Cldr.LanguageTag.html) as a parameter to `Unicode.String.Case.Folding.fold/2`. In fact any map that has a `:language` key with a value that is an [ISO 639-1](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) language code as a lower cased atom may be passed as a parameter.
+
 ## Unicode String v1.2.1
 
 This is the changelog for Unicode String v1.2.1 released on June 2nd, 2023.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
