@@ -1,12 +1,18 @@
 # Unicode String
 
+[![Hex.pm](https://img.shields.io/hexpm/v/unicode_string.svg)](https://hex.pm/packages/unicode_string)
+[![Hex.pm](https://img.shields.io/hexpm/dw/unicode_string.svg?)](https://hex.pm/packages/unicode_string)
+[![Hex.pm](https://img.shields.io/hexpm/l/unicode_string.svg)](https://hex.pm/packages/unicode_string)
+
 Adds functions supporting some string algorithms in the Unicode standard. For example:
 
 * The [Unicode Case Folding](https://www.unicode.org/versions/Unicode15.0.0/ch03.pdf) algorithm to provide case-independent equality checking irrespective of language or script with `Unicode.String.fold/2` and `Unicode.String.equals_ignoring_case?/2`
 
-* The [Unicode Segmentation](https://unicode.org/reports/tr29/) algorithm to detect, break, split or stream strings into grapheme clusters, words, sentences and line break points.
+* The [Unicode Code Mapping](https://www.unicode.org/versions/Unicode15.0.0/ch03.pdf) algorithm that implements locale-aware `Unicode.String.upcase/2`, `Unicode.String.downcase/2` and `Unicode.String.titlecase/2`.
 
-* The [Unicode Line Breaking](https://www.unicode.org/reports/tr14/) algorithm to determine line breaks (as in breaks where word-wrapping would be acceptable).
+* The [Unicode Segmentation](https://unicode.org/reports/tr29/) algorithm to detect, break, split or stream strings into grapheme clusters, words, sentences and line break points in a locale-aware manner.
+
+* The [Unicode Line Breaking](https://www.unicode.org/reports/tr14/) algorithm to determine line breaks (breaks meaning where word-wrapping would be acceptable).
 
 ## Casing
 
