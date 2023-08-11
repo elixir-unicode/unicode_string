@@ -25,8 +25,9 @@ defmodule UnicodeString.MixProject do
 
   defp description do
     """
-    Unicode case folding, case-insensitive equality as well as word,
-    line, grapheme and sentence breaking and streaming.
+    Unicode locale-aware case folding, case mapping (upcase, downcase and titlecase)
+    case-insensitive equality as well as word, line, grapheme and sentence
+    breaking and streaming.
     """
   end
 
