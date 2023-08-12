@@ -50,7 +50,7 @@ defmodule Unicode.String.Case.Folding do
     string on either input or output.
 
   * Case folding does not apply any transformation
-    to accented characters. `"ü" will not case fold
+    to accented characters. `"ü"` will not case fold
     to `"u"` for example.
 
   ### Examples

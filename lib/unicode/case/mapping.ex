@@ -1,12 +1,32 @@
 defmodule Unicode.String.Case.Mapping do
   @moduledoc """
-  Implements Unicode case mapping as described in
-  the [Unicode standard](https://www.unicode.org/versions/Unicode15.0.0/ch03.pdf).
+  The [Unicode Case Mapping](https://www.unicode.org/versions/Unicode15.0.0/ch03.pdf) algorithm
+  defines the process and data to transform text into upper case, lowers case or title case.
 
-  The functions in this module aren't intended to
-  be called directly. It is preferred that the functions
-  `Unicode.String.upcase/2`, `Unicode.String.downcase/2` and
-  `Unicode.String.titlecase/2` are used.
+  Since not all languages are bicameral, characters which have no appropriate mapping remain unchanged.
+
+  Three case mapping functions are provided:
+
+  * `Unicode.String.upcase/2` which will convert text to upper case characters.
+  * `Unicode.String.downcase/2` which will convert text to lower case characters.
+  * `Unicode.String.titlecase/2` which will convert text to title case.  Title case means
+    that the first character or each word is set to upper case and all other characters in
+    the word are set to lower case. `Unicode.String.split/2` is used to split the string
+    into words before title casing.
+
+  Each function operates in a locale-aware manner implementing some basic capabilities:
+
+  * Casing rules for the Turkish dotted capital `I` and dotless small `i`.
+  * Casing rules for the retention of dots over `i` for Lithuanian letters with additional accents.
+
+  There are many other casing rules that are not currently implemented:
+
+  * Titlecasing of IJ at the start of words in Dutch.
+  * Removal of accents when upper casing letters in Greek.
+  * Titlecasing of second or subsequent letters in words in orthographies that include
+    caseless letters such as apostrophes.
+  * Uppercasing of U+00DF `ß` latin small letter sharp `s` to U+1E9E latin capital letter
+    sharp `s`.
 
   """
 

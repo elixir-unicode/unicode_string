@@ -17,10 +17,17 @@ Adds functions supporting some string algorithms in the Unicode standard. For ex
 
 ## Casing
 
+### Folding
+
 The [Unicode Case Folding](https://www.unicode.org/versions/Unicode15.0.0/ch03.pdf) algorithm defines how to perform case folding. This allows comparison of strings in a case-insensitive fashion. It does not define the means to compare ignoring diacritical marks (accents). Some examples follow, for details see:
 
 * `Unicode.String.fold/2`
 * `Unicode.String.equals_ignoring_case?/3`
+
+> #### Note {: .info}
+>
+> Although the folding algorithm commonly downcases characters, folding is not a general purpose downcasing process. It exists only to facilitate case insensitive string comparison.
+
 
 ```elixir
 iex> Unicode.String.equals_ignoring_case? "ABC", "abc"
@@ -32,6 +39,29 @@ true
 iex> Unicode.String.equals_ignoring_case? "grüßen", "grussen"
 false
 ```
+
+### Mapping
+
+The [Unicode Case Mapping](https://www.unicode.org/versions/Unicode15.0.0/ch03.pdf) algorithm defines the process and data to transform text into upper case, lowers case or title case. Since not all languages are bicameral, characters which have no appropriate mapping remain unchanged.
+
+Three case mapping functions are provided:
+
+* `Unicode.String.upcase/2` which will convert text to upper case characters.
+* `Unicode.String.downcase/2` which will convert text to lower case characters.
+* `Unicode.String.titlecase/2` which will convert text to title case.  Title case means that the first character or each word is set to upper case and all other characters in the word are set to lower case. `Unicode.String.split/2` is used to split the string into words before title casing.
+
+Each function operates in a locale-aware manner implementing some basic capabilities:
+
+* Casing rules for the Turkish dotted capital `I` and dotless small `i`.
+* Casing rules for the retention of dots over `i` for Lithuanian letters with additional accents.
+
+There are many other casing rules that are not currently implemented:
+
+* Titlecasing of IJ at the start of words in Dutch.
+* Removal of accents when upper casing letters in Greek.
+* Titlecasing of second or subsequent letters in words in orthographies that include caseless letters such as apostrophes.
+* Uppercasing of U+00DF `ß` latin small letter sharp `s` to U+1E9E latin capital letter sharp `s`.
+
 ## Segmentation
 
 The [Unicode Segmentation](https://unicode.org/reports/tr29/) annex details the algorithm to be applied with segmenting text (Elixir strings) into words, sentences, graphemes and line breaks. Some examples follow, for details see:
