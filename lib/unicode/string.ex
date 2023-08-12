@@ -478,7 +478,7 @@ defmodule Unicode.String do
 
   """
   def upcase(string, options \\ []) do
-    with {:ok, locale} <- case_locale_from_options(options) do
+    with {:ok, locale} <- casing_locale_from_options(options) do
       Case.Mapping.upcase(string, locale)
     end
   end
@@ -489,7 +489,7 @@ defmodule Unicode.String do
 
   """
   def downcase(string, options \\ []) do
-    with {:ok, locale} <- case_locale_from_options(options) do
+    with {:ok, locale} <- casing_locale_from_options(options) do
       Case.Mapping.downcase(string, locale)
     end
   end
@@ -506,10 +506,10 @@ defmodule Unicode.String do
   """
 
   def titlecase(string, options \\ []) do
-    with {:ok, casing_locale} <- case_locale_from_options(options),
-         {:ok, break_locale} <- break_locale_from_options(options) do
+    with {:ok, casing_locale} <- casing_locale_from_options(options),
+         {:ok, segmentation_locale} <- segmentation_locale_from_options(options) do
 
-      stream_options = Keyword.merge(options, break: :word, locale: break_locale)
+      stream_options = Keyword.merge(options, break: :word, locale: segmentation_locale)
 
       string
       |> stream(stream_options)
@@ -522,27 +522,120 @@ defmodule Unicode.String do
   # Helpers
   #
 
-  # TODO Implement
-  defp case_locale_from_options(_options) do
-    {:ok, :any}
+  @doc false
+  def casing_locale(locale) do
+    casing_locale_from_options(locale: locale)
   end
 
-  # TODO implement
-  defp break_locale_from_options(_options) do
-    {:ok, :root}
+  @doc false
+  def segmentation_locale(locale) do
+    segmentation_locale_from_options(locale: locale)
   end
 
-  defp validate(:locale, locale) when is_binary(locale) do
-    if locale in Segment.known_locales() do
-      {:ok, locale}
-    else
-      {:error, Segment.unknown_locale_error(locale)}
+  defp casing_locale_from_options(options) do
+    options
+    |> Keyword.get(:locale)
+    |> match_locale(Unicode.Utils.known_casing_locales(), :any)
+    |> wrap(:ok)
+  end
+
+  defp segmentation_locale_from_options(options) do
+    options
+    |> Keyword.get(:locale)
+    |> match_locale(Segment.known_segmentation_locales(), :root)
+    |> wrap(:ok)
+  end
+
+  defp wrap({:error, _} = error, _) do
+    error
+  end
+
+  defp wrap(term, atom) do
+    {atom, term}
+  end
+
+  defp match_locale(nil, _known_locales, default) do
+    default
+  end
+
+  # The Enum.sort/1 here relies on the coincidental fact tha the three fields
+  # are alphabetically in the order we already want
+
+  defp match_locale(locale, known_locales, default) when is_struct(locale, Cldr.LanguageTag) do
+    locale
+    |> Map.take([:canonical_locale_name, :cldr_locale_name, :language])
+    |> Enum.sort()
+    |> Keyword.values()
+    |> Enum.uniq()
+    |> find_matching_locale(known_locales, default)
+  end
+
+  defp match_locale(locale, known_locales, default) when is_binary(locale) do
+    locale
+    |> String.split(["-", "_"])
+    |> build_candidate_locales()
+    |> find_matching_locale(known_locales, default)
+  end
+
+  defp match_locale(locale, known_locales, default) when is_atom(locale) do
+    if locale in known_locales, do: locale, else: default
+  end
+
+  # Means it was a segment match request
+  defp match_locale(locale, _known_locales, :root) do
+    {:error, Segment.unknown_locale_error(locale)}
+  end
+
+  # Means it was a casing match request
+  defp match_locale(locale, _known_locales, :any) do
+    {:error, Case.Mapping.unknown_locale_error(locale)}
+  end
+
+  def find_matching_locale(candidates, known_locales, default) do
+    candidates
+    |> Enum.reduce_while(default, fn candidate, current ->
+      case match_locale(candidate, known_locales, nil) do
+        nil -> {:cont, current}
+        found -> {:halt, found}
+      end
+    end)
+  end
+
+  defp build_candidate_locales([language]) when byte_size(language) == 2 do
+    language
+    |> String.downcase()
+    |> atomize()
+    |> List.wrap
+    |> Enum.reject(&is_nil/1)
+  end
+
+  defp build_candidate_locales([language, territory | _rest])
+      when byte_size(language) == 2 and byte_size(territory) == 2 do
+    language = String.downcase(language)
+    territory = String.upcase(territory)
+
+    Enum.reject([atomize("#{language}-#{territory}"), atomize(language)], &is_nil/1)
+  end
+
+  defp build_candidate_locales(["root"]) do
+    [:root]
+  end
+
+  defp build_candidate_locales(_other) do
+    []
+  end
+
+  defp atomize(string) do
+    String.to_existing_atom(string)
+  rescue ArgumentError ->
+    nil
+  end
+
+  defp validate(:locale, locale) do
+    case match_locale(locale, Segment.known_segmentation_locales(), nil) do
+      nil -> {:error, Segment.unknown_locale_error(locale)}
+      locale -> {:ok, locale}
     end
-  end
-
-  defp validate(:locale, locale) when is_atom(locale) do
-    locale = Atom.to_string(locale)
-    validate(:locale, locale)
   end
 
   @breaks [:word, :grapheme, :line, :sentence]

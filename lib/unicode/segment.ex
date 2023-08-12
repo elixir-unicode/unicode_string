@@ -23,12 +23,6 @@ defmodule Unicode.String.Segment do
   defguard is_id_continue(char)
            when char in ?a..?z or char in ?A..?Z or char in ?0..?9 or char == ?_
 
-  @doc "Returns a list of the locales known to `Unicode.String.Break`"
-  def known_locales do
-    locale_map()
-    |> Map.keys()
-  end
-
   @doc """
   Return the rules as defined by CLDR for a given
   locale and break type.
@@ -309,6 +303,17 @@ defmodule Unicode.String.Segment do
   end
 
   @doc """
+  Returns a list of the known locales that have
+  segmentation data.
+
+  """
+  def known_segmentation_locales do
+    locale_map()
+    |> Map.keys()
+    |> Enum.map(&String.to_atom/1)
+  end
+
+  @doc """
   Returns a list of the ancestor locales
   of the a given locale.
 
@@ -419,13 +424,19 @@ defmodule Unicode.String.Segment do
   end
 
   @doc false
-  def segments(locale) do
+  def segments(locale) when is_binary(locale) do
     merge_ancestors(locale)
   end
 
+  def segments(locale) when is_atom(locale) do
+    locale
+    |> Atom.to_string()
+    |> segments()
+  end
+
   @doc false
-  def segments(locale, segment_type) when is_binary(locale) do
-    with {:ok, segments} <- segments(locale) do
+  def segments(locale, segment_type) do
+    with {:ok, segments} <- segments(to_string(locale)) do
       if segment = Map.get(segments, segment_type) do
         {:ok, segment}
       else

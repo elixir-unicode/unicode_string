@@ -17,7 +17,7 @@ Adds functions supporting some string algorithms in the Unicode standard. For ex
 
 ## Casing
 
-### Folding
+### Case Folding
 
 The [Unicode Case Folding](https://www.unicode.org/versions/Unicode15.0.0/ch03.pdf) algorithm defines how to perform case folding. This allows comparison of strings in a case-insensitive fashion. It does not define the means to compare ignoring diacritical marks (accents). Some examples follow, for details see:
 
@@ -40,9 +40,9 @@ iex> Unicode.String.equals_ignoring_case? "grüßen", "grussen"
 false
 ```
 
-### Mapping
+### Case Mapping
 
-The [Unicode Case Mapping](https://www.unicode.org/versions/Unicode15.0.0/ch03.pdf) algorithm defines the process and data to transform text into upper case, lowers case or title case. Since not all languages are bicameral, characters which have no appropriate mapping remain unchanged.
+The [Unicode Case Mapping](https://www.unicode.org/versions/Unicode15.0.0/ch03.pdf) algorithm defines the process and data to transform text into upper case, lower case or title case. Since most languages are not bicameral, characters which have no case mapping remain unchanged.
 
 Three case mapping functions are provided:
 
@@ -60,7 +60,12 @@ There are many other casing rules that are not currently implemented:
 * Titlecasing of IJ at the start of words in Dutch.
 * Removal of accents when upper casing letters in Greek.
 * Titlecasing of second or subsequent letters in words in orthographies that include caseless letters such as apostrophes.
-* Uppercasing of U+00DF `ß` latin small letter sharp `s` to U+1E9E latin capital letter sharp `s`.
+* Uppercasing of U+00DF `ß` latin small letter sharp `s` to U+1E9E `ẞ` latin capital letter sharp `s`.
+
+```elixir
+
+
+```
 
 ## Segmentation
 

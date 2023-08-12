@@ -12,4 +12,30 @@ defmodule UnicodeString.Casing.Test do
     assert Unicode.String.Case.Mapping.upcase("ii", :az) == "İİ"
     assert Unicode.String.Case.Mapping.upcase("ii") == "II"
   end
+
+  test "Resolving the casing locale from a Language Tag" do
+    import Cldr.LanguageTag.Sigil
+
+    assert Unicode.String.casing_locale(~l"az") == {:ok, :az}
+    assert Unicode.String.casing_locale(~l"tr") == {:ok, :tr}
+    assert Unicode.String.casing_locale(~l"lt") == {:ok, :lt}
+    assert Unicode.String.casing_locale(~l"en") == {:ok, :any}
+    assert Unicode.String.casing_locale(~l"ar") == {:ok, :any}
+  end
+
+  test "Resolving the casing locale from a string" do
+    assert Unicode.String.casing_locale("az") == {:ok, :az}
+    assert Unicode.String.casing_locale("tr") == {:ok, :tr}
+    assert Unicode.String.casing_locale("lt") == {:ok, :lt}
+    assert Unicode.String.casing_locale("en") == {:ok, :any}
+    assert Unicode.String.casing_locale("ar") == {:ok, :any}
+  end
+  
+  test "Resolving the casing locale from an atom" do
+    assert Unicode.String.casing_locale(:az) == {:ok, :az}
+    assert Unicode.String.casing_locale(:tr) == {:ok, :tr}
+    assert Unicode.String.casing_locale(:lt) == {:ok, :lt}
+    assert Unicode.String.casing_locale(:en) == {:ok, :any}
+    assert Unicode.String.casing_locale(:ar) == {:ok, :any}
+  end
 end

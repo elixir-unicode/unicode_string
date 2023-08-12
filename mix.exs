@@ -59,6 +59,8 @@ defmodule Unicode.String.MixProject do
     [
       {:unicode, github: "elixir-unicode/unicode", override: true},
       {:unicode_set, "~> 1.3"},
+      {:ex_cldr, "~> 2.37", optional: true},
+      {:jason, "~> 1.0", optional: true},
       {:sweet_xml, "~> 0.7", runtime: false},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:benchee, "~> 1.0", only: :dev, optional: true},

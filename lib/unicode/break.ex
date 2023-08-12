@@ -192,7 +192,7 @@ defmodule Unicode.String.Break do
 
   defp suppressions_rule(locale, segment_type)
 
-  for locale <- Segment.known_locales() do
+  for locale <- Segment.known_segmentation_locales() do
     {:ok, segments} = Segment.segments(locale)
 
     for segment_type <- Map.keys(segments) do

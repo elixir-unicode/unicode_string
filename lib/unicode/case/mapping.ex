@@ -1,11 +1,11 @@
 defmodule Unicode.String.Case.Mapping do
   @moduledoc """
   The [Unicode Case Mapping](https://www.unicode.org/versions/Unicode15.0.0/ch03.pdf) algorithm
-  defines the process and data to transform text into upper case, lowers case or title case.
+  defines the process and data to transform text into upper case, lower case or title case.
 
-  Since not all languages are bicameral, characters which have no appropriate mapping remain unchanged.
+  Since most languages are not bicameral, characters which have no appropriate mapping remain unchanged.
 
-  Three case mapping functions are provided:
+  Three case mapping functions are provided as a public API which have their implementations in this module:
 
   * `Unicode.String.upcase/2` which will convert text to upper case characters.
   * `Unicode.String.downcase/2` which will convert text to lower case characters.
@@ -25,7 +25,7 @@ defmodule Unicode.String.Case.Mapping do
   * Removal of accents when upper casing letters in Greek.
   * Titlecasing of second or subsequent letters in words in orthographies that include
     caseless letters such as apostrophes.
-  * Uppercasing of U+00DF `ß` latin small letter sharp `s` to U+1E9E latin capital letter
+  * Uppercasing of U+00DF `ß` latin small letter sharp `s` to U+1E9E `ẞ` latin capital letter
     sharp `s`.
 
   """
@@ -179,4 +179,8 @@ defmodule Unicode.String.Case.Mapping do
     casing(casing, prior, string, :any, acc)
   end
 
+  @doc false
+  def unknown_locale_error(locale) do
+    "Unknown locale #{inspect(locale)}"
+  end
 end

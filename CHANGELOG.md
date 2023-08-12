@@ -14,6 +14,8 @@ This is the changelog for Unicode String v1.3.0 released on _____, 2023.  For ol
 
 * Support an [ex_cldr](https://hex.pm/packages/ex_cldr) [Language Tag](https://hexdocs.pm/ex_cldr/Cldr.LanguageTag.html) as a parameter to `Unicode.String.Case.Folding.fold/2`. In fact any map that has a `:language` key with a value that is an [ISO 639-1](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) language code as a lower cased atom may be passed as a parameter.
 
+* Support [Cldr Language Tags (locales)](https://hexdocs.pm/ex_cldr/Cldr.LanguageTag.html) as a `:locale` option for functions that support such an option. This provides for greater interroperability with [ex_cldr](https://hex.pm/packages/ex_cldr).
+
 ## Unicode String v1.2.1
 
 This is the changelog for Unicode String v1.2.1 released on June 2nd, 2023.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
