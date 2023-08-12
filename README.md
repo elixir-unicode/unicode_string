@@ -1,5 +1,6 @@
 # Unicode String
 
+![Build status](https://github.com/elixir-unicode/unicode_string/actions/workflows/ci.yml/badge.svg)
 [![Hex.pm](https://img.shields.io/hexpm/v/unicode_string.svg)](https://hex.pm/packages/unicode_string)
 [![Hex.pm](https://img.shields.io/hexpm/dw/unicode_string.svg?)](https://hex.pm/packages/unicode_string)
 [![Hex.pm](https://img.shields.io/hexpm/l/unicode_string.svg)](https://hex.pm/packages/unicode_string)
