@@ -174,12 +174,12 @@ defmodule Unicode.String.Case.Mapping do
   # they upcase to a dotted-capital-I
 
   defp casing(string, <<byte::size(8), rest::binary>>, :downcase = casing, language, bytes_so_far, acc)
-      when byte >= ?A and byte <= ?Z do
+      when byte >= ?A and byte <= ?Z and byte != ?I do
     casing(string, rest, casing, language, bytes_so_far + 1, [byte + 32 | acc])
   end
 
   defp casing(string, <<byte::size(8), rest::binary>>, casing, language, bytes_so_far, acc)
-      when casing in [:upcase, :titlecase] and byte in [?a..?h] or byte in [?j..?z] do
+      when casing in [:upcase, :titlecase] and byte >= ?a and byte <= ?z and byte != ?i do
     casing(string, rest, casing, language, bytes_so_far + 1, [byte - 32 | acc])
   end
 
