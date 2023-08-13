@@ -4,3 +4,4 @@ Benchee.run(%{
   "Unicode.String.Case.Mapping.upcase"  =>
     fn -> Unicode.String.Case.Mapping.downcase(s) end,
 })
+
