@@ -38,6 +38,8 @@ defmodule Unicode.String.Case.Mapping do
   # See table Table 3-17 of https://www.unicode.org/versions/Unicode15.0.0/ch03.pdf
   # for details of the contexts
 
+  # These regexes can probably be converted to another form
+  # which may further enable binary optimmization.
   @final_sigma_before Unicode.Regex.compile!("\\p{cased}(\\p{Case_Ignorable})*")
   @final_sigma_after Unicode.Regex.compile!("(\\p{Case_Ignorable})*\\p{cased}")
 
@@ -170,7 +172,7 @@ defmodule Unicode.String.Case.Mapping do
   end
 
   # These first four function clauses optimze for ASCII characters.
-  # We need to omit the `i` from all ranges since in Turkish and Azerbaijani
+  # We need to omit the `i` from all ranges since in Turkish and Azeri
   # they upcase to a dotted-capital-I
 
   defp casing(string, <<byte::size(8), rest::binary>>, :downcase = casing, language, bytes_so_far, acc)

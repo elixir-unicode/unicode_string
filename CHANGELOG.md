@@ -10,11 +10,11 @@ This is the changelog for Unicode String v1.3.0 released on _____, 2023.  For ol
 
 ### Enhancements
 
+* Adds case mapping functions `Unicode.String.upcase/2`, `Unicode.String.downcase/2` and `Unicode/String.titlecase/2`. These functions implement the full [Unicode Casing algorithm](https://www.unicode.org/versions/Unicode15.0.0/ch03.pdf) including conditiional mappings. They are locale-aware and a locale can be specified as a string, atom or a [Cldr.LanguageTag](https://hexdocs.pm/ex_cldr/Cldr.LanguageTag.html) thereby providing basic integration between `unicode_string` and [ex_cldr](https://hex.pm/packages/ex_cldr).
+
 * Case folding always follows the `:full` path which allows mapping of single code points to multiple code points. There is no practical reason to implement the `:simple` path. As a result, the `type` parameter to `Unicode.String.Case.Folding.fold/2` is no longer required or supported.
 
 * Support an [ex_cldr](https://hex.pm/packages/ex_cldr) [Language Tag](https://hexdocs.pm/ex_cldr/Cldr.LanguageTag.html) as a parameter to `Unicode.String.Case.Folding.fold/2`. In fact any map that has a `:language` key with a value that is an [ISO 639-1](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) language code as a lower cased atom may be passed as a parameter.
-
-* Support [Cldr Language Tags (locales)](https://hexdocs.pm/ex_cldr/Cldr.LanguageTag.html) as a `:locale` option for functions that support such an option. This provides for greater interroperability with [ex_cldr](https://hex.pm/packages/ex_cldr).
 
 ## Unicode String v1.2.1
 
