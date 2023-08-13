@@ -238,8 +238,8 @@ defmodule Unicode.String.Case.Mapping do
   end
 
   # Pass the character through since there is no casing data.
-  # Optimize for ASCII bytes (byte value is less than 256)
-  defp casing(string, <<byte::size(8), rest::binary>>, casing, :any = language, bytes_so_far, acc) when byte < 256 do
+  # Optimize for ASCII bytes (byte value is less than 127)
+  defp casing(string, <<byte::size(8), rest::binary>>, casing, :any = language, bytes_so_far, acc) when byte <= ?~ do
     bytes_so_far = bytes_so_far + 1
 
     casing(string, rest, casing, language, bytes_so_far, [byte | acc])
