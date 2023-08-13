@@ -160,8 +160,7 @@ defmodule Unicode.String.Case.Mapping do
   def titlecase(string, language \\ :any)
 
   def titlecase(<<first::utf8, rest::binary>>, language) when is_atom(language) do
-    first = <<first::utf8>>
-    <<casing(first, first, :titlecase, language, 0, []), downcase(rest, language)>>
+    casing(<<first::utf8>>, <<first::utf8>>, :titlecase, language, 0, []) <> downcase(rest, language)
   end
 
   # Generate the mapping functions
