@@ -83,7 +83,8 @@ defmodule Unicode.String.Case.Mapping do
         if !Regex.match?(@before_dot, prior) do
           casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [unquote(replace) | acc])
         else
-          casing(string, rest, unquote(casing), :any, bytes_so_far, acc)
+          this = casing(<<unquote(codepoint)::utf8>>, <<unquote(codepoint)::utf8>>, unquote(casing), :any, 0, acc)
+          casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [this | acc])
         end
       end
 
@@ -96,7 +97,8 @@ defmodule Unicode.String.Case.Mapping do
         if Regex.match?(@more_above, rest) do
           casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [unquote(replace) | acc])
         else
-          casing(string, rest, unquote(casing), :any, bytes_so_far, acc)
+          this = casing(<<unquote(codepoint)::utf8>>, <<unquote(codepoint)::utf8>>, unquote(casing), :any, 0, acc)
+          casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [this | acc])
         end
       end
 
@@ -110,7 +112,8 @@ defmodule Unicode.String.Case.Mapping do
         if Regex.match?(@after_soft_dotted, prior) do
           casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [unquote(replace) | acc])
         else
-          casing(string, rest, unquote(casing), :any, bytes_so_far, acc)
+          this = casing(<<unquote(codepoint)::utf8>>, <<unquote(codepoint)::utf8>>, unquote(casing), :any, 0, acc)
+          casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [this | acc])
         end
       end
 
@@ -124,7 +127,8 @@ defmodule Unicode.String.Case.Mapping do
         if Regex.match?(@after_i, prior) do
           casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [unquote(replace) | acc])
         else
-          casing(string, rest, unquote(casing), :any, bytes_so_far, acc)
+          this = casing(<<unquote(codepoint)::utf8>>, <<unquote(codepoint)::utf8>>, unquote(casing), :any, 0, acc)
+          casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [this | acc])
         end
       end
   end
@@ -156,7 +160,8 @@ defmodule Unicode.String.Case.Mapping do
   def titlecase(string, language \\ :any)
 
   def titlecase(<<first::utf8, rest::binary>>, language) when is_atom(language) do
-    casing(<<first::utf8>>, <<first::utf8>>, :titlecase, language, 0, []) <> downcase(rest, language)
+    first = <<first::utf8>>
+    <<casing(first, first, :titlecase, language, 0, []), downcase(rest, language)>>
   end
 
   # Generate the mapping functions
