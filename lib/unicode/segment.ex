@@ -54,7 +54,7 @@ defmodule Unicode.String.Segment do
   def compile_rules(rules, variables) when is_list(rules) do
     rules
     |> expand_rules(variables)
-    |> compile_rules
+    |> compile_rules()
   end
 
   @doc """
@@ -93,7 +93,7 @@ defmodule Unicode.String.Segment do
     variable =
       locale
       |> suppressions!(segment_type)
-      |> suppressions_regex
+      |> suppressions_regex()
 
     if variable do
       %{name: @suppressions_variable, value: variable}
