@@ -629,13 +629,6 @@ defmodule Unicode.String do
     nil
   end
 
-  defp validate(:locale, locale) do
-    case match_locale(locale, Segment.known_segmentation_locales(), nil) do
-      nil -> {:error, Segment.unknown_locale_error(locale)}
-      locale -> {:ok, locale}
-    end
-  end
-
   @breaks [:word, :grapheme, :line, :sentence]
 
   defp validate(:break, break) do
@@ -645,4 +638,5 @@ defmodule Unicode.String do
       {:error, "Unknown break #{inspect(break)}. Valid breaks are #{inspect(@breaks)}"}
     end
   end
+
 end
