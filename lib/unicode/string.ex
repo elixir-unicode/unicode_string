@@ -27,13 +27,13 @@ defmodule Unicode.String do
   @type error_return :: {:error, String.t()}
 
   @type options :: [
-          {:locale, String.t()}
+          {:locale, String.t() | map}
           | {:break, break_type}
           | {:suppressions, boolean}
         ]
 
   @type split_options :: [
-          {:locale, String.t()}
+          {:locale, String.t() | map}
           | {:break, break_type}
           | {:suppressions, boolean}
           | {:trim, boolean}
@@ -206,11 +206,10 @@ defmodule Unicode.String do
   """
   @spec break(string_interval, options) :: break_match | error_return
   def break({string_before, string_after}, options \\ []) do
-    locale = Keyword.get(options, :locale, @default_locale)
     break = Keyword.get(options, :break, @default_break)
 
-    with {:ok, break} <- validate(:break, break),
-         {:ok, locale} <- validate(:locale, locale) do
+    with {:ok, locale} <- segmentation_locale_from_options(options),
+         {:ok, break} <- validate(:break, break) do
       Break.break({string_before, string_after}, locale, break, options)
     end
   end
@@ -263,11 +262,10 @@ defmodule Unicode.String do
   """
   @spec splitter(String.t(), split_options) :: function | error_return
   def splitter(string, options) when is_binary(string) do
-    locale = Keyword.get(options, :locale, @default_locale)
     break = Keyword.get(options, :break, @default_break)
 
-    with {:ok, break} <- validate(:break, break),
-         {:ok, locale} <- validate(:locale, locale) do
+    with {:ok, locale} <- segmentation_locale_from_options(options),
+         {:ok, break} <- validate(:break, break) do
       Stream.unfold(string, &Break.next(&1, locale, break, options))
     end
   end
@@ -294,8 +292,9 @@ defmodule Unicode.String do
   ## Options
 
   * `:locale` is any locale returned by
-    `Unicode.String.Segment.known_locales/0`.
-    The default is #{inspect(@default_locale)} which corresponds
+    `Unicode.String.Segment.known_locales/0` or
+    a [Cldr.LanguageTag](https://hexdocs.pm/ex_cldr/Cldr.LanguageTag.html)
+    struct. The default is #{inspect(@default_locale)} which corresponds
     to the break rules defined by the
     [Unicode Segmentation](https://unicode.org/reports/tr29/) rules.
 
@@ -319,11 +318,10 @@ defmodule Unicode.String do
   """
   @spec next(String.t(), split_options) :: String.t() | nil | error_return
   def next(string, options \\ []) when is_binary(string) do
-    locale = Keyword.get(options, :locale, @default_locale)
     break = Keyword.get(options, :break, @default_break)
 
-    with {:ok, break} <- validate(:break, break),
-         {:ok, locale} <- validate(:locale, locale) do
+    with {:ok, locale} <- segmentation_locale_from_options(options),
+         {:ok, break} <- validate(:break, break) do
       Break.next(string, locale, break, options)
     end
   end
@@ -349,8 +347,9 @@ defmodule Unicode.String do
   ## Options
 
   * `:locale` is any locale returned by
-    `Unicode.String.Segment.known_locales/0`.
-    The default is #{inspect(@default_locale)} which corresponds
+    `Unicode.String.Segment.known_locales/0` or
+    a [Cldr.LanguageTag](https://hexdocs.pm/ex_cldr/Cldr.LanguageTag.html)
+    struct. The default is #{inspect(@default_locale)} which corresponds
     to the break rules defined by the
     [Unicode Segmentation](https://unicode.org/reports/tr29/) rules.
 
@@ -382,11 +381,10 @@ defmodule Unicode.String do
   """
   @spec split(String.t(), split_options) :: [String.t(), ...] | error_return
   def split(string, options \\ []) when is_binary(string) do
-    locale = Keyword.get(options, :locale, @default_locale)
     break = Keyword.get(options, :break, @default_break)
 
-    with {:ok, break} <- validate(:break, break),
-         {:ok, locale} <- validate(:locale, locale) do
+    with {:ok, locale} <- segmentation_locale_from_options(options),
+         {:ok, break} <- validate(:break, break) do
       Break.split(string, locale, break, options)
     end
     |> maybe_trim(options[:trim])
@@ -422,8 +420,9 @@ defmodule Unicode.String do
   ## Options
 
   * `:locale` is any locale returned by
-    `Unicode.String.Segment.known_locales/0`.
-    The default is #{inspect(@default_locale)} which corresponds
+    `Unicode.String.Segment.known_locales/0` or
+    a [Cldr.LanguageTag](https://hexdocs.pm/ex_cldr/Cldr.LanguageTag.html)
+    struct. The default is #{inspect(@default_locale)} which corresponds
     to the break rules defined by the
     [Unicode Segmentation](https://unicode.org/reports/tr29/) rules.
 
@@ -454,11 +453,10 @@ defmodule Unicode.String do
 
   @spec stream(String.t(), Keyword.t()) :: Enumerable.t() | {:error, String.t()}
   def stream(string, options \\ []) do
-    locale = Keyword.get(options, :locale, @default_locale)
     break = Keyword.get(options, :break, @default_break)
 
-    with {:ok, break} <- validate(:break, break),
-         {:ok, locale} <- validate(:locale, locale) do
+    with {:ok, locale} <- segmentation_locale_from_options(options),
+         {:ok, break} <- validate(:break, break) do
       Stream.resource(
         fn -> string end,
         fn string ->
