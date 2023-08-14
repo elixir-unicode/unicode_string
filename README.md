@@ -54,10 +54,10 @@ Each function operates in a locale-aware manner implementing some basic capabili
 
 * Casing rules for the Turkish dotted capital `I` and dotless small `i`.
 * Casing rules for the retention of dots over `i` for Lithuanian letters with additional accents.
+* Titlecasing of IJ at the start of words in Dutch.
 
 There are many other casing rules that are not currently implemented:
 
-* Titlecasing of IJ at the start of words in Dutch.
 * Removal of accents when upper casing letters in Greek.
 * Titlecasing of second or subsequent letters in words in orthographies that include caseless letters such as apostrophes.
 * Uppercasing of U+00DF `ß` latin small letter sharp `s` to U+1E9E `ẞ` latin capital letter sharp `s`.

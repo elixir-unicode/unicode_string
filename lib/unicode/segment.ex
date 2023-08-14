@@ -34,7 +34,7 @@ defmodule Unicode.String.Segment do
       rules = Map.fetch!(segment, :rules)
 
       rules
-      |> compile_rules(variables)
+      |> compile_rules(variables, [])
       |> wrap(:ok)
     end
   end
@@ -51,10 +51,28 @@ defmodule Unicode.String.Segment do
     end
   end
 
-  def compile_rules(rules, variables) when is_list(rules) do
+  def compile_rules(rules, variables, regex_options) when is_list(rules) do
     rules
     |> expand_rules(variables)
-    |> compile_rules()
+    |> compile_rules(regex_options)
+  end
+
+  # These options set unicode mode. Interpreset certain
+  # codes like \B and \w in the unicode space, ignore
+  # unescaped whitespace in regexs
+  @regex_options [:unicode, :extended, :ucp, :dollar_endonly, :dotall, :bsr_unicode]
+  @rule_splitter ~r/[×÷]/u
+
+  defp compile_rules(rules, regex_options) do
+    Enum.map(rules, fn {sequence, rule} ->
+      [left, operator, right] = Regex.split(@rule_splitter, rule, include_captures: true)
+      operator = if operator == "×", do: :no_break, else: :break
+
+      left = if left != "", do: left <> "$", else: left
+      right = if right != "", do: "^" <> right, else: right
+
+      {sequence, {operator, compile_regex!(left, regex_options), compile_regex!(right, regex_options)}}
+    end)
   end
 
   @doc """
@@ -65,27 +83,9 @@ defmodule Unicode.String.Segment do
   rule set.
 
   """
-  def compile_rule(rule, variables) when is_map(rule) do
-    compile_rules([rule], variables)
+  def compile_rule(rule, variables, regex_options \\ []) when is_map(rule) do
+    compile_rules([rule], variables, regex_options)
     |> hd
-  end
-
-  # These options set unicode mode. Interpreset certain
-  # codes like \B and \w in the unicode space, ignore
-  # unescaped whitespace in regexs
-  @regex_options [:unicode, :extended, :ucp, :dollar_endonly, :dotall, :bsr_unicode]
-  @rule_splitter ~r/[×÷]/u
-
-  defp compile_rules(rules) do
-    Enum.map(rules, fn {sequence, rule} ->
-      [left, operator, right] = Regex.split(@rule_splitter, rule, include_captures: true)
-      operator = if operator == "×", do: :no_break, else: :break
-
-      left = if left != "", do: left <> "$", else: left
-      right = if right != "", do: "^" <> right, else: right
-
-      {sequence, {operator, compile_regex!(left), compile_regex!(right)}}
-    end)
   end
 
   @doc false
@@ -135,14 +135,14 @@ defmodule Unicode.String.Segment do
     end
   end
 
-  defp compile_regex!("") do
+  defp compile_regex!("", _regex_options) do
     :any
   end
 
-  defp compile_regex!(string) do
+  defp compile_regex!(string, regex_options) do
     string
     |> String.trim()
-    |> Unicode.Regex.compile!(@regex_options)
+    |> Unicode.Regex.compile!(@regex_options ++ regex_options)
   end
 
   @doc """

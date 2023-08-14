@@ -13,6 +13,10 @@ defmodule UnicodeString.Casing.Test do
     assert Unicode.String.Case.Mapping.upcase("ii") == "II"
   end
 
+  test "Titlecasing in Dutch for leading `ij` dipthong" do
+    assert Unicode.String.Case.Mapping.titlecase("ijthings", :nl) == "IJthings"
+  end
+
   test "Resolving the casing locale from a Language Tag" do
     import Cldr.LanguageTag.Sigil
 
@@ -30,7 +34,7 @@ defmodule UnicodeString.Casing.Test do
     assert Unicode.String.casing_locale("en") == {:ok, :any}
     assert Unicode.String.casing_locale("ar") == {:ok, :any}
   end
-  
+
   test "Resolving the casing locale from an atom" do
     assert Unicode.String.casing_locale(:az) == {:ok, :az}
     assert Unicode.String.casing_locale(:tr) == {:ok, :tr}

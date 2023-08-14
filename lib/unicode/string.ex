@@ -533,7 +533,7 @@ defmodule Unicode.String do
   defp casing_locale_from_options(options) do
     options
     |> Keyword.get(:locale)
-    |> match_locale(Unicode.Utils.known_casing_locales(), :any)
+    |> match_locale([:nl | Unicode.Utils.known_casing_locales()], :any)
     |> wrap(:ok)
   end
 

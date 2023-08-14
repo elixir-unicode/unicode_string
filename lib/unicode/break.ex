@@ -47,7 +47,8 @@ defmodule Unicode.String.Break do
   end
 
   defp split_at({string_before, string_after}, locale, segment_type, options) do
-    suppress? = Keyword.get(options, :suppressions, true)
+    IO.inspect options, label: "options"
+    suppress? = Keyword.get(options, :suppressions, true) |> IO.inspect(label: "Split_at suppress?")
     {:ok, rules} = rules(locale, segment_type, suppress?)
 
     {string_before, string_after}
@@ -177,18 +178,6 @@ defmodule Unicode.String.Break do
   #     ]
   defp suppressions(locale, segment_type)
 
-  # Returns the suppression rule for a
-  # given locale and segment type.
-  #
-  # Examples
-  #
-  #     => Unicode.String.Break.suppressions "en", :sentence_break
-  #     ["L.P.", "Alt.", "Approx.", "E.G.", "O.", "Maj.", "Misc.", "P.O.", "J.D.",
-  #      "Jam.", "Card.", "Dec.", "Sept.", "MR.", "Long.", "Hat.", "G.", "Link.", "DC.",
-  #      "D.C.", "M.T.", "Hz.", "Mrs.", "By.", "Act.", "Var.", "N.V.", "Aug.", "B.",
-  #      "S.A.", "Up.", "Job.", "Num.", "M.I.T.", "Ok.", "Org.", "Ex.", "Cont.", "U.",
-  #      "Mart.", "Fn.", "Abs.", "Lt.", "OK.", "Z.", "E.", "Kb.", "Est.", "A.M.",
-  #      "L.A.", ...]
 
   defp suppressions_rule(locale, segment_type)
 
@@ -216,7 +205,7 @@ defmodule Unicode.String.Break do
           get_in(segments, [segment_type, :variables])
           |> Segment.expand_variables([suppressions_variable])
 
-        rule = Segment.compile_rule(suppressions_rule, variables)
+        rule = Segment.compile_rule(suppressions_rule, variables, [:caseless])
 
         defp suppressions_rule(unquote(locale), unquote(segment_type)) do
           unquote(Macro.escape(rule))
@@ -225,7 +214,7 @@ defmodule Unicode.String.Break do
     end
   end
 
-  @default_locale "root"
+  @default_locale :root
 
   defp rules(_other, segment_type) do
     Segment.rules(@default_locale, segment_type)
@@ -245,7 +234,7 @@ defmodule Unicode.String.Break do
     end
   end
 
-  defp rules(locale, segment_type, _) do
-    rules(locale, segment_type)
+  defp rules(locale, break_type, _) do
+    rules(locale, break_type)
   end
 end

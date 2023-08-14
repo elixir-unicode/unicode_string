@@ -18,10 +18,10 @@ defmodule Unicode.String.Case.Mapping do
 
   * Casing rules for the Turkish dotted capital `I` and dotless small `i`.
   * Casing rules for the retention of dots over `i` for Lithuanian letters with additional accents.
+  * Titlecasing of IJ at the start of words in Dutch.
 
   There are many other casing rules that are not currently implemented:
 
-  * Titlecasing of IJ at the start of words in Dutch.
   * Removal of accents when upper casing letters in Greek.
   * Titlecasing of second or subsequent letters in words in orthographies that include
     caseless letters such as apostrophes.
@@ -167,11 +167,16 @@ defmodule Unicode.String.Case.Mapping do
   """
   def titlecase(string, language \\ :any)
 
+  def titlecase(<<i::size(8), j::size(8), rest::binary>>, :nl)
+      when i in [?i, ?I] and j in [?j, ?J] do
+    "IJ" <> casing(rest, rest, :downcase, :any, 0, [])
+  end
+
   def titlecase(<<first::utf8, rest::binary>>, language) when is_atom(language) do
     casing(<<first::utf8>>, <<first::utf8>>, :titlecase, language, 0, []) <> downcase(rest, language)
   end
 
-  # These first four function clauses optimze for ASCII characters.
+  # These next four function clauses optimze for ASCII characters.
   # We need to omit the `i` from all ranges since in Turkish and Azeri
   # they upcase to a dotted-capital-I
 
