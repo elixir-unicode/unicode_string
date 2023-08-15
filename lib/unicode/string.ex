@@ -475,7 +475,10 @@ defmodule Unicode.String do
   according to the Unicode Casing algorithm.
 
   """
-  def upcase(string, options \\ []) do
+  @doc since: "1.3.0"
+
+  @spec upcase(String.t(), Keyword.t()) :: String.t()
+  def upcase(string, options \\ []) when is_list(options) do
     with {:ok, locale} <- casing_locale_from_options(options) do
       Case.Mapping.upcase(string, locale)
     end
@@ -486,7 +489,10 @@ defmodule Unicode.String do
   according to the Unicode Casing algorithm.
 
   """
-  def downcase(string, options \\ []) do
+  @doc since: "1.3.0"
+
+  @spec downcase(String.t(), Keyword.t()) :: String.t()
+  def downcase(string, options \\ []) when is_list(options) do
     with {:ok, locale} <- casing_locale_from_options(options) do
       Case.Mapping.downcase(string, locale)
     end
@@ -502,8 +508,10 @@ defmodule Unicode.String do
   downcased.
 
   """
+  @doc since: "1.3.0"
 
-  def titlecase(string, options \\ []) do
+  @spec titlecase(String.t(), Keyword.t()) :: String.t()
+  def titlecase(string, options \\ []) when is_list(options) do
     with {:ok, casing_locale} <- casing_locale_from_options(options),
          {:ok, segmentation_locale} <- segmentation_locale_from_options(options) do
 
@@ -530,17 +538,24 @@ defmodule Unicode.String do
     segmentation_locale_from_options(locale: locale)
   end
 
+  # These locales have some aadditional processing
+  # beyond that specified in SpecialCasing.txt
+  @special_casing_locales [:nl, :el]
+  @casing_locales @special_casing_locales ++ Unicode.Utils.known_casing_locales()
+
   defp casing_locale_from_options(options) do
     options
     |> Keyword.get(:locale)
-    |> match_locale([:nl | Unicode.Utils.known_casing_locales()], :any)
+    |> match_locale(@casing_locales, :any)
     |> wrap(:ok)
   end
+
+  @segmentation_locales Segment.known_segmentation_locales()
 
   defp segmentation_locale_from_options(options) do
     options
     |> Keyword.get(:locale)
-    |> match_locale(Segment.known_segmentation_locales(), :root)
+    |> match_locale(@segmentation_locales, :root)
     |> wrap(:ok)
   end
 

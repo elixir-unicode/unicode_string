@@ -42,4 +42,10 @@ defmodule UnicodeString.Casing.Test do
     assert Unicode.String.casing_locale(:en) == {:ok, :any}
     assert Unicode.String.casing_locale(:ar) == {:ok, :any}
   end
+
+  test "That accents are removed when upcasing Greek" do
+    string = "Πατάτα, Αέρας, Μυστήριο, Ωραίο, Μαΐου, Πόρος, Ρύθμιση, ΰ, Τηρώ, Μάιος, άυλο"
+    upcased = "ΠΑΤΑΤΑ, ΑΕΡΑΣ, ΜΥΣΤΗΡΙΟ, ΩΡΑΙΟ, ΜΑΙΟΥ, ΠΟΡΟΣ, ΡΥΘΜΙΣΗ, Υ, ΤΗΡΩ, ΜΑΙΟΣ, ΑΥΛΟ"
+    assert Unicode.String.upcase(string, locale: :el) == upcased
+  end
 end

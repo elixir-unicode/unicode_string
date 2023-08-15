@@ -19,16 +19,17 @@ defmodule Unicode.String.Case.Mapping do
   * Casing rules for the Turkish dotted capital `I` and dotless small `i`.
   * Casing rules for the retention of dots over `i` for Lithuanian letters with additional accents.
   * Titlecasing of IJ at the start of words in Dutch.
-
-  There are many other casing rules that are not currently implemented:
-
   * Removal of accents when upper casing letters in Greek.
+
+  There are other casing rules that are not currently implemented such as:
+
   * Titlecasing of second or subsequent letters in words in orthographies that include
     caseless letters such as apostrophes.
   * Uppercasing of U+00DF `ß` latin small letter sharp `s` to U+1E9E `ẞ` latin capital letter
     sharp `s`.
 
   """
+
   alias Unicode.Utils
 
   @sigma 0x03A3
@@ -142,17 +143,31 @@ defmodule Unicode.String.Case.Mapping do
   end
 
   @doc """
-  Apply to Unicode upper case algorithm.
+  Replace lower case characters with their
+  uppercase equivalents.
+
+  Lower case characters are replaced with their
+  upper case equivalents. All other characters
+  remain unchanged.
+
+  For the Greek language (`:el`), all accents are
+  removed prior to capitalization as is the normal
+  practise for this language.
 
   """
   def upcase(string, language \\ :any)
+
+  def upcase(string, :el) do
+    Unicode.String.Case.Mapping.Greek.upcase(string)
+  end
 
   def upcase(string, language) when is_atom(language) do
     casing(string, string, :upcase,language, 0, [])
   end
 
   @doc """
-  Apply to Unicode upper case algorithm.
+  Replace upper case characters with their
+  lower case equivalents.
 
   """
   def downcase(string, language \\ :any)

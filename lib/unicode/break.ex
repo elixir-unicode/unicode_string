@@ -47,8 +47,7 @@ defmodule Unicode.String.Break do
   end
 
   defp split_at({string_before, string_after}, locale, segment_type, options) do
-    IO.inspect options, label: "options"
-    suppress? = Keyword.get(options, :suppressions, true) |> IO.inspect(label: "Split_at suppress?")
+    suppress? = Keyword.get(options, :suppressions, true)
     {:ok, rules} = rules(locale, segment_type, suppress?)
 
     {string_before, string_after}
