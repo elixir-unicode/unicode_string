@@ -62,6 +62,28 @@ There are other casing rules that are not currently implemented such as:
 * Titlecasing of second or subsequent letters in words in orthographies that include caseless letters such as apostrophes.
 * Uppercasing of U+00DF `ß` latin small letter sharp `s` to U+1E9E `ẞ` latin capital letter sharp `s`.
 
+```elixir
+# Basic case transformation
+iex> Unicode.String.upcase("the quick brown fox")
+"THE QUICK BROWN FOX"
+
+# Dotted-I in Turkish and Azeri
+iex> Unicode.String.upcase("Diyarbakır", locale: :tr)
+"DİYARBAKIR"
+
+# Upper case in Greek removes diacritics
+iex> Unicode.String.upcase("Πατάτα, Αέρας, Μυστήριο", locale: :el)
+"ΠΑΤΑΤΑ, ΑΕΡΑΣ, ΜΥΣΤΗΡΙΟ"
+
+# Lower case Greek with a final sigma
+iex> Unicode.String.downcase("ὈΔΥΣΣΕΎΣ", locale: :el)
+"ὀδυσσεύς"
+
+# Title case Dutch with leading dipthong
+iex> Unicode.String.titlecase("ijsselmeer", locale: :nl)
+"IJsselmeer"
+```
+
 ## Segmentation
 
 The [Unicode Segmentation](https://unicode.org/reports/tr29/) annex details the algorithm to be applied with segmenting text (Elixir strings) into words, sentences, graphemes and line breaks. Some examples follow, for details see:

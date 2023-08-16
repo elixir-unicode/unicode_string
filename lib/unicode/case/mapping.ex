@@ -28,6 +28,28 @@ defmodule Unicode.String.Case.Mapping do
   * Uppercasing of U+00DF `ß` latin small letter sharp `s` to U+1E9E `ẞ` latin capital letter
     sharp `s`.
 
+  ### Examples
+
+      # Basic case transformation
+      iex> Unicode.String.Case.Mapping.upcase("the quick brown fox")
+      "THE QUICK BROWN FOX"
+
+      # Dotted-I in Turkish and Azeri
+      iex> Unicode.String.Case.Mapping.upcase("Diyarbakır", :tr)
+      "DİYARBAKIR"
+
+      # Upper case in Greek removes diacritics
+      iex> Unicode.String.Case.Mapping.upcase("Πατάτα, Αέρας, Μυστήριο", :el)
+      "ΠΑΤΑΤΑ, ΑΕΡΑΣ, ΜΥΣΤΗΡΙΟ"
+
+      # Lower case Greek with a final sigma
+      iex> Unicode.String.Case.Mapping.downcase("ὈΔΥΣΣΕΎΣ", :el)
+      "ὀδυσσεύς"
+
+      # Title case Dutch with leading dipthong
+      iex> Unicode.String.Case.Mapping.titlecase("ijsselmeer", :nl)
+      "IJsselmeer"
+
   """
 
   alias Unicode.Utils

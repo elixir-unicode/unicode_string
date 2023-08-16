@@ -511,6 +511,20 @@ defmodule Unicode.String do
 
   * `downcased_string`
 
+  ### Examples
+
+      # Basic case transformation
+      iex> Unicode.String.upcase("the quick brown fox")
+      "THE QUICK BROWN FOX"
+
+      # Dotted-I in Turkish and Azeri
+      iex> Unicode.String.upcase("Diyarbakır", locale: :tr)
+      "DİYARBAKIR"
+
+      # Upper case in Greek removes diacritics
+      iex> Unicode.String.upcase("Πατάτα, Αέρας, Μυστήριο", locale: :el)
+      "ΠΑΤΑΤΑ, ΑΕΡΑΣ, ΜΥΣΤΗΡΙΟ"
+
   """
   @doc since: "1.3.0"
 
@@ -550,6 +564,20 @@ defmodule Unicode.String do
   ### Returns
 
   * `downcased_string`
+
+  ### Examples
+
+      iex> Unicode.String.downcase("THE QUICK BROWN FOX")
+      "the quick brown fox"
+
+      # Lower case Greek with a final sigma
+      iex> Unicode.String.downcase("ὈΔΥΣΣΕΎΣ", locale: :el)
+      "ὀδυσσεύς"
+
+      # Lower case in Turkish and Azeri correctly handles
+      # undotted-i and undotted-I
+      iex> Unicode.String.downcase("DİYARBAKIR", locale: :tr)
+      "diyarbakır"
 
   """
   @doc since: "1.3.0"
@@ -608,6 +636,15 @@ defmodule Unicode.String do
   ### Returns
 
   * `title_cased_string`.
+
+  ### Examples
+
+      iex> Unicode.String.titlecase("THE QUICK BROWN FOX")
+      "The Quick Brown Fox"
+
+      # Title case Dutch with leading dipthong
+      iex> Unicode.String.titlecase("ijsselmeer", locale: :nl)
+      "IJsselmeer"
 
   """
   @doc since: "1.3.0"
