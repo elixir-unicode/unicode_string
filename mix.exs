@@ -1,7 +1,7 @@
 defmodule Unicode.String.MixProject do
   use Mix.Project
 
-  @version "1.3.0-dev"
+  @version "1.3.0-rc.0"
 
   def project do
     [
@@ -87,7 +87,8 @@ defmodule Unicode.String.MixProject do
         "LICENSE.md",
         "CHANGELOG.md"
       ],
-      skip_undefined_reference_warnings_on: ["changelog", "CHANGELOG.md"]
+      skip_undefined_reference_warnings_on: ["changelog", "CHANGELOG.md"],
+      formatters: ["html"]
     ]
   end
 

@@ -1,15 +1,9 @@
 defmodule Unicode.String.Case.Mapping.Greek do
-  @moduledoc false
+  @moduledoc """
+  Implements the special upper casing rules for
+  for the Greek language.
 
-  # Uses the CLDR transform for el-Upper
-  # Copyright (C) 2011-2013, Apple Inc. and others. All Rights Reserved.
-  # Remove \0301 following Greek, with possible intervening 0308 marks.
-  # ::NFD();
-  # For uppercasing (not titlecasing!) remove all greek accents from greek letters.
-  # This is done in two groups, to account for canonical ordering.
-  # [:Greek:] [^[:ccc=Not_Reordered:][:ccc=Above:]]*? { [\u0313\u0314\u0301\u0300\u0306\u0342\u0308\u0304] → ;
-  # [:Greek:] [^[:ccc=Not_Reordered:][:ccc=Iota_Subscript:]]*? { \u0345 → ;
-  # ::NFC();
+  """
 
   @remove_accents Unicode.Regex.compile!("[^[:ccc=Not_Reordered:][:ccc=Above:]]*?[\\u0313\\u0314\\u0301\\u0300\\u0306\\u0342\\u0308\\u0304]")
   @remove_iota Unicode.Regex.compile!("[^[:ccc=Not_Reordered:][:ccc=Iota_Subscript:]]*?[\\u0345]")
@@ -31,8 +25,8 @@ defmodule Unicode.String.Case.Mapping.Greek do
     [:Greek:] [^[:ccc=Not_Reordered:][:ccc=Iota_Subscript:]]*? { \u0345 → ;
     ::NFC();
 
-  That transform basically says remove all accents unless there is an
-  iota subscript before an iota. It doesn't handle dipthongs correctly.
+  That transform basically says remove all accents except a
+  subscripted iota. It doesn't handle dipthongs correctly.
 
   ### Mozilla algorithm
 

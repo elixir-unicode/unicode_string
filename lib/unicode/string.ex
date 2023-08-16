@@ -3,6 +3,9 @@ defmodule Unicode.String do
   This module provides functions that implement some
   of the [Unicode](https://unicode.org) standards:
 
+  * The [Unicode Case Mapping](https://www.unicode.org/versions/Unicode13.0.0/ch03.pdf) algorithm
+    to provide mapping to upper, lower and title case text.
+
   * The [Unicode Case Folding](https://www.unicode.org/versions/Unicode13.0.0/ch03.pdf) algorithm
     to provide case-independent equality checking irrespective of language or script.
 
@@ -11,6 +14,9 @@ defmodule Unicode.String do
 
   * The [Unicode Line Breaking](https://www.unicode.org/reports/tr14/) algorithm to determine
     line breaks (as in word-wrapping).
+
+  * The [Unicode Case Mapping](https://www.unicode.org/versions/Unicode13.0.0/ch03.pdf) algorithm
+    to provide mapping to upper, lower and title case text.
 
   """
 
@@ -76,6 +82,11 @@ defmodule Unicode.String do
     marks hence "compare strings without accents" is not
     part of this function.
 
+  * No string normalization is performed. Where the
+    normalization state of the string cannot be guaranteed
+    it is recommended they be normalized before comparison
+    using `String.normalize(string, :nfc)`.
+
   ## Examples
 
       iex> Unicode.String.equals_ignoring_case? "ABC", "abc"
@@ -115,7 +126,7 @@ defmodule Unicode.String do
   ## Options
 
   * `:locale` is any locale returned by
-    `Unicode.String.Segment.known_locales/0`.
+    `Unicode.String.Segment.known_segmentation_locales/0`.
     The default is #{inspect(@default_locale)} which corresponds
     to the break rules defined by the
     [Unicode Segmentation](https://unicode.org/reports/tr29/) rules.
@@ -178,7 +189,7 @@ defmodule Unicode.String do
   ## Options
 
   * `:locale` is any locale returned by
-    `Unicode.String.Segment.known_locales/0`.
+    `Unicode.String.Segment.known_segmentation_locales/0`.
     The default is #{inspect(@default_locale)} which corresponds
     to the break rules defined by the
     [Unicode Segmentation](https://unicode.org/reports/tr29/) rules.
@@ -234,7 +245,7 @@ defmodule Unicode.String do
   ## Options
 
   * `:locale` is any locale returned by
-    `Unicode.String.Segment.known_locales/0`.
+    `Unicode.String.Segment.known_segmentation_locales/0`.
     The default is #{inspect(@default_locale)} which corresponds
     to the break rules defined by the
     [Unicode Segmentation](https://unicode.org/reports/tr29/) rules.
@@ -292,7 +303,7 @@ defmodule Unicode.String do
   ## Options
 
   * `:locale` is any locale returned by
-    `Unicode.String.Segment.known_locales/0` or
+    `Unicode.String.Segment.known_segmentation_locales/0` or
     a [Cldr.LanguageTag](https://hexdocs.pm/ex_cldr/Cldr.LanguageTag.html)
     struct. The default is #{inspect(@default_locale)} which corresponds
     to the break rules defined by the
@@ -347,7 +358,7 @@ defmodule Unicode.String do
   ## Options
 
   * `:locale` is any locale returned by
-    `Unicode.String.Segment.known_locales/0` or
+    `Unicode.String.Segment.known_segmentation_locales/0` or
     a [Cldr.LanguageTag](https://hexdocs.pm/ex_cldr/Cldr.LanguageTag.html)
     struct. The default is #{inspect(@default_locale)} which corresponds
     to the break rules defined by the
@@ -420,7 +431,7 @@ defmodule Unicode.String do
   ## Options
 
   * `:locale` is any locale returned by
-    `Unicode.String.Segment.known_locales/0` or
+    `Unicode.String.Segment.known_segmentation_locales/0` or
     a [Cldr.LanguageTag](https://hexdocs.pm/ex_cldr/Cldr.LanguageTag.html)
     struct. The default is #{inspect(@default_locale)} which corresponds
     to the break rules defined by the
@@ -474,6 +485,32 @@ defmodule Unicode.String do
   Converts all characters in the given string to upper case
   according to the Unicode Casing algorithm.
 
+  ### Arguments
+
+  * `string` is any `t:String.t/0`.
+
+  * `options` is a keyword list of options.
+
+  ### Options
+
+  * `:locale` is any [ISO 639](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes)
+    language code or a [LanguageTag](https://hexdocs.pm/ex_cldr/Cldr.LanguageTag.html)
+    which provides integration with [ex_cldr](https://hex.pm/packages/ex_cldr)
+    applications.  The default is `:any` which signifies the
+    application of the base Unicode casing algorithm.
+
+  ### Notes
+
+  * The locale option determines the use of certain locale-specific
+    casing rules.  Where no specific casing rules apply to
+    the given locale, the base Unicode casing algorithm is
+    applied. The locales which have customized casing rules
+    are returned by `Unicode.String.special_casing_locales/0`.
+
+  ### Returns
+
+  * `downcased_string`
+
   """
   @doc since: "1.3.0"
 
@@ -488,6 +525,32 @@ defmodule Unicode.String do
   Converts all characters in the given string to lower case
   according to the Unicode Casing algorithm.
 
+  ### Arguments
+
+  * `string` is any `t:String.t/0`.
+
+  * `options` is a keyword list of options.
+
+  ### Options
+
+  * `:locale` is any [ISO 639](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes)
+    language code or a [LanguageTag](https://hexdocs.pm/ex_cldr/Cldr.LanguageTag.html)
+    which provides integration with [ex_cldr](https://hex.pm/packages/ex_cldr)
+    applications.  The default is `:any` which signifies the
+    application of the base Unicode casing algorithm.
+
+  ### Notes
+
+  * The locale option determines the use of certain locale-specific
+    casing rules.  Where no specific casing rules apply to
+    the given locale, the base Unicode casing algorithm is
+    applied. The locales which have customized casing rules
+    are returned by `Unicode.String.special_casing_locales/0`.
+
+  ### Returns
+
+  * `downcased_string`
+
   """
   @doc since: "1.3.0"
 
@@ -499,13 +562,52 @@ defmodule Unicode.String do
   end
 
   @doc """
-  Converts all words in the given string to title case
+  Converts the given string to title case
   according to the Unicode Casing algorithm.
 
-  The string is broken into words (according to the
-  Unicode break algorithm) and each word then has its
-  first character capitalized and all other letters
-  downcased.
+  Title casing is the process of transforming
+  the first character of each word in a string
+  to upper case and the following characters
+  in the word to lower case.
+
+  As a result this algorithm does not conform
+  to the norms of all languages and cultures.
+  However special processing is performed for
+  the Dutch dipthong "IJ" when using the `:nl`
+  casing locale.
+
+  Further work will focus on improving title
+  casing of Greek dipthongs.
+
+  ### Arguments
+
+  * `string` is any `t:String.t/0`.
+
+  * `options` is a keyword list of options.
+
+  ### Options
+
+  * `:locale` is any [ISO 639](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes)
+    language code or a [LanguageTag](https://hexdocs.pm/ex_cldr/Cldr.LanguageTag.html)
+    which provides integration with [ex_cldr](https://hex.pm/packages/ex_cldr)
+    applications.  The default is `:any` which signifies the
+    application of the base Unicode casing algorithm.
+
+  ### Notes
+
+  * The locale option determines the use of certain locale-specific
+    casing rules.  Where no specific casing rules apply to
+    the given locale, the base Unicode casing algorithm is
+    applied. The locales which have customized casing rules
+    are returned by `Unicode.String.special_casing_locales/0`.
+
+  * The string is broken into words using
+    `Unicode.String.break/2` which implements the
+    [Unicode segmentation algorithm](https://unicode.org/reports/tr29/).
+
+  ### Returns
+
+  * `title_cased_string`.
 
   """
   @doc since: "1.3.0"
@@ -524,6 +626,26 @@ defmodule Unicode.String do
     end
   end
 
+  # These locales have some aadditional processing
+  # beyond that specified in SpecialCasing.txt
+  @special_casing_locales [:nl, :el]
+  @casing_locales @special_casing_locales ++ Unicode.Utils.known_casing_locales()
+  |> Enum.sort()
+
+  @doc """
+  Returms a list of locales that have special
+  casing rules.
+
+  ### Example
+
+      iex> Unicode.String.special_casing_locales()
+      [:az, :el, :lt, :nl, :tr]
+
+  """
+  def special_casing_locales do
+    @casing_locales
+  end
+
   #
   # Helpers
   #
@@ -537,11 +659,6 @@ defmodule Unicode.String do
   def segmentation_locale(locale) do
     segmentation_locale_from_options(locale: locale)
   end
-
-  # These locales have some aadditional processing
-  # beyond that specified in SpecialCasing.txt
-  @special_casing_locales [:nl, :el]
-  @casing_locales @special_casing_locales ++ Unicode.Utils.known_casing_locales()
 
   defp casing_locale_from_options(options) do
     options
