@@ -62,11 +62,6 @@ There are other casing rules that are not currently implemented such as:
 * Titlecasing of second or subsequent letters in words in orthographies that include caseless letters such as apostrophes.
 * Uppercasing of U+00DF `ß` latin small letter sharp `s` to U+1E9E `ẞ` latin capital letter sharp `s`.
 
-```elixir
-
-
-```
-
 ## Segmentation
 
 The [Unicode Segmentation](https://unicode.org/reports/tr29/) annex details the algorithm to be applied with segmenting text (Elixir strings) into words, sentences, graphemes and line breaks. Some examples follow, for details see:
