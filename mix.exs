@@ -57,7 +57,7 @@ defmodule Unicode.String.MixProject do
 
   defp deps do
     [
-      {:unicode, github: "elixir-unicode/unicode", override: true},
+      {:unicode, "~> 1.16"},
       {:unicode_set, "~> 1.3"},
       {:ex_cldr, "~> 2.37", optional: true},
       {:jason, "~> 1.0", optional: true},
