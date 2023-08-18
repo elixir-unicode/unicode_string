@@ -1,4 +1,5 @@
 defmodule Unicode.String.TestDataParser do
+  @moduledoc false
 
   @word_break "./test/support/test_data/WordBreakTest.txt"
 
@@ -35,7 +36,6 @@ defmodule Unicode.String.TestDataParser do
     tests
     |> Enum.reduce({"", []}, &reduce_tests/2)
     |> elem(1)
-    # |> Enum.uniq_by(fn {line, {break?, left, right} -> {line, break?, left, right} end)
     |> Enum.reverse()
   end
 
