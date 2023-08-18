@@ -8,6 +8,7 @@ defmodule Unicode.String.Segment do
   import SweetXml
   require Unicode.Set
 
+  @root_locale "root"
   @suppressions_variable "$Suppressions"
 
   # This is the formal definition but it takes a while to compile
@@ -139,9 +140,12 @@ defmodule Unicode.String.Segment do
     :any
   end
 
+  # Delete spaces because PCRE doesn't ignore them
+
   defp compile_regex!(string, regex_options) do
     string
     |> String.trim()
+    |> String.replace(" ", "")
     |> Unicode.Regex.compile!(@regex_options ++ regex_options)
   end
 
@@ -320,12 +324,13 @@ defmodule Unicode.String.Segment do
   The list includes the given locale.
 
   """
+
   def ancestors(locale_name) do
     if Map.get(locale_map(), locale_name) do
       case String.split(locale_name, "-") do
-        [locale] -> [locale, "root"]
-        [locale, _territory] -> [locale_name, locale, "root"]
-        [locale, script, _territory] -> [locale_name, "#{locale}-#{script}", locale, "root"]
+        [locale] -> [locale, @root_locale]
+        [locale, _territory] -> [locale_name, locale, @root_locale]
+        [locale, script, _territory] -> [locale_name, "#{locale}-#{script}", locale, @root_locale]
       end
       |> wrap(:ok)
     else
@@ -334,8 +339,8 @@ defmodule Unicode.String.Segment do
   end
 
   @doc false
-  def merge_ancestors("root") do
-    raw_segments!("root")
+  def merge_ancestors(@root_locale) do
+    raw_segments!(@root_locale)
     |> wrap(:ok)
   end
 

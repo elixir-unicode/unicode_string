@@ -25,8 +25,16 @@ defmodule Unicode.String.Break do
     break_at(string, locale, Map.fetch!(@break_map, break), options)
   end
 
+  defp break_at("", _locale, _segment_type, _options) do
+    {:no_break, {"", {"", ""}}}
+  end
+
   defp break_at(string, locale, segment_type, options) when is_binary(string) do
     break_at({"", string}, locale, segment_type, options)
+  end
+
+  defp break_at({"", string_after}, _locale, _segment_type, _options) do
+    {:break, {"", {"", string_after}}}
   end
 
   defp break_at({string_before, string_after}, locale, segment_type, options) do
