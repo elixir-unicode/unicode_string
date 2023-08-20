@@ -154,7 +154,7 @@ defmodule Unicode.String.Break do
   end
 
   @suppression_rules %{
-    sentence_break: %{id: 10.5, value: "$Suppressions $Close* $Sp* $ParaSep? ×"}
+    sentence_break: %{id: 10.5, value: "$Sp+ $Suppressions $Close* $Sp* ($ParaSep?) ×"}
   }
 
   # Returns a list of rules applicable for
@@ -185,8 +185,8 @@ defmodule Unicode.String.Break do
   #     ]
   defp suppressions(locale, segment_type)
 
-
-  defp suppressions_rule(locale, segment_type)
+  @doc false
+  def suppressions_rule(locale, segment_type)
 
   for locale <- Segment.known_segmentation_locales() do
     {:ok, segments} = Segment.segments(locale)
@@ -214,7 +214,7 @@ defmodule Unicode.String.Break do
 
         rule = Segment.compile_rule(suppressions_rule, variables, [:caseless])
 
-        defp suppressions_rule(unquote(locale), unquote(segment_type)) do
+        def suppressions_rule(unquote(locale), unquote(segment_type)) do
           unquote(Macro.escape(rule))
         end
       end
@@ -227,7 +227,7 @@ defmodule Unicode.String.Break do
     Segment.rules(@default_locale, segment_type)
   end
 
-  defp suppressions_rule(_locale, _segment_type) do
+  def suppressions_rule(_locale, _segment_type) do
     nil
   end
 
@@ -235,7 +235,7 @@ defmodule Unicode.String.Break do
   defp rules(locale, break_type, true) do
     if suppressions_rule = suppressions_rule(locale, break_type) do
       {:ok, rules} = rules(locale, break_type)
-      {:ok, [suppressions_rule | rules]}
+      {:ok, sort_rules([suppressions_rule | rules])}
     else
       rules(locale, break_type)
     end
@@ -243,5 +243,9 @@ defmodule Unicode.String.Break do
 
   defp rules(locale, break_type, _) do
     rules(locale, break_type)
+  end
+
+  defp sort_rules(rules) do
+    Enum.sort_by(rules, &elem(&1, 0))
   end
 end

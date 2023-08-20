@@ -170,8 +170,7 @@ defmodule Unicode.String.Segment do
     |> return_break_or_no_break
   end
 
-  # The final implicit rule is to
-  # to break. ie: :any ÷ :any
+  # The final implicit rule is to to break. ie: :any ÷ :any
   defp return_break_or_no_break({:fail, {before_string, ""}}) do
     {:break, {before_string, {"", ""}}}
   end
@@ -200,6 +199,24 @@ defmodule Unicode.String.Segment do
     case Regex.split(aft, string_after, @split_options) do
       [match, rest] -> {:pass, {string_before, {match, rest}}}
       _other -> {:fail, {string_before, string_after}}
+    end
+  end
+
+  # Ignore suppressions at end of the string
+  defp evaluate_rule({string_before, string_after}, {10.5, {_operator, fore, :any}}) do
+    if Regex.match?(fore, string_before) do
+      # IO.inspect {string_before, string_after}, label: "Matched Rule 10.5"
+      case Regex.split(fore, string_before, @split_options) do
+        [match] ->
+          # IO.inspect {operator, match}, label: "Matched One"
+          {:pass, {string_before, {match, ""}}}
+        [match, rest] ->
+          # IO.inspect {operator, match, rest}, label: "Matched"
+          {:pass, {string_before, {match, rest}}}
+      end
+    else
+      # IO.inspect {string_before, string_after}, label: "Did not match Rule 10.5"
+      {:fail, {string_before, string_after}}
     end
   end
 
