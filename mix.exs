@@ -68,7 +68,7 @@ defmodule Unicode.String.MixProject do
       {:sweet_xml, "~> 0.7", runtime: false},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:benchee, "~> 1.0", only: :dev, optional: true},
-      {:ex_doc, "~> 0.19", only: :dev, optional: true, runtime: false}
+      {:ex_doc, "~> 0.23", only: [:dev, :release], optional: true, runtime: false}
     ]
   end
 
