@@ -18,7 +18,9 @@ defmodule Unicode.String.MixProject do
       package: package(),
       elixirc_paths: elixirc_paths(Mix.env()),
       dialyzer: [
-        plt_add_apps: ~w(mix sweet_xml)a
+        ignore_warnings: ".dialyzer_ignore_warnings",
+        plt_add_apps: ~w(mix sweet_xml)a,
+        flags: [:underspecs]
       ]
     ]
   end
@@ -59,7 +61,9 @@ defmodule Unicode.String.MixProject do
     [
       {:unicode, "~> 1.16"},
       {:unicode_set, "~> 1.3"},
+
       {:ex_cldr, "~> 2.37", optional: true},
+
       {:jason, "~> 1.0", optional: true},
       {:sweet_xml, "~> 0.7", runtime: false},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
