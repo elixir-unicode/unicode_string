@@ -19,8 +19,9 @@ defmodule Unicode.String.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       dialyzer: [
         ignore_warnings: ".dialyzer_ignore_warnings",
-        plt_add_apps: ~w(mix sweet_xml)a,
-        flags: [:underspecs]
+        plt_add_apps: ~w(mix sweet_xml)a
+        # Wait until ex_cldr 2.38
+        # flags: [:underspecs]
       ]
     ]
   end
