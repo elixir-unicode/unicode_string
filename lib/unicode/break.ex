@@ -162,8 +162,9 @@ defmodule Unicode.String.Break do
   defp rules(locale, segment_type)
 
   # Returns the variable definitions for
-  # a given locale and segment typ.
-  defp variables(locale, segment_type)
+  # a given locale and segment type.
+  @doc false
+  def variables(locale, segment_type)
 
   # Returns a list of suppressions
   # (abbreviations) that can be used
@@ -183,7 +184,8 @@ defmodule Unicode.String.Break do
   #       %{name: "$Lower", value: "\\p{Sentence_Break=Lower}"},
   #       ...
   #     ]
-  defp suppressions(locale, segment_type)
+  @doc false
+  def suppressions(locale, segment_type)
 
   @doc false
   def suppressions_rule(locale, segment_type)
@@ -196,11 +198,11 @@ defmodule Unicode.String.Break do
         unquote(Macro.escape(Segment.rules(locale, segment_type)))
       end
 
-      defp variables(unquote(locale), unquote(segment_type)) do
+      def variables(unquote(locale), unquote(segment_type)) do
         unquote(Macro.escape(get_in(segments, [segment_type, :variables])))
       end
 
-      defp suppressions(unquote(locale), unquote(segment_type)) do
+      def suppressions(unquote(locale), unquote(segment_type)) do
         unquote(Macro.escape(Segment.suppressions!(locale, segment_type)))
       end
 
