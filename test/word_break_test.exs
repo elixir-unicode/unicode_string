@@ -40,14 +40,10 @@ defmodule Unicode.String.WordBreakTest do
     1736
   ]
 
-  # These tests current fail because "🛑" which is (OCTAGONAL SIGN (ExtPict))
-  # doesn't have the property "extended pictographic" in the current release (15.1).
-  @needs_unicode_16 [1731, 1738, 1737, 1732, 1739]
-
   @test_lines 1..5000
 
   for {line, break, {left, _, _}, {right, _, _}} <- tests(@word_break_tests),
-      line not in (@cldr_specific_lines ++ @needs_unicode_16) && line in @test_lines do
+      line not in @cldr_specific_lines && line in @test_lines do
     left_codepoints = codepoints(left)
     right_codepoints = codepoints(right)
 

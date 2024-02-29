@@ -60,9 +60,8 @@ defmodule Unicode.String.MixProject do
 
   defp deps do
     [
-      {:unicode_set, path: "../unicode_set"},
-      # {:unicode, "~> 1.19"},
-      # {:unicode_set, "~> 1.3"},
+      {:unicode, "~> 1.19"},
+      {:unicode_set, "~> 1.3"},
 
       {:ex_cldr, "~> 2.37", optional: true},
       {:jason, "~> 1.0", optional: true},
