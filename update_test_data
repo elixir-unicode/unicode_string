@@ -1,8 +1,12 @@
-!/bin/bash
+#! /bin/bash
 # Update the test data from Unicode
-wget https://www.unicode.org/Public/UCD/latest/ucd/auxiliary/GraphemeBreakTest.txt -O ./test/support/GraphemeBreakTest.txt
-wget https://www.unicode.org/Public/UCD/latest/ucd/auxiliary/WordBreakTest.txt -O ./test/support/WordBreakTest.txt
-wget https://www.unicode.org/Public/UCD/latest/ucd/auxiliary/SentenceBreakTest.txt -O ./test/support/SentenceBreakTest.txt
-wget https://www.unicode.org/Public/UCD/latest/ucd/auxiliary/LineBreakTest.txt -O ./test/support/LineBreakTest.txt
+wget https://www.unicode.org/Public/UCD/latest/ucd/auxiliary/GraphemeBreakTest.txt \
+  -O ./test/support/test_data/grapheme_break_test.txt
+wget https://www.unicode.org/Public/UCD/latest/ucd/auxiliary/WordBreakTest.txt \
+  -O ./test/support/test_data/word_break_test.txt
+wget https://www.unicode.org/Public/UCD/latest/ucd/auxiliary/SentenceBreakTest.txt \
+  -O ./test/support/test_data/sentence_break_test.txt
+wget https://www.unicode.org/Public/UCD/latest/ucd/auxiliary/LineBreakTest.txt \
+  -O ./test/support/test_data/line_break_test.txt
 
 
