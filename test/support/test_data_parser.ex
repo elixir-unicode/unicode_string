@@ -1,7 +1,7 @@
 defmodule Unicode.String.TestDataParser do
   @moduledoc false
 
-  @word_break "./test/support/test_data/WordBreakTest.txt"
+  @word_break "./test/support/test_data/word_break_test.txt"
 
   def codepoints("") do
     "<<>>"
@@ -43,21 +43,24 @@ defmodule Unicode.String.TestDataParser do
     {"", acc}
   end
 
-  defp reduce_tests({line, [{left, _}, {break?, _} | rest]}, {previous, acc}) do
+  defp reduce_tests({line, [{left, {rule, codepoint_name}}, {break?, _} | rest]}, {previous, acc}) do
     previous = previous <> left
-    test = {line, break?, previous, collect(rest)}
+    test = {line, break?, {previous, rule, codepoint_name}, collect(rest)}
     acc = [test | acc]
 
     reduce_tests({line, rest}, {previous, acc})
   end
 
-  defp collect(rest) do
-    Enum.reduce(rest, "", fn
-      {char, _descr}, acc when is_binary(char) ->
-        acc <> char
-      _break?, acc ->
-        acc
-    end)
+  defp collect([{_codepoint, {rule, codepoint_name}} | _others] = rest) do
+    binary =
+      Enum.reduce(rest, "", fn
+        {char, _descr}, acc when is_binary(char) ->
+          acc <> char
+        _break?, acc ->
+          acc
+      end)
+
+    {binary, rule, codepoint_name}
   end
 
   def parse(path \\ @word_break)
@@ -70,7 +73,7 @@ defmodule Unicode.String.TestDataParser do
     |> Enum.reject(fn {string, _line} -> String.starts_with?(string, "#") || string == "" end)
     |> Enum.map(fn {string, line} -> {String.split(string, "#"), line} end)
     |> Enum.map(&parse/1)
-    |> Enum.map(fn {line, rule, description} -> {line, Enum.zip(rule,description)} end)
+    |> Enum.map(fn {line, rule, description} -> {line, Enum.zip(rule, description)} end)
   end
 
   def parse({[test, description], line}) do

@@ -1,0 +1,7 @@
+#! /bin/bash
+
+# The location of the cloned CLDR repo
+export CLDR_REPO="${CLDR_REPO:=$HOME/Development/cldr_repo}"
+[ ! -d $CLDR_REPO ] && { echo "Unicode CLDR repository $CLDR_REPO was not found."; exit 1; }
+
+cp -R $CLDR_REPO/common/segments ./priv
