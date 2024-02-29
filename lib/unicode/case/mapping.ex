@@ -80,23 +80,44 @@ defmodule Unicode.String.Case.Mapping do
       codepoint_bytes = utf8_bytes_for_codepoint.(codepoint)
       replacement = :unicode.characters_to_binary(replace)
 
-      defp casing(string, <<unquote(codepoint)::utf8, rest::binary>>, unquote(casing), unquote(language), bytes_so_far, acc) do
+      defp casing(
+             string,
+             <<unquote(codepoint)::utf8, rest::binary>>,
+             unquote(casing),
+             unquote(language),
+             bytes_so_far,
+             acc
+           ) do
         bytes_so_far = bytes_so_far + unquote(codepoint_bytes)
-        casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [unquote(replacement) | acc])
+
+        casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [
+          unquote(replacement) | acc
+        ])
       end
 
     casing, codepoint, replace, language, "final_sigma" ->
       codepoint_bytes = utf8_bytes_for_codepoint.(codepoint)
       replacement = :unicode.characters_to_binary(replace)
 
-      defp casing(string, <<@sigma::utf8, rest::binary>>, unquote(casing), unquote(language), bytes_so_far, acc) do
+      defp casing(
+             string,
+             <<@sigma::utf8, rest::binary>>,
+             unquote(casing),
+             unquote(language),
+             bytes_so_far,
+             acc
+           ) do
         <<prior::binary-size(bytes_so_far), _remaining::binary>> = string
         bytes_so_far = bytes_so_far + unquote(codepoint_bytes)
 
         if Regex.match?(@final_sigma_before, prior) && !Regex.match?(@final_sigma_after, rest) do
-          casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [unquote(replacement) | acc])
+          casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [
+            unquote(replacement) | acc
+          ])
         else
-          casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [@lower_sigma | acc])
+          casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [
+            @lower_sigma | acc
+          ])
         end
       end
 
@@ -104,14 +125,32 @@ defmodule Unicode.String.Case.Mapping do
       codepoint_bytes = utf8_bytes_for_codepoint.(codepoint)
       replacement = :unicode.characters_to_binary(replace)
 
-      defp casing(string, <<unquote(codepoint)::utf8, rest::binary>>, unquote(casing), unquote(language), bytes_so_far, acc) do
+      defp casing(
+             string,
+             <<unquote(codepoint)::utf8, rest::binary>>,
+             unquote(casing),
+             unquote(language),
+             bytes_so_far,
+             acc
+           ) do
         <<prior::binary-size(bytes_so_far), _remaining::binary>> = string
         bytes_so_far = bytes_so_far + unquote(codepoint_bytes)
 
         if !Regex.match?(@before_dot, prior) do
-          casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [unquote(replacement) | acc])
+          casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [
+            unquote(replacement) | acc
+          ])
         else
-          this = casing(<<unquote(codepoint)::utf8>>, <<unquote(codepoint)::utf8>>, unquote(casing), :any, 0, acc)
+          this =
+            casing(
+              <<unquote(codepoint)::utf8>>,
+              <<unquote(codepoint)::utf8>>,
+              unquote(casing),
+              :any,
+              0,
+              acc
+            )
+
           casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [this | acc])
         end
       end
@@ -120,13 +159,31 @@ defmodule Unicode.String.Case.Mapping do
       codepoint_bytes = utf8_bytes_for_codepoint.(codepoint)
       replacement = :unicode.characters_to_binary(replace)
 
-      defp casing(string, <<unquote(codepoint)::utf8, rest::binary>>, unquote(casing), unquote(language), bytes_so_far, acc) do
+      defp casing(
+             string,
+             <<unquote(codepoint)::utf8, rest::binary>>,
+             unquote(casing),
+             unquote(language),
+             bytes_so_far,
+             acc
+           ) do
         bytes_so_far = bytes_so_far + unquote(codepoint_bytes)
 
         if Regex.match?(@more_above, rest) do
-          casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [unquote(replacement) | acc])
+          casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [
+            unquote(replacement) | acc
+          ])
         else
-          this = casing(<<unquote(codepoint)::utf8>>, <<unquote(codepoint)::utf8>>, unquote(casing), :any, 0, acc)
+          this =
+            casing(
+              <<unquote(codepoint)::utf8>>,
+              <<unquote(codepoint)::utf8>>,
+              unquote(casing),
+              :any,
+              0,
+              acc
+            )
+
           casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [this | acc])
         end
       end
@@ -135,14 +192,32 @@ defmodule Unicode.String.Case.Mapping do
       codepoint_bytes = utf8_bytes_for_codepoint.(codepoint)
       replacement = :unicode.characters_to_binary(replace)
 
-      defp casing(string, <<unquote(codepoint)::utf8, rest::binary>>, unquote(casing), unquote(language), bytes_so_far, acc) do
+      defp casing(
+             string,
+             <<unquote(codepoint)::utf8, rest::binary>>,
+             unquote(casing),
+             unquote(language),
+             bytes_so_far,
+             acc
+           ) do
         <<prior::binary-size(bytes_so_far), _remaining::binary>> = string
         bytes_so_far = bytes_so_far + unquote(codepoint_bytes)
 
         if Regex.match?(@after_soft_dotted, prior) do
-          casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [unquote(replacement) | acc])
+          casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [
+            unquote(replacement) | acc
+          ])
         else
-          this = casing(<<unquote(codepoint)::utf8>>, <<unquote(codepoint)::utf8>>, unquote(casing), :any, 0, acc)
+          this =
+            casing(
+              <<unquote(codepoint)::utf8>>,
+              <<unquote(codepoint)::utf8>>,
+              unquote(casing),
+              :any,
+              0,
+              acc
+            )
+
           casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [this | acc])
         end
       end
@@ -151,14 +226,32 @@ defmodule Unicode.String.Case.Mapping do
       codepoint_bytes = utf8_bytes_for_codepoint.(codepoint)
       replacement = :unicode.characters_to_binary(replace)
 
-      defp casing(string, <<unquote(codepoint)::utf8, rest::binary>>, unquote(casing), unquote(language), bytes_so_far, acc) do
+      defp casing(
+             string,
+             <<unquote(codepoint)::utf8, rest::binary>>,
+             unquote(casing),
+             unquote(language),
+             bytes_so_far,
+             acc
+           ) do
         <<prior::binary-size(bytes_so_far), _remaining::binary>> = string
         bytes_so_far = bytes_so_far + unquote(codepoint_bytes)
 
         if Regex.match?(@after_i, prior) do
-          casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [unquote(replacement) | acc])
+          casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [
+            unquote(replacement) | acc
+          ])
         else
-          this = casing(<<unquote(codepoint)::utf8>>, <<unquote(codepoint)::utf8>>, unquote(casing), :any, 0, acc)
+          this =
+            casing(
+              <<unquote(codepoint)::utf8>>,
+              <<unquote(codepoint)::utf8>>,
+              unquote(casing),
+              :any,
+              0,
+              acc
+            )
+
           casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [this | acc])
         end
       end
@@ -184,7 +277,7 @@ defmodule Unicode.String.Case.Mapping do
   end
 
   def upcase(string, language) when is_atom(language) do
-    casing(string, string, :upcase,language, 0, [])
+    casing(string, string, :upcase, language, 0, [])
   end
 
   @doc """
@@ -210,42 +303,59 @@ defmodule Unicode.String.Case.Mapping do
   end
 
   def titlecase(<<first::utf8, rest::binary>>, language) when is_atom(language) do
-    casing(<<first::utf8>>, <<first::utf8>>, :titlecase, language, 0, []) <> downcase(rest, language)
+    casing(<<first::utf8>>, <<first::utf8>>, :titlecase, language, 0, []) <>
+      downcase(rest, language)
   end
 
   # These next four function clauses optimze for ASCII characters.
   # We need to omit the `i` from all ranges since in Turkish and Azeri
   # they upcase to a dotted-capital-I
 
-  defp casing(string, <<byte::size(8), rest::binary>>, :downcase = casing, language, bytes_so_far, acc)
-      when byte >= ?A and byte <= ?Z and byte != ?I do
+  defp casing(
+         string,
+         <<byte::size(8), rest::binary>>,
+         :downcase = casing,
+         language,
+         bytes_so_far,
+         acc
+       )
+       when byte >= ?A and byte <= ?Z and byte != ?I do
     casing(string, rest, casing, language, bytes_so_far + 1, [byte + 32 | acc])
   end
 
   defp casing(string, <<byte::size(8), rest::binary>>, casing, language, bytes_so_far, acc)
-      when casing in [:upcase, :titlecase] and byte >= ?a and byte <= ?z and byte != ?i do
+       when casing in [:upcase, :titlecase] and byte >= ?a and byte <= ?z and byte != ?i do
     casing(string, rest, casing, language, bytes_so_far + 1, [byte - 32 | acc])
   end
 
   defp casing(string, <<byte::size(8), rest::binary>>, casing, language, bytes_so_far, acc)
-      when casing in [:upcase, :titlecase] and byte != ?i and byte <= ?~ do
+       when casing in [:upcase, :titlecase] and byte != ?i and byte <= ?~ do
     casing(string, rest, casing, language, bytes_so_far + 1, [byte | acc])
   end
 
-  defp casing(string, <<byte::size(8), rest::binary>>, :downcase = casing, language, bytes_so_far, acc)
-      when byte != ?I and byte <= ?~ do
+  defp casing(
+         string,
+         <<byte::size(8), rest::binary>>,
+         :downcase = casing,
+         language,
+         bytes_so_far,
+         acc
+       )
+       when byte != ?I and byte <= ?~ do
     casing(string, rest, casing, language, bytes_so_far + 1, [byte | acc])
   end
 
   # Generate the mapping functions
 
-  for %{codepoint: codepoint, upper: upper} = casing <- Utils.casing_in_order(), upper && upper != codepoint && (codepoint == ?i or codepoint > ?~) do
+  for %{codepoint: codepoint, upper: upper} = casing <- Utils.casing_in_order(),
+      upper && upper != codepoint && (codepoint == ?i or codepoint > ?~) do
     %{context: context, language: language} = casing
 
     define_casing_function.(:upcase, codepoint, upper, language, context)
   end
 
-  for %{codepoint: codepoint, lower: lower} = casing <- Utils.casing_in_order(), lower && lower != codepoint && (codepoint == ?I or codepoint > ?~) do
+  for %{codepoint: codepoint, lower: lower} = casing <- Utils.casing_in_order(),
+      lower && lower != codepoint && (codepoint == ?I or codepoint > ?~) do
     %{language: language, context: context} = casing
 
     # Special casing for capital sigma with no context.
@@ -257,7 +367,8 @@ defmodule Unicode.String.Case.Mapping do
     end
   end
 
-  for %{codepoint: codepoint, title: title} = casing <- Utils.casing_in_order(), title && title != codepoint && codepoint > ?~ do
+  for %{codepoint: codepoint, title: title} = casing <- Utils.casing_in_order(),
+      title && title != codepoint && codepoint > ?~ do
     %{context: context, language: language} = casing
 
     define_casing_function.(:titlecase, codepoint, title, language, context)
@@ -275,7 +386,14 @@ defmodule Unicode.String.Case.Mapping do
   # and one with no context. This means we can't generate two distinct function
   # clauses for casing/5 so we define a special one here for the "no context"
   # version and generate the one with the context in the normal flow.
-  defp casing(string, <<@sigma::utf8, rest::binary>>, :downcase = casing, :any = language, bytes_so_far, acc) do
+  defp casing(
+         string,
+         <<@sigma::utf8, rest::binary>>,
+         :downcase = casing,
+         :any = language,
+         bytes_so_far,
+         acc
+       ) do
     bytes_so_far = bytes_so_far + @sigma_byte_size
 
     casing(string, rest, casing, language, bytes_so_far, [@lower_sigma | acc])
@@ -283,7 +401,8 @@ defmodule Unicode.String.Case.Mapping do
 
   # Pass the character through since there is no casing data.
   # Optimize for ASCII bytes (byte value is less than 127)
-  defp casing(string, <<byte::size(8), rest::binary>>, casing, :any = language, bytes_so_far, acc) when byte <= ?~ do
+  defp casing(string, <<byte::size(8), rest::binary>>, casing, :any = language, bytes_so_far, acc)
+       when byte <= ?~ do
     bytes_so_far = bytes_so_far + 1
 
     casing(string, rest, casing, language, bytes_so_far, [byte | acc])

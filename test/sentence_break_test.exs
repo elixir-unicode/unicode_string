@@ -6,9 +6,9 @@ defmodule Unicode.String.SentenceBreakTest do
 
   @failing_lines []
 
-  for {line, break, {left, _left_rule, _left_name}, {right, _right_rule, _right_name}} <- tests(@sentence_break_tests),
-        line not in @failing_lines do
-
+  for {line, break, {left, _left_rule, _left_name}, {right, _right_rule, _right_name}} <-
+        tests(@sentence_break_tests),
+      line not in @failing_lines do
     if break == :"÷" do
       test "line #{line}: #{left} ÷ #{right}" do
         assert Unicode.String.break?({unquote(left), unquote(right)}, break: :sentence)

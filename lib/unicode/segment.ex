@@ -72,7 +72,8 @@ defmodule Unicode.String.Segment do
       left = if left != "", do: left <> "$", else: left
       right = if right != "", do: "^" <> right, else: right
 
-      {sequence, {operator, compile_regex!(left, regex_options), compile_regex!(right, regex_options)}}
+      {sequence,
+       {operator, compile_regex!(left, regex_options), compile_regex!(right, regex_options)}}
     end)
   end
 
@@ -220,6 +221,7 @@ defmodule Unicode.String.Segment do
         [match] ->
           # IO.inspect {operator, match}, label: "Matched One"
           {:pass, {string_before, {match, ""}}}
+
         [match, rest] ->
           # IO.inspect {operator, match, rest}, label: "Matched"
           {:pass, {string_before, {match, rest}}}

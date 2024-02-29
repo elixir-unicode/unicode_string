@@ -653,7 +653,6 @@ defmodule Unicode.String do
   def titlecase(string, options \\ []) when is_list(options) do
     with {:ok, casing_locale} <- casing_locale_from_options(options),
          {:ok, segmentation_locale} <- segmentation_locale_from_options(options) do
-
       stream_options = Keyword.merge(options, break: :word, locale: segmentation_locale)
 
       string
@@ -666,8 +665,8 @@ defmodule Unicode.String do
   # These locales have some aadditional processing
   # beyond that specified in SpecialCasing.txt
   @special_casing_locales [:nl, :el]
-  @casing_locales @special_casing_locales ++ Unicode.Utils.known_casing_locales()
-  |> Enum.sort()
+  @casing_locales (@special_casing_locales ++ Unicode.Utils.known_casing_locales())
+                  |> Enum.sort()
 
   @doc """
   Returms a list of locales that have special
@@ -772,12 +771,12 @@ defmodule Unicode.String do
     language
     |> String.downcase()
     |> atomize()
-    |> List.wrap
+    |> List.wrap()
     |> Enum.reject(&is_nil/1)
   end
 
   defp build_candidate_locales([language, territory | _rest])
-      when byte_size(language) == 2 and byte_size(territory) == 2 do
+       when byte_size(language) == 2 and byte_size(territory) == 2 do
     language = String.downcase(language)
     territory = String.upcase(territory)
 
@@ -794,8 +793,9 @@ defmodule Unicode.String do
 
   defp atomize(string) do
     String.to_existing_atom(string)
-  rescue ArgumentError ->
-    nil
+  rescue
+    ArgumentError ->
+      nil
   end
 
   @breaks [:word, :grapheme, :line, :sentence]
@@ -807,5 +807,4 @@ defmodule Unicode.String do
       {:error, "Unknown break #{inspect(break)}. Valid breaks are #{inspect(@breaks)}"}
     end
   end
-
 end

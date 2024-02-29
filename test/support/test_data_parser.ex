@@ -23,7 +23,7 @@ defmodule Unicode.String.TestDataParser do
   defp pad(<<_::utf8, _::utf8, _::utf8, _::utf8, _::utf8>>), do: ""
   defp pad(<<_::utf8, _::utf8, _::utf8, _::utf8>>), do: ""
   defp pad(<<_::utf8, _::utf8, _::utf8>>), do: "0"
-  defp pad(<<_::utf8, _::utf8,>>), do: "00"
+  defp pad(<<_::utf8, _::utf8>>), do: "00"
   defp pad(<<_::utf8>>), do: "000"
 
   def tests(path \\ @word_break) do
@@ -56,6 +56,7 @@ defmodule Unicode.String.TestDataParser do
       Enum.reduce(rest, "", fn
         {char, _descr}, acc when is_binary(char) ->
           acc <> char
+
         _break?, acc ->
           acc
       end)
@@ -103,6 +104,7 @@ defmodule Unicode.String.TestDataParser do
     |> List.wrap()
     |> List.to_string()
   end
+
   # ÷ 0001 ÷ 0001 ÷	#  ÷ [0.2] <START OF HEADING> (Other) ÷ [999.0] <START OF HEADING> (Other) ÷ [0.3]
 
   defp parse_description(description) do
