@@ -164,3 +164,7 @@ def deps do
 end
 ```
 
+## References
+
+* Unicode maintains a [break testing utility](https://util.unicode.org/UnicodeJsps/breaks.jsp).
+
