@@ -2,7 +2,7 @@
 
 ## Unicode String v1.3.1
 
-This is the changelog for Unicode String v1.3.1 released on March 5th, 2024.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
+This is the changelog for Unicode String v1.3.1 released on March 6th, 2024.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
 
 ### Bug Fixes
 
