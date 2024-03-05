@@ -10,10 +10,10 @@ defmodule Unicode.String.WordBreakTest do
 
   # Difference is in root.xml
   #
-  # Unicode:
+  # CLDR:
   #  <variable id="$MidLetter">[\p{Word_Break = MidLetter} - [\: \uFE55 \uFF1A]]</variable>
   #
-  # CLDR:
+  # Unicode:
   #  <variable id="$MidLetter">[\p{Word_Break = MidLetter}]</variable>
 
   @cldr_specific_lines [
@@ -58,5 +58,19 @@ defmodule Unicode.String.WordBreakTest do
           refute Unicode.String.break?({unquote(left), unquote(right)})
         end
     end
+  end
+
+  test "Unicode.String.Break.split/2 when the passing rule is a :no_break" do
+    assert Unicode.String.split(~s(“Hi), locale: :en, break: :word) == ["“", "Hi"]
+    assert Unicode.String.split(~s("Du), locale: :de, break: :word) == ["\"", "Du"]
+    assert Unicode.String.split(~s("Hi"), locale: :en, break: :word) == ["\"", "Hi", "\""]
+    assert Unicode.String.split(~s("Hi ), locale: :en, break: :word) == ["\"", "Hi", " "]
+  end
+
+  test "Unicode.String.Break.next/2 when the passing rule is a :no_break" do
+    assert Unicode.String.next(~s(“Hi), locale: :en, break: :word) == {"“", "Hi"}
+    assert Unicode.String.next(~s("Du), locale: :de, break: :word) == {"\"", "Du"}
+    assert Unicode.String.next(~s("Hi"), locale: :en, break: :word) ==  {"\"", "Hi\""}
+    assert Unicode.String.next(~s("Hi ), locale: :en, break: :word) == {"\"", "Hi "}
   end
 end

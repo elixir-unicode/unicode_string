@@ -72,8 +72,8 @@ defmodule Unicode.String.Break do
     Enum.reverse([fore | [head | rest]])
   end
 
-  defp split({:no_break, {string_before, {fore, ""}}}, _rules, [_head | rest]) do
-    Enum.reverse([string_before <> fore | rest])
+  defp split({:no_break, {_string_before, {fore, ""}}}, _rules, [head | rest]) do
+    Enum.reverse([head <> fore | rest])
   end
 
   defp split({:break, {_string_before, {fore, aft}}}, rules, ["" | rest]) do
