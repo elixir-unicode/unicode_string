@@ -25,19 +25,20 @@ defmodule Unicode.String.Break do
     break_at(string, locale, Map.fetch!(@break_map, break), options)
   end
 
-  defp break_at("", _locale, _segment_type, _options) do
+  @doc false
+  def break_at("", _locale, _segment_type, _options) do
     {:no_break, {"", {"", ""}}}
   end
 
-  defp break_at(string, locale, segment_type, options) when is_binary(string) do
+  def break_at(string, locale, segment_type, options) when is_binary(string) do
     break_at({"", string}, locale, segment_type, options)
   end
 
-  defp break_at({"", string_after}, _locale, _segment_type, _options) do
+  def break_at({"", string_after}, _locale, _segment_type, _options) do
     {:break, {"", {"", string_after}}}
   end
 
-  defp break_at({string_before, string_after}, locale, segment_type, options) do
+  def break_at({string_before, string_after}, locale, segment_type, options) do
     suppress? = Keyword.get(options, :suppressions, true)
     {:ok, rules} = rules(locale, segment_type, suppress?)
 
@@ -69,6 +70,10 @@ defmodule Unicode.String.Break do
 
   defp split({:break, {_string_before, {fore, ""}}}, _rules, [head | rest]) do
     Enum.reverse([fore | [head | rest]])
+  end
+
+  defp split({:no_break, {string_before, {fore, ""}}}, _rules, [_head | rest]) do
+    Enum.reverse([string_before <> fore | rest])
   end
 
   defp split({:break, {_string_before, {fore, aft}}}, rules, ["" | rest]) do
@@ -138,6 +143,10 @@ defmodule Unicode.String.Break do
 
   defp do_next({:break, {_string_before, rest}}, _rules, acc) do
     {acc, rest}
+  end
+
+  defp do_next({:no_break, {_string_before, {fore, ""}}}, _rules, acc) do
+    {acc <> fore, ""}
   end
 
   defp do_next({:no_break, {_string_before, {fore, aft}}}, rules, acc) do
@@ -234,7 +243,7 @@ defmodule Unicode.String.Break do
   end
 
   @doc false
-  defp rules(locale, break_type, true) do
+  def rules(locale, break_type, true) do
     if suppressions_rule = suppressions_rule(locale, break_type) do
       {:ok, rules} = rules(locale, break_type)
       {:ok, sort_rules([suppressions_rule | rules])}
@@ -243,7 +252,7 @@ defmodule Unicode.String.Break do
     end
   end
 
-  defp rules(locale, break_type, _) do
+  def rules(locale, break_type, _) do
     rules(locale, break_type)
   end
 
