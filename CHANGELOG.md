@@ -1,8 +1,16 @@
 # Changelog
 
+## Unicode String v1.3.1
+
+This is the changelog for Unicode String v1.3.1 released on March 5th, 2024.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
+
+### Bug Fixes
+
+* Fix `Unicode.String.split/2` and `Unicode.String.next/2` when the passing rule is `:no_break` rule. Thanks to @GregLMcDonald for the report. Closes #5.
+
 ## Unicode String v1.3.0
 
-This is the changelog for Unicode String v1.3.0 released on Fabruary 27th, 2024.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
+This is the changelog for Unicode String v1.3.0 released on February 27th, 2024.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
 
 ### Bug Fixes
 
