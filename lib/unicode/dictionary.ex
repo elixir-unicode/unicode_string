@@ -5,6 +5,23 @@ defmodule Unicode.String.Dictionary do
 
   @app_name :unicode_string
   @dictionary_dir "dictionaries/"
+  @dictionary_locales [:zh, :th, :lo, :my, :km]
+
+  def dictionary_locales do
+    @dictionary_locales
+  end
+
+  def ensure_dictionary_loaded_if_available(locale) when locale in @dictionary_locales do
+    if dictionary = dictionary(locale) do
+      {:ok, dictionary}
+    else
+      load(locale)
+    end
+  end
+
+  def ensure_dictionary_loaded_if_available(locale) do
+    {:ok, "No dictionary for #{inspect locale} found"}
+  end
 
   def load(locale) do
     with {:ok, locale} <- dictionary_locale(locale) do
@@ -14,10 +31,14 @@ defmodule Unicode.String.Dictionary do
 
   def is_loaded(locale) do
     with {:ok, locale} <- dictionary_locale(locale) do
-      :persistent_term.get({@app_name, locale}, nil)
+      :persistent_term.get({@app_name, locale}, false) && true
     else
       _other -> false
     end
+  end
+
+  def dictionary(locale) when locale in @dictionary_locales do
+    :persistent_term.get({@app_name, locale}, nil)
   end
 
   @doc false

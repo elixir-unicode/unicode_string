@@ -21,6 +21,7 @@ defmodule Unicode.String do
   alias Unicode.String.Break
   alias Unicode.String.Segment
   alias Unicode.String.Case
+  alias Unicode.String.Dictionary
 
   defdelegate fold(string), to: Unicode.String.Case.Folding
   defdelegate fold(string, type), to: Unicode.String.Case.Folding
@@ -338,6 +339,7 @@ defmodule Unicode.String do
     break = Keyword.get(options, :break, @default_break)
 
     with {:ok, locale} <- segmentation_locale_from_options(options),
+         {:ok, _dictionary} <- Dictionary.ensure_dictionary_loaded_if_available(locale),
          {:ok, break} <- validate(:break, break) do
       Break.next(string, locale, break, options)
     end

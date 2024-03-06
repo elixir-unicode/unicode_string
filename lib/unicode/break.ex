@@ -8,7 +8,7 @@ defmodule Unicode.String.Break do
   alias Unicode.String.Segment
   alias Unicode.String.Dictionary
 
-  @dictionary_locales [:zh, :th, :my, :lo, :km]
+  @dictionary_locales Dictionary.dictionary_locales()
 
   @break_map %{
     grapheme: :grapheme_cluster_break,
@@ -70,11 +70,11 @@ defmodule Unicode.String.Break do
     <<char::utf8, rest::binary>> = string
 
     case next_at({<<char::utf8>>, rest}, locale, :word, options) do
-      {fore, {match, rest}} ->
-        {<<char::utf8>> <> fore, match <> rest}
+      {fore, {_match, rest}} ->
+        {fore, rest}
 
       {fore, rest} ->
-        {<<char::utf8>> <> fore, rest}
+        {fore, rest}
     end
     |> repeat_if_trimming_required(locale, break, options, options[:trim])
   end
@@ -111,10 +111,8 @@ defmodule Unicode.String.Break do
 
   defp next_at({string_before, string_after}, locale, :word = break, options)
       when locale in @dictionary_locales do
-    IO.inspect({string_before, string_after}, label: "{before, after}")
     <<next::utf8, rest::binary>> = string_after
     word = string_before <> <<next::utf8>>
-    IO.inspect {word, rest}, label: "{word, rest}"
 
     case Dictionary.find_prefix(word, locale) do
       :prefix ->
@@ -122,7 +120,6 @@ defmodule Unicode.String.Break do
       {:ok, _} ->
         next_at({word, rest}, locale, break, options)
       :error ->
-        IO.inspect {word, rest, string_before, string_after}
         {string_before, string_after}
     end
   end
