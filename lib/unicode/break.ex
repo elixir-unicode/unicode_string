@@ -6,6 +6,9 @@ defmodule Unicode.String.Break do
   """
 
   alias Unicode.String.Segment
+  alias Unicode.String.Dictionary
+
+  @dictionary_locales [:zh, :th, :my, :lo, :km]
 
   @break_map %{
     grapheme: :grapheme_cluster_break,
@@ -63,6 +66,19 @@ defmodule Unicode.String.Break do
     nil
   end
 
+  def next(string, locale, :word = break, options) when locale in @dictionary_locales do
+    <<char::utf8, rest::binary>> = string
+
+    case next_at({<<char::utf8>>, rest}, locale, :word, options) do
+      {fore, {match, rest}} ->
+        {<<char::utf8>> <> fore, match <> rest}
+
+      {fore, rest} ->
+        {<<char::utf8>> <> fore, rest}
+    end
+    |> repeat_if_trimming_required(locale, break, options, options[:trim])
+  end
+
   def next(string, locale, break, options) when break in @break_keys and is_binary(string) do
     <<char::utf8, rest::binary>> = string
 
@@ -86,6 +102,29 @@ defmodule Unicode.String.Break do
 
   defp repeat_if_trimming_required({match, rest}, _locale, _break, _options, _) do
     {match, rest}
+  end
+
+  defp next_at({string_before, ""}, locale, :word, _options)
+      when locale in @dictionary_locales do
+    {string_before, ""}
+  end
+
+  defp next_at({string_before, string_after}, locale, :word = break, options)
+      when locale in @dictionary_locales do
+    IO.inspect({string_before, string_after}, label: "{before, after}")
+    <<next::utf8, rest::binary>> = string_after
+    word = string_before <> <<next::utf8>>
+    IO.inspect {word, rest}, label: "{word, rest}"
+
+    case Dictionary.find_prefix(word, locale) do
+      :prefix ->
+        next_at({word, rest}, locale, break, options)
+      {:ok, _} ->
+        next_at({word, rest}, locale, break, options)
+      :error ->
+        IO.inspect {word, rest, string_before, string_after}
+        {string_before, string_after}
+    end
   end
 
   defp next_at({string_before, string_after}, locale, segment_type, options) do

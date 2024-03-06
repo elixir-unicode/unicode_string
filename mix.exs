@@ -63,6 +63,7 @@ defmodule Unicode.String.MixProject do
       {:unicode, "~> 1.19"},
       {:unicode_set, "~> 1.3"},
 
+      {:trie, "~> 2.0"},
       {:ex_cldr, "~> 2.37", optional: true},
       {:jason, "~> 1.0", optional: true},
       {:sweet_xml, "~> 0.7", runtime: false},
