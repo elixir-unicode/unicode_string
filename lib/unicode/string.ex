@@ -10,13 +10,10 @@ defmodule Unicode.String do
     to provide case-independent equality checking irrespective of language or script.
 
   * The [Unicode Segmentation](https://unicode.org/reports/tr29/) algorithm to detect,
-    break or splut strings into grapheme clusters, works and sentences.
+    break or split strings into grapheme clusters, words and sentences.
 
   * The [Unicode Line Breaking](https://www.unicode.org/reports/tr14/) algorithm to determine
-    line breaks (as in word-wrapping).
-
-  * The [Unicode Case Mapping](https://www.unicode.org/versions/Unicode13.0.0/ch03.pdf) algorithm
-    to provide mapping to upper, lower and title case text.
+    line break placement to support word-wrapping.
 
   """
 
@@ -32,18 +29,15 @@ defmodule Unicode.String do
   @type break_type :: :grapheme | :word | :line | :sentence
   @type error_return :: {:error, String.t()}
 
-  @type options :: [
-          {:locale, String.t() | map}
+  @type option :: {:locale, String.t() | map}
           | {:break, break_type}
           | {:suppressions, boolean}
-        ]
 
-  @type split_options :: [
-          {:locale, String.t() | map}
+
+  @type split_option :: {:locale, String.t() | map}
           | {:break, break_type}
           | {:suppressions, boolean}
           | {:trim, boolean}
-        ]
 
   @type break_or_no_break :: :break | :no_break
 
@@ -112,16 +106,12 @@ defmodule Unicode.String do
 
   ## Arguments
 
-  * `string` is any `t:String.t/0`.
+  * `string_interval` is any 2-tuple consisting
+    of the string before a possible break and the string
+    after a possible break.
 
   * `options` is a keyword list of
     options.
-
-  ## Returns
-
-  * `true` or `false` or
-
-  * raises an exception if there is an error
 
   ## Options
 
@@ -140,6 +130,12 @@ defmodule Unicode.String do
     abbreviations defined for the `locale`. The
     default is `true`.
 
+  ## Returns
+
+  * `true` or `false` or
+
+  * raises an exception if there is an error.
+
   ## Examples
 
       iex> Unicode.String.break? {"This is ", "some words"}
@@ -152,7 +148,9 @@ defmodule Unicode.String do
       true
 
   """
-  @spec break?(string_interval, options) :: boolean
+  @spec break?(string_interval :: string_interval(), options :: list(option())) ::
+    boolean | no_return()
+
   def break?({string_before, string_after}, options \\ []) do
     case break({string_before, string_after}, options) do
       {:break, _} -> true
@@ -169,22 +167,12 @@ defmodule Unicode.String do
 
   ## Arguments
 
-  * `string` is any `t:String.t/0`.
+  * `string_interval` is any 2-tuple consisting
+    of the string before a possible break and the string
+    after a possible break.
 
   * `options` is a keyword list of
     options.
-
-  ## Returns
-
-  A tuple indicating if a break would
-  be applicable at this point between
-  `string_before` and `string_after`.
-
-  * `{:break, {string_before, {matched_string, remaining_string}}}` or
-
-  * `{:no_break, {string_before, {matched_string, remaining_string}}}` or
-
-  * `{:error, reason}`
 
   ## Options
 
@@ -203,6 +191,18 @@ defmodule Unicode.String do
     abbreviations defined for the `locale`. The
     default is `true`.
 
+  ## Returns
+
+  A tuple indicating if a break would
+  be applicable at this point between
+  `string_before` and `string_after`.
+
+  * `{:break, {string_before, {matched_string, remaining_string}}}` or
+
+  * `{:no_break, {string_before, {matched_string, remaining_string}}}` or
+
+  * `{:error, reason}`.
+
   ## Examples
 
       iex> Unicode.String.break {"This is ", "some words"}
@@ -215,7 +215,9 @@ defmodule Unicode.String do
       {:break, {"This is one. ", {"T", "his is some words."}}}
 
   """
-  @spec break(string_interval, options) :: break_match | error_return
+ @spec break(string_interval :: string_interval(), options :: list(option())) ::
+    break_match | error_return
+
   def break({string_before, string_after}, options \\ []) do
     break = Keyword.get(options, :break, @default_break)
 
@@ -271,7 +273,9 @@ defmodule Unicode.String do
       ["This", "is", "a"]
 
   """
-  @spec splitter(String.t(), split_options) :: function | error_return
+  @spec splitter(string :: String.t(), split_options :: list(split_option)) ::
+    function | error_return
+
   def splitter(string, options) when is_binary(string) do
     break = Keyword.get(options, :break, @default_break)
 
@@ -327,7 +331,9 @@ defmodule Unicode.String do
       {"This is a sentence. ", "And another."}
 
   """
-  @spec next(String.t(), split_options) :: String.t() | nil | error_return
+  @spec next(string :: String.t(), split_options :: list(split_option)) ::
+    String.t() | nil | error_return
+
   def next(string, options \\ []) when is_binary(string) do
     break = Keyword.get(options, :break, @default_break)
 
@@ -390,7 +396,9 @@ defmodule Unicode.String do
       ["This is a sentence. ", "And another."]
 
   """
-  @spec split(String.t(), split_options) :: [String.t(), ...] | error_return
+  @spec split(string :: String.t(), split_options :: list(split_option)) ::
+    [String.t(), ...] | error_return
+
   def split(string, options \\ []) when is_binary(string) do
     break = Keyword.get(options, :break, @default_break)
 
@@ -462,7 +470,9 @@ defmodule Unicode.String do
   """
   @doc since: "1.2.0"
 
-  @spec stream(String.t(), Keyword.t()) :: Enumerable.t() | {:error, String.t()}
+  @spec stream(string :: String.t(), split_options :: list(split_option)) ::
+    Enumerable.t() | {:error, String.t()}
+
   def stream(string, options \\ []) do
     break = Keyword.get(options, :break, @default_break)
 
