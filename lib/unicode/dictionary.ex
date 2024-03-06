@@ -59,10 +59,6 @@ defmodule Unicode.String.Dictionary do
   defp load_dictionary(:my), do: load_dictionary(:my, "burmese.txt")
   defp load_dictionary(:km), do: load_dictionary(:km, "khmer.txt")
 
-  defp load_dictionary(other) do
-    {:error, "No dictionary for locale #{inspect other}"}
-  end
-
   defp load_dictionary(locale, file_name) do
     trie =
       file_name

@@ -223,6 +223,7 @@ defmodule Unicode.String do
     break = Keyword.get(options, :break, @default_break)
 
     with {:ok, locale} <- segmentation_locale_from_options(options),
+         {:ok, _dictionary} <- Dictionary.ensure_dictionary_loaded_if_available(locale),
          {:ok, break} <- validate(:break, break) do
       Break.break({string_before, string_after}, locale, break, options)
     end
@@ -281,6 +282,7 @@ defmodule Unicode.String do
     break = Keyword.get(options, :break, @default_break)
 
     with {:ok, locale} <- segmentation_locale_from_options(options),
+         {:ok, _dictionary} <- Dictionary.ensure_dictionary_loaded_if_available(locale),
          {:ok, break} <- validate(:break, break) do
       Stream.unfold(string, &Break.next(&1, locale, break, options))
     end
@@ -405,6 +407,7 @@ defmodule Unicode.String do
     break = Keyword.get(options, :break, @default_break)
 
     with {:ok, locale} <- segmentation_locale_from_options(options),
+         {:ok, _dictionary} <- Dictionary.ensure_dictionary_loaded_if_available(locale),
          {:ok, break} <- validate(:break, break) do
       Break.split(string, locale, break, options)
     end
