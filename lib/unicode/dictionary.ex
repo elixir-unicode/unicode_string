@@ -5,17 +5,19 @@ defmodule Unicode.String.Dictionary do
 
   @app_name :unicode_string
   @dictionary_dir "dictionaries/"
-  @dictionary_locales [:zh, :th, :lo, :my, :km]
+  @dictionary_locales [:zh, :th, :lo, :my, :km, :ja, :"zh-Hant", :"zh-Hant-HK"]
 
   def dictionary_locales do
     @dictionary_locales
   end
 
   def ensure_dictionary_loaded_if_available(locale) when locale in @dictionary_locales do
-    if dictionary = dictionary(locale) do
-      {:ok, dictionary}
-    else
-      load(locale)
+    with {:ok, locale} <- dictionary_locale(locale) do
+      if dictionary = dictionary(locale) do
+        {:ok, dictionary}
+      else
+        load(locale)
+      end
     end
   end
 
@@ -43,17 +45,22 @@ defmodule Unicode.String.Dictionary do
 
   @doc false
   def has_key(string, locale) do
-    dictionary = :persistent_term.get({@app_name, locale})
-    Trie.has_key(string, dictionary)
+    with {:ok, locale} <- dictionary_locale(locale) do
+      dictionary = :persistent_term.get({@app_name, locale})
+      Trie.has_key(string, dictionary)
+    end
   end
 
   @doc false
   def find_prefix(string, locale) do
-    dictionary = :persistent_term.get({@app_name, locale})
-    Trie.find_prefix(string, dictionary)
+    with {:ok, locale} <- dictionary_locale(locale) do
+      dictionary = :persistent_term.get({@app_name, locale})
+      Trie.find_prefix(string, dictionary)
+    end
   end
 
   defp load_dictionary(:zh), do: load_dictionary(:zh, "chinese_japanese.txt")
+  defp load_dictionary(:ja), do: load_dictionary(:zh)
   defp load_dictionary(:lo), do: load_dictionary(:lo, "lao.txt")
   defp load_dictionary(:th), do: load_dictionary(:th, "thai.txt")
   defp load_dictionary(:my), do: load_dictionary(:my, "burmese.txt")
@@ -85,10 +92,13 @@ defmodule Unicode.String.Dictionary do
   end
 
   def dictionary_locale(:zh), do: {:ok, :zh}
+  def dictionary_locale(:"zh-Hant"), do: {:ok, :zh}
+  def dictionary_locale(:"zh-Hant-HK"), do: {:ok, :zh}
   def dictionary_locale(:lo), do: {:ok, :lo}
   def dictionary_locale(:my), do: {:ok, :my}
   def dictionary_locale(:th), do: {:ok, :th}
   def dictionary_locale(:km), do: {:ok, :km}
+  def dictionary_locale(:ja), do: {:ok, :zh}
   def dictionary_locale(%{language: language}), do: dictionary_locale(language)
   def dictionary_locale(language), do: {:error, "No dictionary for #{inspect language} found."}
 

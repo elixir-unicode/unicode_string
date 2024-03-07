@@ -115,10 +115,18 @@ defmodule Unicode.String.Break do
     word = string_before <> <<next::utf8>>
 
     case Dictionary.find_prefix(word, locale) do
-      :prefix ->
-        next_at({word, rest}, locale, break, options)
       {:ok, _} ->
         next_at({word, rest}, locale, break, options)
+      :prefix ->
+        # If its a prefix then we keep going to see if we have a word
+        # But if the next step doesn't produce either a prefix or
+        # a word then it should be a break here
+        case next_at({word, rest}, locale, break, options) do
+          {fore, _aft} when fore == word ->
+            {string_before, string_after}
+          other ->
+            other
+        end
       :error ->
         {string_before, string_after}
     end

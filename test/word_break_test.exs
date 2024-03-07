@@ -73,4 +73,19 @@ defmodule Unicode.String.WordBreakTest do
     assert Unicode.String.next(~s("Hi"), locale: :en, break: :word) ==  {"\"", "Hi\""}
     assert Unicode.String.next(~s("Hi ), locale: :en, break: :word) == {"\"", "Hi "}
   end
+
+  test "Dictionary break" do
+    assert Unicode.String.split("布鲁赫", locale: :zh) == ["布", "鲁", "赫"]
+    assert Unicode.String.split("明德", locale: :zh_Hant) == ["明德"]
+  end
+
+  test "Resolving dictionary locales" do
+    assert {:ok, :zh} = Unicode.String.Dictionary.dictionary_locale(:"zh-Hant")
+    assert {:ok, :zh} = Unicode.String.Dictionary.dictionary_locale(:"zh-Hant-HK")
+
+    assert Unicode.String.split("明德", locale: :zh_Hant_HK) == ["明德"]
+    assert Unicode.String.split("明德", locale: :zh_Hant) == ["明德"]
+    assert Unicode.String.split("明德", locale: :zh) == ["明德"]
+    assert Unicode.String.split("明德", locale: :ja) ==["明德"]
+  end
 end

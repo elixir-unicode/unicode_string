@@ -26,6 +26,10 @@ defmodule Unicode.String do
   defdelegate fold(string), to: Unicode.String.Case.Folding
   defdelegate fold(string, type), to: Unicode.String.Case.Folding
 
+  defguard is_language(language) when (byte_size(language) == 2 or byte_size(language) == 3)
+  defguard is_script(script) when byte_size(script) == 4
+  defguard is_territory(territory) when byte_size(territory) == 2
+
   @type string_interval :: {String.t(), String.t()}
   @type break_type :: :grapheme | :word | :line | :sentence
   @type error_return :: {:error, String.t()}
@@ -748,6 +752,7 @@ defmodule Unicode.String do
     |> Enum.sort()
     |> Keyword.values()
     |> Enum.uniq()
+    |> Enum.map(&atomize/1)
     |> find_matching_locale(known_locales, default)
   end
 
@@ -759,7 +764,11 @@ defmodule Unicode.String do
   end
 
   defp match_locale(locale, known_locales, default) when is_atom(locale) do
-    if locale in known_locales, do: locale, else: default
+    if locale in known_locales do
+      locale
+    else
+      match_locale(to_string(locale), known_locales, default)
+    end
   end
 
   # Means it was a segment match request
@@ -773,11 +782,11 @@ defmodule Unicode.String do
   end
 
   def find_matching_locale(candidates, known_locales, default) do
-    candidates
-    |> Enum.reduce_while(default, fn candidate, current ->
-      case match_locale(candidate, known_locales, nil) do
-        nil -> {:cont, current}
-        found -> {:halt, found}
+    Enum.reduce_while(candidates, default, fn candidate, default ->
+      if candidate in known_locales do
+        {:halt, candidate}
+      else
+        {:cont, default}
       end
     end)
   end
@@ -791,11 +800,31 @@ defmodule Unicode.String do
   end
 
   defp build_candidate_locales([language, territory | _rest])
-       when byte_size(language) == 2 and byte_size(territory) == 2 do
-    language = String.downcase(language)
-    territory = String.upcase(territory)
+       when is_language(language) and is_territory(territory) do
+    language = downcase(language)
+    territory = upcase(territory)
 
     Enum.reject([atomize("#{language}-#{territory}"), atomize(language)], &is_nil/1)
+  end
+
+  defp build_candidate_locales([language, script, territory | _rest])
+       when is_language(language) and is_script(script) and is_territory(territory) do
+    language = downcase(language)
+    script = titlecase(script)
+    territory = upcase(territory)
+
+    Enum.reject([atomize("#{language}-#{territory}"), atomize("#{language}-#{script}"), atomize(language)], &is_nil/1)
+  end
+
+  defp build_candidate_locales([language, script | _rest]) when is_language(language) and is_script(script) do
+    language = downcase(language)
+    script = titlecase(script)
+
+    Enum.reject([atomize("#{language}-#{script}"), atomize(language)], &is_nil/1)
+  end
+
+  defp build_candidate_locales([language | _rest]) when byte_size(language) == 2 or byte_size(language) == 3 do
+    build_candidate_locales([language])
   end
 
   defp build_candidate_locales(["root"]) do
