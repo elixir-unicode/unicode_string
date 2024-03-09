@@ -7,7 +7,7 @@ defmodule Unicode.String.Dictionary do
   @dictionary_dir "dictionaries/"
   @dictionary_locales [:zh, :th, :lo, :my, :km, :ja, :"zh-Hant", :"zh-Hant-HK"]
 
-  def dictionary_locales do
+  def known_dictionary_locales do
     @dictionary_locales
   end
 
@@ -67,11 +67,13 @@ defmodule Unicode.String.Dictionary do
   defp load_dictionary(:km), do: load_dictionary(:km, "khmer.txt")
 
   defp load_dictionary(locale, file_name) do
+    require Logger
+
     trie =
       file_name
       |> read_dictionary()
       |> String.split("\n")
-      |> Enum.reject(&String.starts_with?(&1, ["#", " #", "\uFEFF #"]))
+      |> Enum.reject(&String.starts_with?(&1, ["#", " #", "  #", "\uFEFF #"]))
       |> Enum.reject(&(String.length(&1) == 0))
       |> Enum.map(fn line ->
         case String.split(line, "\t") do
@@ -82,6 +84,7 @@ defmodule Unicode.String.Dictionary do
       |> Trie.new()
 
     :ok = :persistent_term.put({@app_name, locale}, trie)
+    Logger.debug("[unicode_string] Loaded word break dictionary for locale #{inspect locale}")
     {:ok, trie}
   end
 

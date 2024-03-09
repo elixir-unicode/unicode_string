@@ -8,7 +8,7 @@ defmodule Unicode.String.Break do
   alias Unicode.String.Segment
   alias Unicode.String.Dictionary
 
-  @dictionary_locales Dictionary.dictionary_locales()
+  @dictionary_locales Dictionary.known_dictionary_locales()
 
   @break_map %{
     grapheme: :grapheme_cluster_break,

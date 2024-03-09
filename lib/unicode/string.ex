@@ -226,9 +226,9 @@ defmodule Unicode.String do
   def break({string_before, string_after}, options \\ []) do
     break = Keyword.get(options, :break, @default_break)
 
-    with {:ok, locale} <- segmentation_locale_from_options(options),
-         {:ok, _dictionary} <- Dictionary.ensure_dictionary_loaded_if_available(locale),
-         {:ok, break} <- validate(:break, break) do
+    with {:ok, break} <- validate(:break, break),
+         {:ok, locale} <- segmentation_locale_from_options(break, options),
+         {:ok, _dictionary} <- Dictionary.ensure_dictionary_loaded_if_available(locale) do
       Break.break({string_before, string_after}, locale, break, options)
     end
   end
@@ -285,9 +285,9 @@ defmodule Unicode.String do
   def splitter(string, options) when is_binary(string) do
     break = Keyword.get(options, :break, @default_break)
 
-    with {:ok, locale} <- segmentation_locale_from_options(options),
-         {:ok, _dictionary} <- Dictionary.ensure_dictionary_loaded_if_available(locale),
-         {:ok, break} <- validate(:break, break) do
+    with {:ok, break} <- validate(:break, break),
+         {:ok, locale} <- segmentation_locale_from_options(break, options),
+         {:ok, _dictionary} <- Dictionary.ensure_dictionary_loaded_if_available(locale) do
       Stream.unfold(string, &Break.next(&1, locale, break, options))
     end
   end
@@ -344,9 +344,8 @@ defmodule Unicode.String do
   def next(string, options \\ []) when is_binary(string) do
     break = Keyword.get(options, :break, @default_break)
 
-    with {:ok, locale} <- segmentation_locale_from_options(options),
-         {:ok, _dictionary} <- Dictionary.ensure_dictionary_loaded_if_available(locale),
-         {:ok, break} <- validate(:break, break) do
+    with {:ok, break} <- validate(:break, break),
+         {:ok, locale} <- segmentation_locale_from_options(break, options) do
       Break.next(string, locale, break, options)
     end
   end
@@ -410,9 +409,8 @@ defmodule Unicode.String do
   def split(string, options \\ []) when is_binary(string) do
     break = Keyword.get(options, :break, @default_break)
 
-    with {:ok, locale} <- segmentation_locale_from_options(options),
-         {:ok, _dictionary} <- Dictionary.ensure_dictionary_loaded_if_available(locale),
-         {:ok, break} <- validate(:break, break) do
+    with {:ok, break} <- validate(:break, break),
+         {:ok, locale} <- segmentation_locale_from_options(break, options) do
       Break.split(string, locale, break, options)
     end
     |> maybe_trim(options[:trim])
@@ -485,8 +483,8 @@ defmodule Unicode.String do
   def stream(string, options \\ []) do
     break = Keyword.get(options, :break, @default_break)
 
-    with {:ok, locale} <- segmentation_locale_from_options(options),
-         {:ok, break} <- validate(:break, break) do
+    with {:ok, break} <- validate(:break, break),
+         {:ok, locale} <- segmentation_locale_from_options(break, options) do
       Stream.resource(
         fn -> string end,
         fn string ->
@@ -671,7 +669,7 @@ defmodule Unicode.String do
   @spec titlecase(String.t(), Keyword.t()) :: String.t()
   def titlecase(string, options \\ []) when is_list(options) do
     with {:ok, casing_locale} <- casing_locale_from_options(options),
-         {:ok, segmentation_locale} <- segmentation_locale_from_options(options) do
+         {:ok, segmentation_locale} <- segmentation_locale_from_options(:word, options) do
       stream_options = Keyword.merge(options, break: :word, locale: segmentation_locale)
 
       string
@@ -711,8 +709,8 @@ defmodule Unicode.String do
   end
 
   @doc false
-  def segmentation_locale(locale) do
-    segmentation_locale_from_options(locale: locale)
+  def segmentation_locale(break, locale) do
+    segmentation_locale_from_options(break, locale: locale)
   end
 
   defp casing_locale_from_options(options) do
@@ -723,11 +721,39 @@ defmodule Unicode.String do
   end
 
   @segmentation_locales Segment.known_segmentation_locales()
+  @dictionary_locales Dictionary.known_dictionary_locales()
 
-  defp segmentation_locale_from_options(options) do
+  defp segmentation_locale_from_options(:word, options) do
+    locale =  Keyword.get(options, :locale)
+    segmentation_locale =  match_locale(locale, @segmentation_locales, :root)
+    dictionary_locale = match_locale(locale, @dictionary_locales, nil)
+
+    if dictionary_locale do
+      Dictionary.ensure_dictionary_loaded_if_available(dictionary_locale)
+    end
+
+    (dictionary_locale || segmentation_locale)
+    |> wrap(:ok)
+  end
+
+  defp segmentation_locale_from_options(_break, options) do
     options
     |> Keyword.get(:locale)
     |> match_locale(@segmentation_locales, :root)
+    |> wrap(:ok)
+  end
+
+  @doc false
+  def dictionary_locale(locale) do
+    dictionary_locale_from_options(locale: locale)
+  end
+
+  @dictionary_locales Dictionary.known_dictionary_locales()
+
+  defp dictionary_locale_from_options(options) do
+    options
+    |> Keyword.get(:locale)
+    |> match_locale(@dictionary_locales, nil)
     |> wrap(:ok)
   end
 
@@ -813,7 +839,11 @@ defmodule Unicode.String do
     script = titlecase(script)
     territory = upcase(territory)
 
-    Enum.reject([atomize("#{language}-#{territory}"), atomize("#{language}-#{script}"), atomize(language)], &is_nil/1)
+    Enum.reject([
+      atomize("#{language}-#{territory}"),
+      atomize("#{language}-#{script}"),
+      atomize(language)
+    ], &is_nil/1)
   end
 
   defp build_candidate_locales([language, script | _rest]) when is_language(language) and is_script(script) do
