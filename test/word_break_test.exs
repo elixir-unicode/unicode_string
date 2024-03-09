@@ -60,24 +60,23 @@ defmodule Unicode.String.WordBreakTest do
     end
   end
 
-  test "Unicode.String.Break.split/2 when the passing rule is a :no_break" do
+  test "Unicode.String.split/2 when the passing rule is a :no_break" do
     assert Unicode.String.split(~s(“Hi), locale: :en, break: :word) == ["“", "Hi"]
     assert Unicode.String.split(~s("Du), locale: :de, break: :word) == ["\"", "Du"]
     assert Unicode.String.split(~s("Hi"), locale: :en, break: :word) == ["\"", "Hi", "\""]
     assert Unicode.String.split(~s("Hi ), locale: :en, break: :word) == ["\"", "Hi", " "]
   end
 
-  test "Unicode.String.Break.next/2 when the passing rule is a :no_break" do
+  test "Unicode.String.next/2 when the passing rule is a :no_break" do
     assert Unicode.String.next(~s(“Hi), locale: :en, break: :word) == {"“", "Hi"}
     assert Unicode.String.next(~s("Du), locale: :de, break: :word) == {"\"", "Du"}
     assert Unicode.String.next(~s("Hi"), locale: :en, break: :word) ==  {"\"", "Hi\""}
     assert Unicode.String.next(~s("Hi ), locale: :en, break: :word) == {"\"", "Hi "}
   end
 
-  test "Dictionary break" do
-    assert Unicode.String.split("布鲁赫", locale: :zh) == ["布", "鲁", "赫"]
-    assert Unicode.String.split("明德", locale: :zh_Hant) == ["明德"]
-  end
+  # CLDR, unlike Unicode, applies a dictionary-based approach for word
+  # breaks. Therefore there are no Unicode tests for these. We add them
+  # here.
 
   test "Resolving dictionary locales" do
     assert {:ok, :zh} = Unicode.String.Dictionary.dictionary_locale(:"zh-Hant")
@@ -86,7 +85,9 @@ defmodule Unicode.String.WordBreakTest do
     assert {:ok, :zh} = Unicode.String.Dictionary.dictionary_locale(:"yue-Hant")
   end
 
-  test "split/2 with dictionary locales" do
+  test "Unicode.Strin.split/2 uses a dictionary with dictionary locales" do
+    assert Unicode.String.split("布鲁赫", locale: :zh) == ["布", "鲁", "赫"]
+
     assert Unicode.String.split("明德", locale: :zh_Hant_HK) == ["明德"]
     assert Unicode.String.split("明德", locale: :zh_Hant) == ["明德"]
     assert Unicode.String.split("明德", locale: :yue) == ["明德"]
