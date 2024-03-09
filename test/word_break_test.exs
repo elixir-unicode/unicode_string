@@ -83,6 +83,7 @@ defmodule Unicode.String.WordBreakTest do
     assert {:ok, :zh} = Unicode.String.Dictionary.dictionary_locale(:"zh-Hant-HK")
     assert {:ok, :zh} = Unicode.String.Dictionary.dictionary_locale(:yue)
     assert {:ok, :zh} = Unicode.String.Dictionary.dictionary_locale(:"yue-Hant")
+    assert {:ok, :zh} = Unicode.String.Dictionary.dictionary_locale(:"yue-Hans")
   end
 
   test "Unicode.Strin.split/2 uses a dictionary with dictionary locales" do
@@ -92,6 +93,7 @@ defmodule Unicode.String.WordBreakTest do
     assert Unicode.String.split("明德", locale: :zh_Hant) == ["明德"]
     assert Unicode.String.split("明德", locale: :yue) == ["明德"]
     assert Unicode.String.split("明德", locale: :yue_Hant) == ["明德"]
+    assert Unicode.String.split("明德", locale: :yue_Hans) == ["明德"]
     assert Unicode.String.split("明德", locale: :zh) == ["明德"]
     assert Unicode.String.split("明德", locale: :ja) ==["明德"]
   end

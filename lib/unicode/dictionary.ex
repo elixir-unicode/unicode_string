@@ -5,7 +5,10 @@ defmodule Unicode.String.Dictionary do
 
   @app_name :unicode_string
   @dictionary_dir "dictionaries/"
-  @dictionary_locales [:zh, :th, :lo, :my, :km, :ja, :"zh-Hant", :"zh-Hant-HK", :yue, :"yue-Hant"]
+
+  @dictionary_locales [
+    :zh, :th, :lo, :my, :km, :ja, :"zh-Hant", :"zh-Hant-HK", :yue, :"yue-Hant", :"yue-Hans"
+  ]
 
   def known_dictionary_locales do
     @dictionary_locales
@@ -39,6 +42,7 @@ defmodule Unicode.String.Dictionary do
     end
   end
 
+  @doc false
   def dictionary(locale) when locale in @dictionary_locales do
     :persistent_term.get({@app_name, locale}, nil)
   end
@@ -101,6 +105,7 @@ defmodule Unicode.String.Dictionary do
   def dictionary_locale(:"zh-Hant-HK"), do: {:ok, :zh}
   def dictionary_locale(:yue), do: {:ok, :zh}
   def dictionary_locale(:"yue-Hant"), do: {:ok, :zh}
+  def dictionary_locale(:"yue-Hans"), do: {:ok, :zh}
 
   def dictionary_locale(:lo), do: {:ok, :lo}
   def dictionary_locale(:my), do: {:ok, :my}
