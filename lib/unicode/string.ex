@@ -817,7 +817,7 @@ defmodule Unicode.String do
     end)
   end
 
-  defp build_candidate_locales([language]) when byte_size(language) == 2 do
+  defp build_candidate_locales([language]) when is_language(language) do
     language
     |> String.downcase()
     |> atomize()
@@ -846,14 +846,15 @@ defmodule Unicode.String do
     ], &is_nil/1)
   end
 
-  defp build_candidate_locales([language, script | _rest]) when is_language(language) and is_script(script) do
+  defp build_candidate_locales([language, script | _rest])
+      when is_language(language) and is_script(script) do
     language = downcase(language)
     script = titlecase(script)
 
     Enum.reject([atomize("#{language}-#{script}"), atomize(language)], &is_nil/1)
   end
 
-  defp build_candidate_locales([language | _rest]) when byte_size(language) == 2 or byte_size(language) == 3 do
+  defp build_candidate_locales([language | _rest])  when is_language(language) do
     build_candidate_locales([language])
   end
 

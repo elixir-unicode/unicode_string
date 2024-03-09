@@ -82,9 +82,15 @@ defmodule Unicode.String.WordBreakTest do
   test "Resolving dictionary locales" do
     assert {:ok, :zh} = Unicode.String.Dictionary.dictionary_locale(:"zh-Hant")
     assert {:ok, :zh} = Unicode.String.Dictionary.dictionary_locale(:"zh-Hant-HK")
+    assert {:ok, :zh} = Unicode.String.Dictionary.dictionary_locale(:yue)
+    assert {:ok, :zh} = Unicode.String.Dictionary.dictionary_locale(:"yue-Hant")
+  end
 
+  test "split/2 with dictionary locales" do
     assert Unicode.String.split("明德", locale: :zh_Hant_HK) == ["明德"]
     assert Unicode.String.split("明德", locale: :zh_Hant) == ["明德"]
+    assert Unicode.String.split("明德", locale: :yue) == ["明德"]
+    assert Unicode.String.split("明德", locale: :yue_Hant) == ["明德"]
     assert Unicode.String.split("明德", locale: :zh) == ["明德"]
     assert Unicode.String.split("明德", locale: :ja) ==["明德"]
   end

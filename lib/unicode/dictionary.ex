@@ -5,7 +5,7 @@ defmodule Unicode.String.Dictionary do
 
   @app_name :unicode_string
   @dictionary_dir "dictionaries/"
-  @dictionary_locales [:zh, :th, :lo, :my, :km, :ja, :"zh-Hant", :"zh-Hant-HK"]
+  @dictionary_locales [:zh, :th, :lo, :my, :km, :ja, :"zh-Hant", :"zh-Hant-HK", :yue, :"yue-Hant"]
 
   def known_dictionary_locales do
     @dictionary_locales
@@ -66,6 +66,8 @@ defmodule Unicode.String.Dictionary do
   defp load_dictionary(:my), do: load_dictionary(:my, "burmese.txt")
   defp load_dictionary(:km), do: load_dictionary(:km, "khmer.txt")
 
+  @comment_marker ["#", " #", "  #", "\uFEFF #"]
+
   defp load_dictionary(locale, file_name) do
     require Logger
 
@@ -73,7 +75,7 @@ defmodule Unicode.String.Dictionary do
       file_name
       |> read_dictionary()
       |> String.split("\n")
-      |> Enum.reject(&String.starts_with?(&1, ["#", " #", "  #", "\uFEFF #"]))
+      |> Enum.reject(&String.starts_with?(&1, @comment_marker))
       |> Enum.reject(&(String.length(&1) == 0))
       |> Enum.map(fn line ->
         case String.split(line, "\t") do
@@ -97,6 +99,9 @@ defmodule Unicode.String.Dictionary do
   def dictionary_locale(:zh), do: {:ok, :zh}
   def dictionary_locale(:"zh-Hant"), do: {:ok, :zh}
   def dictionary_locale(:"zh-Hant-HK"), do: {:ok, :zh}
+  def dictionary_locale(:yue), do: {:ok, :zh}
+  def dictionary_locale(:"yue-Hant"), do: {:ok, :zh}
+
   def dictionary_locale(:lo), do: {:ok, :lo}
   def dictionary_locale(:my), do: {:ok, :my}
   def dictionary_locale(:th), do: {:ok, :th}
