@@ -90,7 +90,7 @@ defmodule Unicode.String.Dictionary do
       |> Trie.new()
 
     :ok = :persistent_term.put({@app_name, locale}, trie)
-    Logger.debug("[unicode_string] Loaded word break dictionary for locale #{inspect locale}")
+    # Logger.debug("[unicode_string] Loaded word break dictionary for locale #{inspect locale}")
     {:ok, trie}
   end
 

@@ -96,5 +96,10 @@ defmodule Unicode.String.WordBreakTest do
     assert Unicode.String.split("明德", locale: :yue_Hans) == ["明德"]
     assert Unicode.String.split("明德", locale: :zh) == ["明德"]
     assert Unicode.String.split("明德", locale: :ja) ==["明德"]
+
+    assert Unicode.String.split("สวัสดีเจ้านาย", locale: :th) == ["สวัสดี", "เจ้า", "นาย"]
+    assert Unicode.String.split("ສະບາຍດີນາຍຈ້າງ", locale: :lo) == ["ສະບາຍດີ", "ນາຍ", "ຈ້າງ"]
+    assert Unicode.String.split("ສະမင်္ဂလာပါ သူဌေး", locale: :my) == ["ສ", "ະ", "မင်္ဂလာ", "ပါ", " ", "သူဌေး"]
+    assert Unicode.String.split("ສជំរាបសួរចៅហ្វាយ", locale: :km) == ["ສ", "ជំរាបសួរ", "ចៅហ្វាយ"]
   end
 end
