@@ -12,9 +12,15 @@ defmodule Unicode.String.Dictionary do
   * Khmer (`km`) and
   * Burmese (`my`).
 
-  The dictionaries implemented are those used in the [CLDR](https://cldr.unicode.org) since they are under an open source license and also for consistency with [ICU](https://icu.unicode.org).
+  The dictionaries implemented are those used in the [CLDR](https://cldr.unicode.org) since
+  they are under an open source license and also for consistency with
+  [ICU](https://icu.unicode.org).
 
-  Note that these dictionaries need to be downloaded with `mix unicode.string.download.dictionaries` prior to use. Each dictionary will be parsed and loaded into [persistent_term](https://www.erlang.org/doc/man/persistent_term) on demand. Note that each dictionary has a sizable memory footprint as measured by `:persistent_term.info/0`:
+  Note that these dictionaries need to be downloaded with
+  `mix unicode.string.download.dictionaries` prior to use. Each dictionary
+  will be parsed and loaded into [persistent_term](https://www.erlang.org/doc/man/persistent_term)
+  on demand. Note that each dictionary has a sizable memory footprint as measured
+  by `:persistent_term.info/0`:
 
   | Dictionary  | Memory Mb   |
   | ----------- | ----------: |
