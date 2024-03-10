@@ -1,5 +1,30 @@
 defmodule Unicode.String.Dictionary do
-  @moduledoc false
+  @moduledoc """
+  Implements basic dictionary functions for dictionary-based
+  work break.
+
+  This implementation supports dictionary-based word breaking for:
+
+  * Chinese (`zh`, `zh-Hant`, `zh-Hans`, `zh-Hant-HK`, `yue`, `yue-Hans`) locales,
+  * Japanese (`ja`) using the same dictionary as for Chinese,
+  * Thai (`th`),
+  * Lao (`lo`),
+  * Khmer (`km`) and
+  * Burmese (`my`).
+
+  The dictionaries implemented are those used in the [CLDR](https://cldr.unicode.org) since they are under an open source license and also for consistency with [ICU](https://icu.unicode.org).
+
+  Note that these dictionaries need to be downloaded with `mix unicode.string.download.dictionaries` prior to use. Each dictionary will be parsed and loaded into [persistent_term](https://www.erlang.org/doc/man/persistent_term) on demand. Note that each dictionary has a sizable memory footprint as measured by `:persistent_term.info/0`:
+
+  | Dictionary  | Memory Mb   |
+  | ----------- | ----------: |
+  | Chinese     | 104.8       |
+  | Thai        | 9.6         |
+  | Lao         | 11.4        |
+  | Khmer       | 38.8        |
+  | Burmese     | 23.1        |
+
+  """
 
   alias Unicode.String.Trie
 
@@ -10,10 +35,16 @@ defmodule Unicode.String.Dictionary do
     :zh, :th, :lo, :my, :km, :ja, :"zh-Hant", :"zh-Hant-HK", :yue, :"yue-Hant", :"yue-Hans"
   ]
 
+  @doc """
+  Returns the locales that have a dictionary supporting
+  word breaking.
+
+  """
   def known_dictionary_locales do
     @dictionary_locales
   end
 
+  @doc false
   def ensure_dictionary_loaded_if_available(locale) when locale in @dictionary_locales do
     require Logger
 
@@ -41,12 +72,14 @@ defmodule Unicode.String.Dictionary do
     {:ok, "No dictionary for #{inspect locale} found"}
   end
 
+  @doc false
   def load(locale) do
     with {:ok, locale} <- dictionary_locale(locale) do
       load_dictionary(locale)
     end
   end
 
+  @doc false
   def is_loaded(locale) do
     with {:ok, locale} <- dictionary_locale(locale) do
       :persistent_term.get({@app_name, locale}, false) && true
@@ -76,6 +109,7 @@ defmodule Unicode.String.Dictionary do
     end
   end
 
+  @doc false
   @dialyzer {:nowarn_function, load_dictionary: 1}
   defp load_dictionary(:zh), do: load_dictionary(:zh, "chinese_japanese.txt")
   defp load_dictionary(:ja), do: load_dictionary(:zh)
@@ -116,6 +150,7 @@ defmodule Unicode.String.Dictionary do
     File.read!(path)
   end
 
+  @doc false
   def dictionary_locale(:zh), do: {:ok, :zh}
   def dictionary_locale(:"zh-Hant"), do: {:ok, :zh}
   def dictionary_locale(:"zh-Hant-HK"), do: {:ok, :zh}
