@@ -15,11 +15,24 @@ defmodule Unicode.String.Dictionary do
   end
 
   def ensure_dictionary_loaded_if_available(locale) when locale in @dictionary_locales do
+    require Logger
+
     with {:ok, locale} <- dictionary_locale(locale) do
-      if dictionary = dictionary(locale) do
-        {:ok, dictionary}
-      else
-        load(locale)
+      status =
+        if dictionary = dictionary(locale) do
+          {:ok, dictionary}
+        else
+          load(locale)
+        end
+
+      case status do
+        {:ok, dictionary} ->
+          {:ok, dictionary}
+
+        nil ->
+          message = "No dictionary for #{locale} found. Have you run `mix download.dictionaries`?"
+          Logger.debug(message)
+          {:error, message}
       end
     end
   end
