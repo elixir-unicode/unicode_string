@@ -29,7 +29,7 @@ defmodule Unicode.String.Dictionary do
         {:ok, dictionary} ->
           {:ok, dictionary}
 
-        nil ->
+        _other ->
           message = "No dictionary for #{locale} found. Have you run `mix download.dictionaries`?"
           Logger.debug(message)
           {:error, message}
@@ -104,6 +104,8 @@ defmodule Unicode.String.Dictionary do
       |> Trie.new()
 
     :ok = :persistent_term.put({@app_name, locale}, trie)
+    trie = :persistent_term.get({@app_name, locale})
+
     # Logger.debug("[unicode_string] Loaded word break dictionary for locale #{inspect locale}")
     {:ok, trie}
   end

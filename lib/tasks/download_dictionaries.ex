@@ -1,6 +1,6 @@
 defmodule Mix.Tasks.Download.Dictionaries do
   @moduledoc """
-  Downloads the ICU (Unicode) utilities supporting word breaks
+  Downloads the ICU (Unicode) dictionaries supporting word breaks
   for Chinese, Japanese, Thai, Burmese and Laotion languages.
 
   """

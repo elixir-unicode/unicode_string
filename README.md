@@ -15,6 +15,26 @@ Adds functions supporting some string algorithms in the Unicode standard. For ex
 
 * The [Unicode Line Breaking](https://www.unicode.org/reports/tr14/) algorithm to determine line breaks (breaks meaning where word-wrapping would be acceptable).
 
+## Installation
+
+The package can be installed by adding `:unicode_string` to your list of dependencies in `mix.exs`:
+
+```elixir
+def deps do
+  [
+    {:unicode_string, "~> 1.0"}
+  ]
+end
+```
+
+Then run `mix dep.get`.
+
+> #### Word Break Dictionary Download {: .info}
+>
+> If you plan to perform word break segmentation on Chinese, Japanese, Lao,
+> Burmese, Thai or Khmer languages you will need to download the work break dictionaries
+> by running `mix download.dictionaries`.
+
 ## Casing
 
 ### Case Folding
@@ -133,6 +153,24 @@ iex> Unicode.String.split "This is a sentence. And another.", break: :line
 ["This ", "is ", "a ", "sentence. ", "And ", "another."]
 ```
 
+### Dictionary-based word segmentation
+
+Some languages, commonly east asian languages, don't typically use whitespace to separate words so a dictionary lookup is more appropriate - although not perfect.
+
+This implementation supports dictionary-based work breaking for Chinese (`zh`, `zh-Hant`, `zh-Hans`, `zh-Hant-HK`, `yue`, `yue-Hans`), Japanese (`ja`) using the same dictionary as for Chinese, Thai (`th`), Lao (`lo`), Khmer (`km`) and Burmese (`my`).
+
+The dictionaries implemented are those used in the [CLDR](https://cldr.unicode.org) since they are under an open source license and also for consistency with [ICU](https://icu.unicode.org).
+
+Note that these dictionaries need to be downloaded with `mix download.dictionaries` prior to use. Each dictionary will be parsed and loaded into [persistent_term](https://www.erlang.org/doc/man/persistent_term) on demand. Each dictionary has a sizable memory footprint as measured by `:persistent_term.info/0`:
+
+| Dictionary  | Memory Mb   |
+| ----------- | ----------: |
+| Chinese     | 104.8       |
+| Thai        | 9.6         |
+| Lao         | 11.4        |
+| Khmer       | 38.8        |
+| Burmese     | 23.1        |
+
 ## Segment Streaming
 
 Segmentation can also be streamed using `Unicode.String.stream/2`. For large strings this may improve memory usage since the intermediate segments will be garbage collected when they fall out of scope.
@@ -150,18 +188,6 @@ iex> Enum.map Unicode.String.stream("this is a set of words", trim: true),
   %{length: 2, word: "of"},
   %{length: 5, word: "words"}
 ]
-```
-
-## Installation
-
-The package can be installed by adding `:unicode_string` to your list of dependencies in `mix.exs`:
-
-```elixir
-def deps do
-  [
-    {:unicode_string, "~> 1.0"}
-  ]
-end
 ```
 
 ## References
