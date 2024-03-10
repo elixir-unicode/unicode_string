@@ -63,6 +63,7 @@ defmodule Unicode.String.Dictionary do
     end
   end
 
+  @dialyzer {:nowarn_function, load_dictionary: 1}
   defp load_dictionary(:zh), do: load_dictionary(:zh, "chinese_japanese.txt")
   defp load_dictionary(:ja), do: load_dictionary(:zh)
   defp load_dictionary(:lo), do: load_dictionary(:lo, "lao.txt")
