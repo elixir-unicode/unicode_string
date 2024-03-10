@@ -47,6 +47,6 @@ jobs:
       - run: mix dialyzer
         if: ${{ matrix.lint }}
         
-      - run: mix download.dictionaries
+      - run: mix unicode.string.download.dictionaries
 
       - run: mix test

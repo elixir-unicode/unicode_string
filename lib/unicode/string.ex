@@ -121,7 +121,8 @@ defmodule Unicode.String do
   ## Options
 
   * `:locale` is any locale returned by
-    `Unicode.String.Segment.known_segmentation_locales/0`.
+    `Unicode.String.Segment.known_segmentation_locales/0` or
+    `Unicode.String.Dictionary.known_dictionary_locales/0`.
     The default is #{inspect(@default_locale)} which corresponds
     to the break rules defined by the
     [Unicode Segmentation](https://unicode.org/reports/tr29/) rules.
@@ -182,7 +183,8 @@ defmodule Unicode.String do
   ## Options
 
   * `:locale` is any locale returned by
-    `Unicode.String.Segment.known_segmentation_locales/0`.
+    `Unicode.String.Segment.known_segmentation_locales/0` or
+    `Unicode.String.Dictionary.known_dictionary_locales/0`.
     The default is #{inspect(@default_locale)} which corresponds
     to the break rules defined by the
     [Unicode Segmentation](https://unicode.org/reports/tr29/) rules.
@@ -253,7 +255,8 @@ defmodule Unicode.String do
   ## Options
 
   * `:locale` is any locale returned by
-    `Unicode.String.Segment.known_segmentation_locales/0`.
+    `Unicode.String.Segment.known_segmentation_locales/0` or
+    `Unicode.String.Dictionary.known_dictionary_locales/0`.
     The default is #{inspect(@default_locale)} which corresponds
     to the break rules defined by the
     [Unicode Segmentation](https://unicode.org/reports/tr29/) rules.
@@ -315,6 +318,7 @@ defmodule Unicode.String do
 
   * `:locale` is any locale returned by
     `Unicode.String.Segment.known_segmentation_locales/0` or
+    `Unicode.String.Dictionary.known_dictionary_locales/0` or
     a [Cldr.LanguageTag](https://hexdocs.pm/ex_cldr/Cldr.LanguageTag.html)
     struct. The default is #{inspect(@default_locale)} which corresponds
     to the break rules defined by the
@@ -371,7 +375,8 @@ defmodule Unicode.String do
   ## Options
 
   * `:locale` is any locale returned by
-    `Unicode.String.Segment.known_segmentation_locales/0` or
+    `Unicode.String.Segment.known_segmentation_locales/0`  or
+    `Unicode.String.Dictionary.known_dictionary_locales/0` or
     a [Cldr.LanguageTag](https://hexdocs.pm/ex_cldr/Cldr.LanguageTag.html)
     struct. The default is #{inspect(@default_locale)} which corresponds
     to the break rules defined by the
@@ -447,6 +452,7 @@ defmodule Unicode.String do
 
   * `:locale` is any locale returned by
     `Unicode.String.Segment.known_segmentation_locales/0` or
+    `Unicode.String.Dictionary.known_dictionary_locales/0` or
     a [Cldr.LanguageTag](https://hexdocs.pm/ex_cldr/Cldr.LanguageTag.html)
     struct. The default is #{inspect(@default_locale)} which corresponds
     to the break rules defined by the
