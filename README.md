@@ -11,7 +11,7 @@ Adds functions supporting some string algorithms in the Unicode standard. For ex
 
 * The [Unicode Code Mapping](https://www.unicode.org/versions/Unicode15.0.0/ch03.pdf) algorithm that implements locale-aware `Unicode.String.upcase/2`, `Unicode.String.downcase/2` and `Unicode.String.titlecase/2`.
 
-* The [Unicode Segmentation](https://unicode.org/reports/tr29/) algorithm to detect, break, split or stream strings into grapheme clusters, words, sentences and line break points in a locale-aware manner.
+* The [Unicode Segmentation](https://unicode.org/reports/tr29/) algorithm to detect, break, split or stream strings into grapheme clusters, words and sentences.
 
 * The [Unicode Line Breaking](https://www.unicode.org/reports/tr14/) algorithm to determine line breaks (breaks meaning where word-wrapping would be acceptable).
 
@@ -22,7 +22,8 @@ The package can be installed by adding `:unicode_string` to your list of depende
 ```elixir
 def deps do
   [
-    {:unicode_string, "~> 1.0"}
+    {:unicode_string, "~> 1.0"},
+    ...
   ]
 end
 ```
@@ -32,8 +33,8 @@ Then run `mix dep.get`.
 > #### Word Break Dictionary Download {: .info}
 >
 > If you plan to perform word break segmentation on Chinese, Japanese, Lao,
-> Burmese, Thai or Khmer languages you will need to download the work break dictionaries
-> by running `mix download.dictionaries`.
+> Burmese, Thai or Khmer languages you will need to download the word break dictionaries
+> by running `mix unicode.string.download.dictionaries`.
 
 ## Casing
 
@@ -157,11 +158,18 @@ iex> Unicode.String.split "This is a sentence. And another.", break: :line
 
 Some languages, commonly east asian languages, don't typically use whitespace to separate words so a dictionary lookup is more appropriate - although not perfect.
 
-This implementation supports dictionary-based work breaking for Chinese (`zh`, `zh-Hant`, `zh-Hans`, `zh-Hant-HK`, `yue`, `yue-Hans`), Japanese (`ja`) using the same dictionary as for Chinese, Thai (`th`), Lao (`lo`), Khmer (`km`) and Burmese (`my`).
+This implementation supports dictionary-based word breaking for:
+
+* Chinese (`zh`, `zh-Hant`, `zh-Hans`, `zh-Hant-HK`, `yue`, `yue-Hans`) locales,
+* Japanese (`ja`) using the same dictionary as for Chinese,
+* Thai (`th`),
+* Lao (`lo`),
+* Khmer (`km`) and
+* Burmese (`my`).
 
 The dictionaries implemented are those used in the [CLDR](https://cldr.unicode.org) since they are under an open source license and also for consistency with [ICU](https://icu.unicode.org).
 
-Note that these dictionaries need to be downloaded with `mix download.dictionaries` prior to use. Each dictionary will be parsed and loaded into [persistent_term](https://www.erlang.org/doc/man/persistent_term) on demand. Each dictionary has a sizable memory footprint as measured by `:persistent_term.info/0`:
+Note that these dictionaries need to be downloaded with `mix unicode.string.download.dictionaries` prior to use. Each dictionary will be parsed and loaded into [persistent_term](https://www.erlang.org/doc/man/persistent_term) on demand. Note that each dictionary has a sizable memory footprint as measured by `:persistent_term.info/0`:
 
 | Dictionary  | Memory Mb   |
 | ----------- | ----------: |
@@ -176,15 +184,15 @@ Note that these dictionaries need to be downloaded with `mix download.dictionari
 Segmentation can also be streamed using `Unicode.String.stream/2`. For large strings this may improve memory usage since the intermediate segments will be garbage collected when they fall out of scope.
 
 ```elixir
-iex> Enum.to_list Unicode.String.stream("this is a set of words", trim: true)                       ["this", "is", "a", "set", "of", "words"]
+iex> Enum.to_list Unicode.String.stream("this is a list of words", trim: true)                       ["this", "is", "a", "list", "of", "words"]
 
-iex> Enum.map Unicode.String.stream("this is a set of words", trim: true),
+iex> Enum.map Unicode.String.stream("this is a list of words", trim: true),
 ...>   fn word -> %{word: word, length: String.length(word)} end
 [
   %{length: 4, word: "this"},
   %{length: 2, word: "is"},
   %{length: 1, word: "a"},
-  %{length: 3, word: "set"},
+  %{length: 3, word: "list"},
   %{length: 2, word: "of"},
   %{length: 5, word: "words"}
 ]
