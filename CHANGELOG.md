@@ -1,5 +1,21 @@
 # Changelog
 
+## Unicode String v1.4.0
+
+This is the changelog for Unicode String v1.4.0 released on March 10th, 2024.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
+
+### Enhancements
+
+* Adds dictionary-based work breaking for Chinese (zh, zh-Hant, zh-Hans, zh-Hant-HK, yue, yue-Hans), Japanese (ja), Thai (th), Lao (lo), Khmer (km) and Burmese (my). These languages don't typically use whitespace to separate words so a dictionary lookup is more appropriate - although not perfect.  The same dictionary is used for Chinese and Japanese. The dictionaries implemented are those used in the [CLDR](https://cldr.unicode.org) since they are under and open source license and for consistency with [ICU](https://icu.unicode.org). Note that these dictionaries need to be downloaded with `mix download.dictionaries` prior to use. Each dictionary will be parsed and loaded into [persistent_term](https://www.erlang.org/doc/man/persistent_term) on demand. Each dictionary is loaded on demand. Each dictionary has a sizable memory footprint as measured by `:persistent_term.info/0`:
+
+| Dictionary  | Memory Mb   |
+| ----------- | ----------: |
+| Chinese     | 104.8       |
+| Thai        | 9.6         |
+| Lao         | 11.4        |
+| Khmer       | 38.8        |
+| Burmese     | 23.1        |
+
 ## Unicode String v1.3.1
 
 This is the changelog for Unicode String v1.3.1 released on March 6th, 2024.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
