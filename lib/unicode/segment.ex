@@ -161,24 +161,17 @@ defmodule Unicode.String.Segment do
 
   def evaluate_rules({string_before, string_after}, rules) do
     Enum.reduce_while(rules, [], fn rule, _acc ->
-      {rule_number, {operator, _fore, _aft}} = rule
+      {_rule_number, {operator, _fore, _aft}} = rule
 
       case evaluate_rule({string_before, string_after}, rule) do
         {:pass, result} ->
-          maybe_log_rule(:pass, rule_number, operator, string_before, string_after)
           {:halt, {:pass, operator, result}}
 
         {:fail, string} ->
-          maybe_log_rule(:fail, rule_number, operator, string_before, string_after)
           {:cont, {:fail, string}}
       end
     end)
     |> return_break_or_no_break
-  end
-
-  def maybe_log_rule(status, number, operator, string_before, string_after) do
-    {status, number, operator, string_before, string_after}
-    # IO.puts "#{status} #{number}:  #{inspect string_before} #{operator} #{inspect string_after}"
   end
 
   # The final implicit rule is to to break. ie: :any ÷ :any

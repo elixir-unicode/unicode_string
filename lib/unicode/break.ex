@@ -243,7 +243,7 @@ defmodule Unicode.String.Break do
   @default_locale :root
 
   defp rules(_other, segment_type) do
-    Segment.rules(@default_locale, segment_type)
+    rules(@default_locale, segment_type)
   end
 
   def suppressions_rule(_locale, _segment_type) do

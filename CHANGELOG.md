@@ -1,5 +1,13 @@
 # Changelog
 
+## Unicode String v1.4.1
+
+This is the changelog for Unicode String v1.4.1 released on March 14th, 2024.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
+
+### Bug Fixes
+
+* Fix performance regressing in `Uncode.String.Break.next/4`. Added the script `bench/next.exs` to allow for regression testing. Thanks to @mntns for the report. Closes #6.
+
 ## Unicode String v1.4.0
 
 This is the changelog for Unicode String v1.4.0 released on March 10th, 2024.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
