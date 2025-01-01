@@ -1,5 +1,15 @@
 # Changelog
 
+## Unicode String v1.5.0
+
+This is the changelog for Unicode String v1.5.0 released on January 1st, 2025.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
+
+### Enhancements
+
+* Update to CLDR 46.1 segmentation data and tests.
+
+* Pass dialyzer with `:underspecs` flag set.
+
 ## Unicode String v1.4.1
 
 This is the changelog for Unicode String v1.4.1 released on March 14th, 2024.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
