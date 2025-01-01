@@ -4,11 +4,11 @@ on:
   pull_request:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   test:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     env:
       MIX_ENV: test
     strategy:
@@ -16,8 +16,8 @@ jobs:
       matrix:
         include:
           - pair:
-              elixir: 1.16.1-otp-26
-              otp: 26.2.2
+              elixir: 1.18.1-otp-27
+              otp: 27.2
             lint: lint
     steps:
       - uses: actions/checkout@v3
