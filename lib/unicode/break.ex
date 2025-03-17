@@ -157,8 +157,11 @@ defmodule Unicode.String.Break do
     {acc <> fore, ""}
   end
 
-  defp do_next({:no_break, {_string_before, {fore, aft}}}, rules, acc) do
-    {acc <> fore, aft}
+  # Previously we were doing {acc <> fore, aft} but more context
+  # is needed for some rules so now its {string_before <> fore, aft}
+
+  defp do_next({:no_break, {string_before, {fore, aft}}}, rules, acc) do
+    {string_before <> fore, aft}
     |> Segment.evaluate_rules(rules)
     |> do_next(rules, acc <> fore)
   end

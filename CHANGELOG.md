@@ -1,5 +1,17 @@
 # Changelog
 
+## Unicode String v1.6.0
+
+This is the changelog for Unicode String v1.6.0 released on March 17th, 2025.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
+
+### Bug Fixes
+
+* Fix word break detection when a `\p{word_break=extend}` codepoint is preceeded by a letter and followed by a letter.
+
+### Enhancements
+
+* Updated to [CLDR 47](https://cldr.unicode.org/downloads/cldr-47) break rules and test data.
+
 ## Unicode String v1.5.0
 
 This is the changelog for Unicode String v1.5.0 released on January 1st, 2025.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
