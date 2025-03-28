@@ -130,7 +130,7 @@ iex> Unicode.String.split "This is a sentence. And another.", break: :sentence
 ["This is a sentence. ", "And another."]
 
 # By default, common abbreviations are suppressed (ie
-# the do not cause a break)
+# they do not cause a break)
 iex> Unicode.String.split "No, I don't have a Ph.D. but I don't think it matters.", break: :word, trim: true
 ["No", ",", "I", "don't", "have", "a", "Ph.D", ".", "but", "I", "don't",
  "think", "it", "matters", "."]

@@ -86,7 +86,7 @@ defmodule Unicode.String.WordBreakTest do
     assert {:ok, :zh} = Unicode.String.Dictionary.dictionary_locale(:"yue-Hans")
   end
 
-  test "Unicode.Strin.split/2 uses a dictionary with dictionary locales" do
+  test "Unicode.String.split/2 uses a dictionary with dictionary locales" do
     assert Unicode.String.split("布鲁赫", locale: :zh) == ["布", "鲁", "赫"]
 
     assert Unicode.String.split("明德", locale: :zh_Hant_HK) == ["明德"]
@@ -101,5 +101,10 @@ defmodule Unicode.String.WordBreakTest do
     assert Unicode.String.split("ສະບາຍດີນາຍຈ້າງ", locale: :lo) == ["ສະບາຍດີ", "ນາຍ", "ຈ້າງ"]
     assert Unicode.String.split("ສະမင်္ဂလာပါ သူဌေး", locale: :my) == ["ສ", "ະ", "မင်္ဂလာ", "ပါ", " ", "သူဌေး"]
     assert Unicode.String.split("ສជំរាបសួរចៅហ្វាយ", locale: :km) == ["ສ", "ជំរាបសួរ", "ចៅហ្វាយ"]
+  end
+
+  test "Doesn't break after a word-break=extend codepoint when followed by a letter" do
+    assert ["Ẹ́va", "Sophia"] ==
+      Unicode.String.split("Ẹ́va Sophia", locale: :pcm, trim: true, break: :word)
   end
 end

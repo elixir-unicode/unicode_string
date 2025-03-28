@@ -58,7 +58,7 @@ defmodule Mix.Tasks.Unicode.String.Download.Dictionaries do
 
   This function uses the built-in `:httpc`
   client but enables certificate verification
-  which is not enabled by `:httc` by default.
+  which is not enabled by `:httpc` by default.
 
   See also https://erlef.github.io/security-wg/secure_coding_and_deployment_hardening/ssl
 
