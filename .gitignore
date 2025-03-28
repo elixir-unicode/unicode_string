@@ -21,3 +21,6 @@ erl_crash.dump
 
 # Don't store the dictionaries
 /priv/dictionaries/*.txt
+
+# Mise
+mise.toml

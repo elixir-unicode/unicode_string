@@ -62,18 +62,18 @@ defmodule Unicode.String.Segment do
   # codes like \B and \w in the unicode space, ignore
   # unescaped whitespace in regexs
   @regex_options [:unicode, :extended, :ucp, :dollar_endonly, :dotall, :bsr_unicode]
-  @rule_splitter ~r/[×÷]/u
+  @rule_splitter "[×÷]"
 
   defp compile_rules(rules, regex_options) do
     Enum.map(rules, fn {sequence, rule} ->
-      [left, operator, right] = Regex.split(@rule_splitter, rule, include_captures: true)
+      [left, operator, right] = Regex.split(~r/#{@rule_splitter}/u, rule, include_captures: true)
       operator = if operator == "×", do: :no_break, else: :break
 
       left = if left != "", do: left <> "$", else: left
       right = if right != "", do: "^" <> right, else: right
 
       {sequence,
-       {operator, compile_regex!(left, regex_options), compile_regex!(right, regex_options)}}
+       {operator, expand_regex(left, regex_options), expand_regex(right, regex_options)}}
     end)
   end
 
@@ -137,17 +137,17 @@ defmodule Unicode.String.Segment do
     end
   end
 
-  defp compile_regex!("", _regex_options) do
+  defp expand_regex("", _regex_options) do
     :any
   end
 
   # Delete spaces because PCRE doesn't ignore them
 
-  defp compile_regex!(string, regex_options) do
+  defp expand_regex(string, regex_options) do
     string
     |> String.trim()
     |> String.replace(" ", "")
-    |> Unicode.Regex.compile!(@regex_options ++ regex_options)
+    |> Unicode.Regex.expand_regex(@regex_options ++ regex_options)
   end
 
   @doc """
@@ -191,7 +191,9 @@ defmodule Unicode.String.Segment do
   @split_options [parts: 2, include_captures: true, trim: true]
 
   # Process an `:any op regex` rule at end of string
-  defp evaluate_rule({string_before, <<_::utf8>> = string_after}, {_seq, {_operator, :any, aft}}) do
+  defp evaluate_rule({string_before, <<_::utf8>> = string_after}, {_seq, {_operator, :any, {aft, regex_options}}}) do
+    aft = Regex.compile!(aft, regex_options)
+
     if Regex.match?(aft, string_after) do
       {:pass, {string_before, {string_after, ""}}}
     else
@@ -199,7 +201,9 @@ defmodule Unicode.String.Segment do
     end
   end
 
-  defp evaluate_rule({string_before, string_after}, {_seq, {_operator, :any, aft}}) do
+  defp evaluate_rule({string_before, string_after}, {_seq, {_operator, :any, {aft, regex_options}}}) do
+    aft = Regex.compile!(aft, regex_options)
+
     case Regex.split(aft, string_after, @split_options) do
       [match, rest] -> {:pass, {string_before, {match, rest}}}
       _other -> {:fail, {string_before, string_after}}
@@ -207,7 +211,9 @@ defmodule Unicode.String.Segment do
   end
 
   # Ignore suppressions at end of the string
-  defp evaluate_rule({string_before, string_after}, {10.5, {_operator, fore, :any}}) do
+  defp evaluate_rule({string_before, string_after}, {10.5, {_operator, {fore, regex_options}, :any}}) do
+    fore = Regex.compile!(fore, regex_options)
+
     if Regex.match?(fore, string_before) do
       # IO.inspect {string_before, string_after}, label: "Matched Rule 10.5"
       case Regex.split(fore, string_before, @split_options) do
@@ -226,7 +232,9 @@ defmodule Unicode.String.Segment do
   end
 
   # :any matches end of string
-  defp evaluate_rule({string_before, "" = string_after}, {_seq, {_operator, fore, :any}}) do
+  defp evaluate_rule({string_before, "" = string_after}, {_seq, {_operator, {fore, regex_options}, :any}}) do
+    fore = Regex.compile!(fore, regex_options)
+
     if Regex.match?(fore, string_before) do
       {:pass, {string_before, {"", ""}}}
     else
@@ -234,7 +242,9 @@ defmodule Unicode.String.Segment do
     end
   end
 
-  defp evaluate_rule({string_before, string_after}, {_seq, {_operator, fore, :any}}) do
+  defp evaluate_rule({string_before, string_after}, {_seq, {_operator, {fore, regex_options}, :any}}) do
+    fore = Regex.compile!(fore, regex_options)
+
     if Regex.match?(fore, string_before) do
       <<char::utf8, rest::binary>> = string_after
       {:pass, {string_before, {<<char::utf8>>, rest}}}
@@ -243,7 +253,10 @@ defmodule Unicode.String.Segment do
     end
   end
 
-  defp evaluate_rule({string_before, string_after}, {_seq, {_operator, fore, aft}}) do
+  defp evaluate_rule({string_before, string_after}, {_seq, {_operator, {fore, fore_regex_options}, {aft, aft_regex_options}}}) do
+    fore = Regex.compile!(fore, fore_regex_options)
+    aft = Regex.compile!(aft, aft_regex_options)
+
     if Regex.match?(fore, string_before) && Regex.match?(aft, string_after) do
       case Regex.split(aft, string_after, @split_options) do
         [match, rest] -> {:pass, {string_before, {match, rest}}}

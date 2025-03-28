@@ -63,13 +63,13 @@ defmodule Unicode.String.Case.Mapping do
 
   # These regexes can probably be converted to another form
   # which may further enable binary optimmization.
-  @final_sigma_before Unicode.Regex.compile!("\\p{cased}(\\p{Case_Ignorable})*")
-  @final_sigma_after Unicode.Regex.compile!("(\\p{Case_Ignorable})*\\p{cased}")
+  @final_sigma_before Unicode.Regex.expand_regex("\\p{cased}(\\p{Case_Ignorable})*")
+  @final_sigma_after Unicode.Regex.expand_regex("(\\p{Case_Ignorable})*\\p{cased}")
 
-  @after_soft_dotted Unicode.Regex.compile!("[\\p{Soft_Dotted}]([^\\p{ccc=230}\\p{ccc=0}])*")
-  @more_above Unicode.Regex.compile!("[^\\p{ccc=230}\\p{ccc=0}]*[\\p{ccc=230}]")
-  @before_dot Unicode.Regex.compile!("([^\\p{ccc=230}\\p{ccc=0}])*[\u0307]")
-  @after_i Unicode.Regex.compile!("[I]([^\\p{ccc=230}\\p{ccc=0}])*")
+  @after_soft_dotted Unicode.Regex.expand_regex("[\\p{Soft_Dotted}]([^\\p{ccc=230}\\p{ccc=0}])*")
+  @more_above Unicode.Regex.expand_regex("[^\\p{ccc=230}\\p{ccc=0}]*[\\p{ccc=230}]")
+  @before_dot Unicode.Regex.expand_regex("([^\\p{ccc=230}\\p{ccc=0}])*[\u0307]")
+  @after_i Unicode.Regex.expand_regex("[I]([^\\p{ccc=230}\\p{ccc=0}])*")
 
   utf8_bytes_for_codepoint = fn codepoint ->
     byte_size(<<codepoint::utf8>>)
@@ -110,7 +110,7 @@ defmodule Unicode.String.Case.Mapping do
         <<prior::binary-size(bytes_so_far), _remaining::binary>> = string
         bytes_so_far = bytes_so_far + unquote(codepoint_bytes)
 
-        if Regex.match?(@final_sigma_before, prior) && !Regex.match?(@final_sigma_after, rest) do
+        if Regex.match?(~r/#{@final_sigma_before}/u, prior) && !Regex.match?(~r/#{@final_sigma_after}/u, rest) do
           casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [
             unquote(replacement) | acc
           ])
@@ -136,7 +136,7 @@ defmodule Unicode.String.Case.Mapping do
         <<prior::binary-size(bytes_so_far), _remaining::binary>> = string
         bytes_so_far = bytes_so_far + unquote(codepoint_bytes)
 
-        if !Regex.match?(@before_dot, prior) do
+        if !Regex.match?(~r/#{@before_dot}/u, prior) do
           casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [
             unquote(replacement) | acc
           ])
@@ -169,7 +169,7 @@ defmodule Unicode.String.Case.Mapping do
            ) do
         bytes_so_far = bytes_so_far + unquote(codepoint_bytes)
 
-        if Regex.match?(@more_above, rest) do
+        if Regex.match?(~r/#{@more_above}/u, rest) do
           casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [
             unquote(replacement) | acc
           ])
@@ -203,7 +203,7 @@ defmodule Unicode.String.Case.Mapping do
         <<prior::binary-size(bytes_so_far), _remaining::binary>> = string
         bytes_so_far = bytes_so_far + unquote(codepoint_bytes)
 
-        if Regex.match?(@after_soft_dotted, prior) do
+        if Regex.match?(~r/#{@after_soft_dotted}/u, prior) do
           casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [
             unquote(replacement) | acc
           ])
@@ -237,7 +237,7 @@ defmodule Unicode.String.Case.Mapping do
         <<prior::binary-size(bytes_so_far), _remaining::binary>> = string
         bytes_so_far = bytes_so_far + unquote(codepoint_bytes)
 
-        if Regex.match?(@after_i, prior) do
+        if Regex.match?(~r/#{@after_i}/u, prior) do
           casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [
             unquote(replacement) | acc
           ])

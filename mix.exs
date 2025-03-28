@@ -61,14 +61,16 @@ defmodule Unicode.String.MixProject do
   defp deps do
     [
       {:unicode, "~> 1.19"},
-      {:unicode_set, "~> 1.3"},
+      {:unicode_set, path: "../unicode_set"},
+
+      # {:earmark_parser, github: "/RobertDober/earmark_parser", override: true},
 
       {:trie, "~> 2.0"},
       {:ex_cldr, "~> 2.37", optional: true},
       {:jason, "~> 1.0", optional: true},
       {:sweet_xml, "~> 0.7", runtime: false},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
-      {:benchee, "~> 1.0", only: :dev, optional: true},
+      # {:benchee, "~> 1.0", only: :dev, optional: true},
       {:ex_doc, "~> 0.23", only: [:dev, :release], optional: true, runtime: false}
     ]
   end

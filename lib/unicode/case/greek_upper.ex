@@ -5,10 +5,10 @@ defmodule Unicode.String.Case.Mapping.Greek do
 
   """
 
-  @remove_accents Unicode.Regex.compile!(
+  @remove_accents Unicode.Regex.expand_regex(
                     "[^[:ccc=Not_Reordered:][:ccc=Above:]]*?[\\u0313\\u0314\\u0301\\u0300\\u0306\\u0342\\u0308\\u0304]"
                   )
-  @remove_iota Unicode.Regex.compile!("[^[:ccc=Not_Reordered:][:ccc=Iota_Subscript:]]*?[\\u0345]")
+  @remove_iota Unicode.Regex.expand_regex("[^[:ccc=Not_Reordered:][:ccc=Iota_Subscript:]]*?[\\u0345]")
 
   @doc """
   This implementation currently implements the `el-Upper` transform
@@ -72,8 +72,8 @@ defmodule Unicode.String.Case.Mapping.Greek do
   def upcase(string) do
     string
     |> String.normalize(:nfd)
-    |> String.replace(@remove_accents, "")
-    |> String.replace(@remove_iota, "")
+    |> String.replace(~r/#{@remove_accents}/u, "")
+    |> String.replace(~r/#{@remove_iota}/u, "")
     |> String.normalize(:nfc)
     |> Unicode.String.Case.Mapping.upcase(:any)
   end
