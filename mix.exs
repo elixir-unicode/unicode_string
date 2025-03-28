@@ -1,7 +1,7 @@
 defmodule Unicode.String.MixProject do
   use Mix.Project
 
-  @version "1.4.1"
+  @version "1.5.0"
 
   def project do
     [
@@ -61,9 +61,8 @@ defmodule Unicode.String.MixProject do
   defp deps do
     [
       {:unicode, "~> 1.19"},
-      {:unicode_set, path: "../unicode_set"},
-
-      # {:earmark_parser, github: "/RobertDober/earmark_parser", override: true},
+      {:unicode_set, github: "elixir-unicode/unicode_set"},
+      {:earmark_parser, github: "/RobertDober/earmark_parser", override: true},
 
       {:trie, "~> 2.0"},
       {:ex_cldr, "~> 2.37", optional: true},
