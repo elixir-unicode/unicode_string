@@ -59,8 +59,7 @@ defmodule Unicode.String.MixProject do
   defp deps do
     [
       {:unicode, "~> 1.19"},
-      {:unicode_set, github: "elixir-unicode/unicode_set"},
-      {:earmark_parser, github: "/RobertDober/earmark_parser", override: true},
+      {:unicode_set, "~> 1.5"},
 
       {:trie, "~> 2.0"},
       {:ex_cldr, "~> 2.38", optional: true},
