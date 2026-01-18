@@ -1,13 +1,13 @@
 defmodule Unicode.String.MixProject do
   use Mix.Project
 
-  @version "1.7.0"
+  @version "1.8.0"
 
   def project do
     [
       app: :unicode_string,
       version: @version,
-      elixir: "~> 1.11",
+      elixir: "~> 1.12",
       start_permanent: Mix.env() == :prod,
       build_embedded: Mix.env() == :prod,
       deps: deps(),
@@ -58,8 +58,7 @@ defmodule Unicode.String.MixProject do
 
   defp deps do
     [
-      {:unicode, "~> 1.19"},
-      {:unicode_set, "~> 1.5"},
+      {:unicode_set, "~> 1.6"},
 
       {:trie, "~> 2.0"},
       {:ex_cldr, "~> 2.38", optional: true},

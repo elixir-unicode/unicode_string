@@ -6,7 +6,6 @@ defmodule Unicode.String.Segment do
   """
 
   import SweetXml
-  require Unicode.Set
 
   @root_locale "root"
   @suppressions_variable "$Suppressions"

@@ -107,7 +107,7 @@ defmodule Unicode.String.Case.Mapping do
              bytes_so_far,
              acc
            ) do
-        <<prior::binary-size(bytes_so_far), _remaining::binary>> = string
+        <<prior::binary-size(^bytes_so_far), _remaining::binary>> = string
         bytes_so_far = bytes_so_far + unquote(codepoint_bytes)
 
         if Regex.match?(~r/#{@final_sigma_before}/u, prior) && !Regex.match?(~r/#{@final_sigma_after}/u, rest) do
@@ -133,7 +133,7 @@ defmodule Unicode.String.Case.Mapping do
              bytes_so_far,
              acc
            ) do
-        <<prior::binary-size(bytes_so_far), _remaining::binary>> = string
+        <<prior::binary-size(^bytes_so_far), _remaining::binary>> = string
         bytes_so_far = bytes_so_far + unquote(codepoint_bytes)
 
         if !Regex.match?(~r/#{@before_dot}/u, prior) do
@@ -200,7 +200,7 @@ defmodule Unicode.String.Case.Mapping do
              bytes_so_far,
              acc
            ) do
-        <<prior::binary-size(bytes_so_far), _remaining::binary>> = string
+        <<prior::binary-size(^bytes_so_far), _remaining::binary>> = string
         bytes_so_far = bytes_so_far + unquote(codepoint_bytes)
 
         if Regex.match?(~r/#{@after_soft_dotted}/u, prior) do
@@ -234,7 +234,7 @@ defmodule Unicode.String.Case.Mapping do
              bytes_so_far,
              acc
            ) do
-        <<prior::binary-size(bytes_so_far), _remaining::binary>> = string
+        <<prior::binary-size(^bytes_so_far), _remaining::binary>> = string
         bytes_so_far = bytes_so_far + unquote(codepoint_bytes)
 
         if Regex.match?(~r/#{@after_i}/u, prior) do

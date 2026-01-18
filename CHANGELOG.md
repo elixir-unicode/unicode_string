@@ -1,12 +1,20 @@
 # Changelog
 
+## Unicode String v1.8.0
+
+This is the changelog for Unicode String v1.8.0 released onJanuary 19th, 2026.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
+
+### Enhancements
+
+* Updates to [Unicode 17.0](https://unicode.org/versions/Unicode17.0.0/) data.
+
 ## Unicode String v1.7.0
 
-This is the changelog for Unicode String v1.7.0 released on March 29th.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
+This is the changelog for Unicode String v1.7.0 released on March 29th, 2025.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
 
 ### Bug Fixes
 
-* Converts all compile-time regex compilation to runtime to be compatible with OTP 28. Performance implications are not yet known.
+* Converts all compile-time regex compilation to runtime to be compatible with OTP 28.
 
 ## Unicode String v1.6.0
 
