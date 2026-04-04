@@ -771,108 +771,26 @@ defmodule Unicode.String do
     {atom, term}
   end
 
+  # Maximum distance score from Localize.LanguageTag.best_match/3
+  # to consider a match valid. Scores above this indicate unrelated
+  # locales and should fall back to the default.
+  @max_match_distance 10
+
   defp match_locale(nil, _known_locales, default) do
     default
   end
 
-  defp match_locale(locale, known_locales, default)
-      when is_struct(locale, Localize.LanguageTag) do
-    [locale.requested_locale_id, locale.canonical_locale_id, locale.cldr_locale_id, locale.language]
-    |> Enum.reject(&is_nil/1)
-    |> Enum.uniq()
-    |> Enum.map(&atomize/1)
-    |> find_matching_locale(known_locales, default)
-  end
+  defp match_locale(locale, known_locales, default) do
+    case Localize.LanguageTag.best_match(locale, known_locales) do
+      {:ok, matched_locale, score} when score <= @max_match_distance ->
+        matched_locale
 
-  defp match_locale(locale, known_locales, default) when is_binary(locale) do
-    locale
-    |> String.split(["-", "_"])
-    |> build_candidate_locales()
-    |> find_matching_locale(known_locales, default)
-  end
+      {:ok, _locale, _score} ->
+        default
 
-  defp match_locale(locale, known_locales, default) when is_atom(locale) do
-    if locale in known_locales do
-      locale
-    else
-      match_locale(to_string(locale), known_locales, default)
+      {:error, _reason} ->
+        default
     end
-  end
-
-  # Means it was a segment match request
-  defp match_locale(locale, _known_locales, :root) do
-    {:error, Segment.unknown_locale_error(locale)}
-  end
-
-  # Means it was a casing match request
-  defp match_locale(locale, _known_locales, :any) do
-    {:error, Case.Mapping.unknown_locale_error(locale)}
-  end
-
-  def find_matching_locale(candidates, known_locales, default) do
-    Enum.reduce_while(candidates, default, fn candidate, default ->
-      if candidate in known_locales do
-        {:halt, candidate}
-      else
-        {:cont, default}
-      end
-    end)
-  end
-
-  defp build_candidate_locales([language]) when is_language(language) do
-    language
-    |> String.downcase()
-    |> atomize()
-    |> List.wrap()
-    |> Enum.reject(&is_nil/1)
-  end
-
-  defp build_candidate_locales([language, territory | _rest])
-       when is_language(language) and is_territory(territory) do
-    language = downcase(language)
-    territory = upcase(territory)
-
-    Enum.reject([atomize("#{language}-#{territory}"), atomize(language)], &is_nil/1)
-  end
-
-  defp build_candidate_locales([language, script, territory | _rest])
-       when is_language(language) and is_script(script) and is_territory(territory) do
-    language = downcase(language)
-    script = titlecase(script)
-    territory = upcase(territory)
-
-    Enum.reject([
-      atomize("#{language}-#{territory}"),
-      atomize("#{language}-#{script}"),
-      atomize(language)
-    ], &is_nil/1)
-  end
-
-  defp build_candidate_locales([language, script | _rest])
-      when is_language(language) and is_script(script) do
-    language = downcase(language)
-    script = titlecase(script)
-
-    Enum.reject([atomize("#{language}-#{script}"), atomize(language)], &is_nil/1)
-  end
-
-  defp build_candidate_locales([language | _rest])  when is_language(language) do
-    build_candidate_locales([language])
-  end
-
-  defp build_candidate_locales(["root"]) do
-    [:root]
-  end
-
-  defp build_candidate_locales(_other) do
-    []
-  end
-
-  defp atomize(string) do
-    String.to_existing_atom(string)
-  rescue
-    ArgumentError ->
-      nil
   end
 
   @breaks [:word, :grapheme, :line, :sentence]
