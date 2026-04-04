@@ -1,7 +1,7 @@
 defmodule Unicode.String.MixProject do
   use Mix.Project
 
-  @version "1.8.0"
+  @version "2.0.0-rc.0"
 
   def project do
     [
@@ -61,7 +61,6 @@ defmodule Unicode.String.MixProject do
       {:unicode_set, "~> 1.6"},
 
       {:trie, "~> 2.0"},
-      {:ex_cldr, "~> 2.38", optional: true},
       {:localize, path: "../localize", optional: true},
 
       {:jason, "~> 1.0", optional: true},

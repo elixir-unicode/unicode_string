@@ -319,7 +319,7 @@ defmodule Unicode.String do
   * `:locale` is any locale returned by
     `Unicode.String.Segment.known_segmentation_locales/0` or
     `Unicode.String.Dictionary.known_dictionary_locales/0` or
-    a [Cldr.LanguageTag](https://hexdocs.pm/ex_cldr/Cldr.LanguageTag.html)
+    a [Localize.LanguageTag](https://hexdocs.pm/localize/Localize.LanguageTag.html)
     struct. The default is #{inspect(@default_locale)} which corresponds
     to the break rules defined by the
     [Unicode Segmentation](https://unicode.org/reports/tr29/) rules.
@@ -377,7 +377,7 @@ defmodule Unicode.String do
   * `:locale` is any locale returned by
     `Unicode.String.Segment.known_segmentation_locales/0`  or
     `Unicode.String.Dictionary.known_dictionary_locales/0` or
-    a [Cldr.LanguageTag](https://hexdocs.pm/ex_cldr/Cldr.LanguageTag.html)
+    a [Localize.LanguageTag](https://hexdocs.pm/localize/Localize.LanguageTag.html)
     struct. The default is #{inspect(@default_locale)} which corresponds
     to the break rules defined by the
     [Unicode Segmentation](https://unicode.org/reports/tr29/) rules.
@@ -453,7 +453,7 @@ defmodule Unicode.String do
   * `:locale` is any locale returned by
     `Unicode.String.Segment.known_segmentation_locales/0` or
     `Unicode.String.Dictionary.known_dictionary_locales/0` or
-    a [Cldr.LanguageTag](https://hexdocs.pm/ex_cldr/Cldr.LanguageTag.html)
+    a [Localize.LanguageTag](https://hexdocs.pm/localize/Localize.LanguageTag.html)
     struct. The default is #{inspect(@default_locale)} which corresponds
     to the break rules defined by the
     [Unicode Segmentation](https://unicode.org/reports/tr29/) rules.
@@ -517,8 +517,8 @@ defmodule Unicode.String do
   ### Options
 
   * `:locale` is any [ISO 639](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes)
-    language code or a [LanguageTag](https://hexdocs.pm/ex_cldr/Cldr.LanguageTag.html)
-    which provides integration with [ex_cldr](https://hex.pm/packages/ex_cldr)
+    language code or a [Localize.LanguageTag](https://hexdocs.pm/localize/Localize.LanguageTag.html)
+    which provides integration with [localize](https://hex.pm/packages/localize)
     applications.  The default is `:any` which signifies the
     application of the base Unicode casing algorithm.
 
@@ -571,8 +571,8 @@ defmodule Unicode.String do
   ### Options
 
   * `:locale` is any [ISO 639](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes)
-    language code or a [LanguageTag](https://hexdocs.pm/ex_cldr/Cldr.LanguageTag.html)
-    which provides integration with [ex_cldr](https://hex.pm/packages/ex_cldr)
+    language code or a [Localize.LanguageTag](https://hexdocs.pm/localize/Localize.LanguageTag.html)
+    which provides integration with [localize](https://hex.pm/packages/localize)
     applications.  The default is `:any` which signifies the
     application of the base Unicode casing algorithm.
 
@@ -639,8 +639,8 @@ defmodule Unicode.String do
   ### Options
 
   * `:locale` is any [ISO 639](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes)
-    language code or a [LanguageTag](https://hexdocs.pm/ex_cldr/Cldr.LanguageTag.html)
-    which provides integration with [ex_cldr](https://hex.pm/packages/ex_cldr)
+    language code or a [Localize.LanguageTag](https://hexdocs.pm/localize/Localize.LanguageTag.html)
+    which provides integration with [localize](https://hex.pm/packages/localize)
     applications.  The default is `:any` which signifies the
     application of the base Unicode casing algorithm.
 
@@ -775,16 +775,10 @@ defmodule Unicode.String do
     default
   end
 
-  # The Enum.sort/1 here relies on the coincidental fact tha the three fields
-  # are alphabetically in the order we already want
-
   defp match_locale(locale, known_locales, default)
-      when is_struct(locale, Cldr.LanguageTag) or is_struct(locale, Localize.LanguageTag) do
-    locale
-    |> Map.take([:canonical_locale_name, :canonical_locale_id, :cldr_locale_name, :cldr_locale_id, :language])
+      when is_struct(locale, Localize.LanguageTag) do
+    [locale.requested_locale_id, locale.canonical_locale_id, locale.cldr_locale_id, locale.language]
     |> Enum.reject(&is_nil/1)
-    |> Enum.sort()
-    |> Keyword.values()
     |> Enum.uniq()
     |> Enum.map(&atomize/1)
     |> find_matching_locale(known_locales, default)

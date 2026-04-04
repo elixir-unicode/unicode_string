@@ -2,7 +2,7 @@ defmodule UnicodeString.Segment.Test do
   use ExUnit.Case, async: true
 
   test "Resolving the segmentation locale from a Language Tag" do
-    import Cldr.LanguageTag.Sigil
+    import Localize.LanguageTag.Sigil
 
     assert Unicode.String.segmentation_locale(:word, ~l"fr") == {:ok, :fr}
     assert Unicode.String.segmentation_locale(:word, ~l"en-US") == {:ok, :"en-US"}

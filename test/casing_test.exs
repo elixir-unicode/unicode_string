@@ -26,7 +26,7 @@ defmodule UnicodeString.Casing.Test do
   end
 
   test "Resolving the casing locale from a Language Tag" do
-    import Cldr.LanguageTag.Sigil
+    import Localize.LanguageTag.Sigil
 
     assert Unicode.String.casing_locale(~l"az") == {:ok, :az}
     assert Unicode.String.casing_locale(~l"tr") == {:ok, :tr}

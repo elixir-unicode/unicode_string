@@ -35,10 +35,9 @@ defmodule Unicode.String.Case.Folding do
   * `mode or language tag` is either the atoms `:turkic` or `nil`
     or a map that includes the key `:language` with a value that
     is a lowercase atom representing an [ISO 639-1](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes)
-    language code. The [CLDR language tag](https://hexdocs.pm/ex_cldr/Cldr.LanguageTag.html) which is defined
-    as part of the [ex_cldr](https://hex.pm/packages/ex_cldr) is one
-    such example. See [Cldr.validate_locale/2](https://hexdocs.pm/ex_cldr/Cldr.html#validate_locale/2)
-    for further information. The default is `nil`.
+    language code. The [Localize.LanguageTag](https://hexdocs.pm/localize/Localize.LanguageTag.html) which is defined
+    as part of [localize](https://hex.pm/packages/localize) is one
+    such example. The default is `nil`.
 
   ### Returns
 

@@ -156,7 +156,7 @@ iex> Unicode.String.split "This is a sentence. And another.", break: :line
 
 ### Dictionary-based word segmentation
 
-Some languages, commonly east asian languages, don't typically use whitespace to separate words so a dictionary lookup is more appropriate - although not perfect.
+Some languages, commonly East Asian and Southeast Asian languages, don't typically use whitespace to separate words, so a dictionary lookup is needed for word-break segmentation.
 
 This implementation supports dictionary-based word breaking for:
 
@@ -167,7 +167,7 @@ This implementation supports dictionary-based word breaking for:
 * Khmer (`km`) and
 * Burmese (`my`).
 
-The dictionaries implemented are those used in the [CLDR](https://cldr.unicode.org) since they are under an open source license and also for consistency with [ICU](https://icu.unicode.org).
+The dictionaries are those used in [CLDR](https://cldr.unicode.org) since they are under an open source license and are consistent with [ICU](https://icu.unicode.org).
 
 Note that these dictionaries need to be downloaded with `mix unicode.string.download.dictionaries` prior to use. Each dictionary will be parsed and loaded into [persistent_term](https://www.erlang.org/doc/man/persistent_term) on demand. Note that each dictionary has a sizable memory footprint as measured by `:persistent_term.info/0`:
 
@@ -178,6 +178,32 @@ Note that these dictionaries need to be downloaded with `mix unicode.string.down
 | Lao         | 11.4        |
 | Khmer       | 38.8        |
 | Burmese     | 23.1        |
+
+#### How dictionary break works
+
+For Thai, Lao, Khmer, and Burmese the dictionary break algorithm is implemented in `Unicode.String.DictionaryBreak`. It uses the same approach as ICU's `DictionaryBreakEngine`: a cost-based lookahead that considers multiple word candidates at each position to find the best segmentation.
+
+The algorithm proceeds through the text as follows:
+
+1. **Candidate gathering.** At each position, all dictionary words that start at that position are found (shortest to longest match) using prefix search against the trie-structured dictionary.
+
+2. **Single candidate.** If exactly one candidate matches, it is accepted immediately.
+
+3. **Multiple candidates with 3-word lookahead.** When multiple candidates exist, each is tested by looking ahead up to two more words. The candidate that leads to the longest chain of consecutive dictionary words wins. Candidates are tried longest-first, and the first candidate confirmed by a 3-word chain is accepted.
+
+4. **Non-dictionary resync.** When no dictionary word is found (or only a very short one), the algorithm scans forward through non-dictionary characters until reaching a position where dictionary words resume. The non-dictionary stretch is combined with the preceding word.
+
+5. **Combining mark absorption.** After each word boundary, any following Unicode combining marks (General Category M — vowel signs, tone marks, virama/coeng characters) are absorbed into the preceding word so that diacritics remain attached to their base.
+
+6. **Thai suffix handling.** For Thai, the suffix characters PAIYANNOI (U+0E2F) and MAIYAMOK (U+0E46) are absorbed into the preceding word when no dictionary word follows.
+
+For Chinese and Japanese, the standard [UAX #29](https://unicode.org/reports/tr29/) word-break rules are used with dictionary lookups for ideographic character sequences. The dictionary determines word boundaries within runs of CJK ideographs.
+
+#### Mixed-script text
+
+When text contains a mix of dictionary-script characters and other scripts (e.g., a Khmer sentence with embedded Latin words), the `split_with_fallback/3` function partitions the text into same-script runs. Dictionary breaking is applied to the target-script ranges, and a fallback function (typically the standard UAX #29 word breaker) handles the rest. The results are concatenated to produce a single segmentation covering the full string.
+
+See `conformance.md` for details on conformance with the UAX #29 break algorithm and differences between this implementation and ICU.
 
 ## Segment Streaming
 

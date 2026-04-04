@@ -124,7 +124,7 @@ defmodule Mix.Tasks.Unicode.String.Download.Dictionaries do
   ```elixir
   # A certificate store configured by the
   # developer
-  Application.get_env(:ex_cldr, :cacertfile)
+  Application.get_env(:unicode_string, :cacertfile)
 
   # Populated if hex package `CAStore` is configured
   CAStore.file_path()
@@ -238,12 +238,12 @@ defmodule Mix.Tasks.Unicode.String.Download.Dictionaries do
 
   ### Https Proxy
 
-  `Cldr.Http.get/2` will look for a proxy URL in the following
-  locales in the order presented:
+  A proxy URL will be looked for in the following
+  locations in the order presented:
 
   * `options[:https_proxy]`
-  * `ex_cldr` compile-time configuration under the
-    key `:ex_cldr[:https_proxy]`
+  * `unicode` compile-time configuration under the
+    key `:unicode[:https_proxy]`
   * The environment variable `HTTPS_PROXY`
   * The environment variable `https_proxy`
 
@@ -260,7 +260,7 @@ defmodule Mix.Tasks.Unicode.String.Download.Dictionaries do
   ```elixir
   # A certificate store configured by the
   # developer
-  Application.get_env(:ex_cldr, :cacertfile)
+  Application.get_env(:unicode_string, :cacertfile)
 
   # Populated if hex package `CAStore` is configured
   CAStore.file_path()
@@ -397,7 +397,7 @@ defmodule Mix.Tasks.Unicode.String.Download.Dictionaries do
   defp dynamic_certificate_locations do
     [
       # Configured cacertfile
-      Application.get_env(:ex_cldr, :cacertfile),
+      Application.get_env(:unicode_string, :cacertfile),
 
       # Populated if hex package CAStore is configured
       if(Code.ensure_loaded?(CAStore), do: apply(CAStore, :file_path, [])),
@@ -428,7 +428,7 @@ defmodule Mix.Tasks.Unicode.String.Download.Dictionaries do
     A certificate trust store is required in
     order to download locales for your configuration.
 
-    Since ex_cldr could not detect a system
+    Since unicode_string could not detect a system
     installed certificate trust store one of the
     following actions may be taken:
 
@@ -436,12 +436,12 @@ defmodule Mix.Tasks.Unicode.String.Download.Dictionaries do
        be automatically detected after recompilation.
 
     2. Install the hex package `certifi`. It will
-       be automatically detected after recomilation.
+       be automatically detected after recompilation.
 
     3. Specify the location of a certificate trust store
        by configuring it in `config.exs` or `runtime.exs`:
 
-       config :ex_cldr,
+       config :unicode_string,
          cacertfile: "/path/to/cacertfile",
          ...
 
