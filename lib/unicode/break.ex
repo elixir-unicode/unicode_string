@@ -116,7 +116,13 @@ defmodule Unicode.String.Break do
 
     case Dictionary.find_prefix(word, locale) do
       {:ok, _} ->
+        # Found a complete word. Before breaking here, absorb any
+        # immediately following combining marks (General Category M)
+        # so that marks like Myanmar Asat (U+103A) or Khmer sign
+        # coeng (U+17D2) stay attached to their base word.
+        {word, rest} = absorb_combining_marks(word, rest)
         next_at({word, rest}, locale, break, options)
+
       :prefix ->
         # If its a prefix then we keep going to see if we have a word
         # But if the next step doesn't produce either a prefix or
@@ -127,10 +133,28 @@ defmodule Unicode.String.Break do
           other ->
             other
         end
+
       :error ->
         {string_before, string_after}
     end
   end
+
+  # Absorb any combining marks (Unicode General Category M) that
+  # immediately follow a word boundary in dictionary-based word break.
+  # Without this, marks like Myanmar Asat (U+103A), Khmer sign coeng
+  # (U+17D2), and vowel signs get detached from their base consonant
+  # when the dictionary produces a break before them.
+  @combining_categories [:Mn, :Mc, :Me]
+
+  defp absorb_combining_marks(word, <<next::utf8, rest::binary>> = after_word) do
+    if Unicode.category(next) in @combining_categories do
+      absorb_combining_marks(word <> <<next::utf8>>, rest)
+    else
+      {word, after_word}
+    end
+  end
+
+  defp absorb_combining_marks(word, ""), do: {word, ""}
 
   defp next_at({string_before, string_after}, locale, segment_type, options) do
     suppress? = Keyword.get(options, :suppressions, true)
