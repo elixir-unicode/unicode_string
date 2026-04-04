@@ -778,9 +778,11 @@ defmodule Unicode.String do
   # The Enum.sort/1 here relies on the coincidental fact tha the three fields
   # are alphabetically in the order we already want
 
-  defp match_locale(locale, known_locales, default) when is_struct(locale, Cldr.LanguageTag) do
+  defp match_locale(locale, known_locales, default)
+      when is_struct(locale, Cldr.LanguageTag) or is_struct(locale, Localize.LanguageTag) do
     locale
-    |> Map.take([:canonical_locale_name, :cldr_locale_name, :language])
+    |> Map.take([:canonical_locale_name, :canonical_locale_id, :cldr_locale_name, :cldr_locale_id, :language])
+    |> Enum.reject(&is_nil/1)
     |> Enum.sort()
     |> Keyword.values()
     |> Enum.uniq()

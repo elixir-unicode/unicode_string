@@ -62,6 +62,8 @@ defmodule Unicode.String.MixProject do
 
       {:trie, "~> 2.0"},
       {:ex_cldr, "~> 2.38", optional: true},
+      {:localize, path: "../localize", optional: true},
+
       {:jason, "~> 1.0", optional: true},
       {:sweet_xml, "~> 0.7", runtime: false},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
