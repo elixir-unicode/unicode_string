@@ -7,6 +7,7 @@ defmodule Unicode.String.Break do
 
   alias Unicode.String.Segment
   alias Unicode.String.Dictionary
+  alias Unicode.String.DictionaryBreak
 
   @dictionary_locales Dictionary.known_dictionary_locales()
 
@@ -50,7 +51,30 @@ defmodule Unicode.String.Break do
     |> Segment.evaluate_rules(rules)
   end
 
+  # Southeast Asian scripts use the lookahead-based dictionary
+  # break algorithm for script-specific ranges. CJK locales
+  # continue to use the greedy dictionary matching via the
+  # standard split path.
+  @lookahead_dictionary_locales [:th, :lo, :km, :my]
+
   @doc false
+  def split(string, locale, :word = break, options) when locale in @lookahead_dictionary_locales do
+    Dictionary.ensure_dictionary_loaded_if_available(locale)
+
+    # Split text into script-homogeneous ranges, apply dictionary
+    # break to target-script ranges, and rule-based break to others.
+    DictionaryBreak.split_with_fallback(string, locale, fn non_dict_segment ->
+      split_segment(non_dict_segment, locale, break, options)
+    end)
+  end
+
+  defp split_segment(string, locale, break, options) do
+    case next(string, locale, break, options) do
+      {fore, aft} -> [fore | split_segment(aft, locale, break, options)]
+      nil -> []
+    end
+  end
+
   def split(string, locale, break, options) when break in @break_keys do
     case next(string, locale, break, options) do
       {fore, aft} ->
