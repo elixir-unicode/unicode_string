@@ -25,6 +25,18 @@ defmodule UnicodeString.Casing.Test do
     assert Unicode.String.Case.Mapping.titlecase("ijthings", :nl) == "IJthings"
   end
 
+  test "Titlecasing words starting with i" do
+    assert Unicode.String.Case.Mapping.titlecase("island", :any) == "Island"
+    assert Unicode.String.Case.Mapping.titlecase("internet", :any) == "Internet"
+    assert Unicode.String.titlecase("island") == "Island"
+  end
+
+  test "Titlecasing words starting with i in Turkish and Azeri" do
+    assert Unicode.String.Case.Mapping.titlecase("island", :tr) == "İsland"
+    assert Unicode.String.Case.Mapping.titlecase("island", :az) == "İsland"
+    assert Unicode.String.titlecase("island", locale: :tr) == "İsland"
+  end
+
   test "Resolving the casing locale from a Language Tag" do
     import Localize.LanguageTag.Sigil
 

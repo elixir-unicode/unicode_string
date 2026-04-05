@@ -368,7 +368,7 @@ defmodule Unicode.String.Case.Mapping do
   end
 
   for %{codepoint: codepoint, title: title} = casing <- Utils.casing_in_order(),
-      title && title != codepoint && codepoint > ?~ do
+      title && title != codepoint && (codepoint == ?i or codepoint > ?~) do
     %{context: context, language: language} = casing
 
     define_casing_function.(:titlecase, codepoint, title, language, context)

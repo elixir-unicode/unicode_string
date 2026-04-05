@@ -25,6 +25,14 @@ defmodule Unicode.String.Break do
 
   @break_keys Map.keys(@break_map)
 
+  @combining_categories [:Mn, :Mc, :Me]
+
+  # Southeast Asian scripts use the lookahead-based dictionary
+  # break algorithm for script-specific ranges. CJK locales
+  # continue to use the greedy dictionary matching via the
+  # standard split path.
+  @lookahead_dictionary_locales [:th, :lo, :km, :my]
+
   @doc false
   def break(string, locale, break, options) when break in @break_keys do
     break_at(string, locale, Map.fetch!(@break_map, break), options)
@@ -51,12 +59,6 @@ defmodule Unicode.String.Break do
     |> Segment.evaluate_rules(rules)
   end
 
-  # Southeast Asian scripts use the lookahead-based dictionary
-  # break algorithm for script-specific ranges. CJK locales
-  # continue to use the greedy dictionary matching via the
-  # standard split path.
-  @lookahead_dictionary_locales [:th, :lo, :km, :my]
-
   @doc false
   def split(string, locale, :word = break, options) when locale in @lookahead_dictionary_locales do
     Dictionary.ensure_dictionary_loaded_if_available(locale)
@@ -68,13 +70,6 @@ defmodule Unicode.String.Break do
     end)
   end
 
-  defp split_segment(string, locale, break, options) do
-    case next(string, locale, break, options) do
-      {fore, aft} -> [fore | split_segment(aft, locale, break, options)]
-      nil -> []
-    end
-  end
-
   def split(string, locale, break, options) when break in @break_keys do
     case next(string, locale, break, options) do
       {fore, aft} ->
@@ -82,6 +77,13 @@ defmodule Unicode.String.Break do
 
       nil ->
         []
+    end
+  end
+
+  defp split_segment(string, locale, break, options) do
+    case next(string, locale, break, options) do
+      {fore, aft} -> [fore | split_segment(aft, locale, break, options)]
+      nil -> []
     end
   end
 
@@ -163,13 +165,20 @@ defmodule Unicode.String.Break do
     end
   end
 
+  defp next_at({string_before, string_after}, locale, segment_type, options) do
+    suppress? = Keyword.get(options, :suppressions, true)
+    {:ok, rules} = rules(locale, segment_type, suppress?)
+
+    {string_before, string_after}
+    |> Segment.evaluate_rules(rules)
+    |> do_next(rules, "")
+  end
+
   # Absorb any combining marks (Unicode General Category M) that
   # immediately follow a word boundary in dictionary-based word break.
   # Without this, marks like Myanmar Asat (U+103A), Khmer sign coeng
   # (U+17D2), and vowel signs get detached from their base consonant
   # when the dictionary produces a break before them.
-  @combining_categories [:Mn, :Mc, :Me]
-
   defp absorb_combining_marks(word, <<next::utf8, rest::binary>> = after_word) do
     if Unicode.category(next) in @combining_categories do
       absorb_combining_marks(word <> <<next::utf8>>, rest)
@@ -179,15 +188,6 @@ defmodule Unicode.String.Break do
   end
 
   defp absorb_combining_marks(word, ""), do: {word, ""}
-
-  defp next_at({string_before, string_after}, locale, segment_type, options) do
-    suppress? = Keyword.get(options, :suppressions, true)
-    {:ok, rules} = rules(locale, segment_type, suppress?)
-
-    {string_before, string_after}
-    |> Segment.evaluate_rules(rules)
-    |> do_next(rules, "")
-  end
 
   defp do_next({:break, {_string_before, {"", ""}}}, _rules, acc) do
     {acc, ""}
