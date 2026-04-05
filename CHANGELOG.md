@@ -1,8 +1,22 @@
 # Changelog
 
+## Unicode String v2.0.0
+
+This is the changelog for Unicode String v2.0.0 released on April 6th, 2026.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
+
+### Enhancements
+
+* Replace `ex_cldr` with `localize` as the localization library
+
+* Fix titalcasing the letter `i` - including correct handling in Turkic languages
+
+* Use `Localize.Locale.best_match/3` for locale matching
+
+* Fixes to the `Unicode.Break` module.
+
 ## Unicode String v1.8.0
 
-This is the changelog for Unicode String v1.8.0 released onJanuary 19th, 2026.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
+This is the changelog for Unicode String v1.8.0 released on January 19th, 2026.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
 
 ### Enhancements
 
