@@ -4,6 +4,10 @@
 
 This is the changelog for Unicode String v2.0.0 released on April 14th, 2026.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
 
+### Breaking change
+
+* Unicode String version 2.0 and later is supported on Elixir 1.17 or later only.
+
 ### Enhancements
 
 * Replace `ex_cldr` with `localize` as the localization library
