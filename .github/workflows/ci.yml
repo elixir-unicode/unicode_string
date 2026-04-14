@@ -16,11 +16,11 @@ jobs:
       matrix:
         include:
           - pair:
-              elixir: 1.18.1-otp-27
-              otp: 27.2
+              elixir: 1.20.0-rc.4-otp-28
+              otp: 28.3
             lint: lint
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
 
       - uses: erlef/setup-beam@v1
         with:
@@ -46,7 +46,7 @@ jobs:
 
       - run: mix dialyzer
         if: ${{ matrix.lint }}
-        
+
       - run: mix unicode.string.download.dictionaries
 
       - run: mix test
