@@ -7,7 +7,7 @@ defmodule Unicode.String.MixProject do
     [
       app: :unicode_string,
       version: @version,
-      elixir: "~> 1.12",
+      elixir: "~> 1.17",
       start_permanent: Mix.env() == :prod,
       build_embedded: Mix.env() == :prod,
       deps: deps(),
@@ -85,13 +85,13 @@ defmodule Unicode.String.MixProject do
       source_ref: "v#{@version}",
       main: "readme",
       logo: "logo.png",
+      formatters: ["html", "markdown"]
       extras: [
         "README.md",
         "LICENSE.md",
         "CHANGELOG.md"
       ],
       skip_undefined_reference_warnings_on: ["changelog", "CHANGELOG.md"],
-      formatters: ["html"]
     ]
   end
 
