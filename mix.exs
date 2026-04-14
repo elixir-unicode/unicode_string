@@ -1,7 +1,7 @@
 defmodule Unicode.String.MixProject do
   use Mix.Project
 
-  @version "2.0.0-rc.0"
+  @version "2.0.0"
 
   def project do
     [
@@ -61,7 +61,7 @@ defmodule Unicode.String.MixProject do
       {:unicode_set, "~> 1.6"},
 
       {:trie, "~> 2.0"},
-      {:localize, path: "../localize", optional: true},
+      {:localize, "~> 0.8 or ~> 1.0", optional: true},
 
       {:jason, "~> 1.0", optional: true},
       {:sweet_xml, "~> 0.7", runtime: false},

@@ -763,10 +763,6 @@ defmodule Unicode.String do
     |> wrap(:ok)
   end
 
-  defp wrap({:error, _} = error, _) do
-    error
-  end
-
   defp wrap(term, atom) do
     {atom, term}
   end
@@ -780,16 +776,22 @@ defmodule Unicode.String do
     default
   end
 
-  defp match_locale(locale, known_locales, default) do
-    case Localize.LanguageTag.best_match(locale, known_locales) do
-      {:ok, matched_locale, score} when score <= @max_match_distance ->
-        matched_locale
+  if Code.ensure_loaded?(Localize.LanguageTag) do
+    defp match_locale(locale, known_locales, default) do
+      case Localize.LanguageTag.best_match(locale, known_locales) do
+        {:ok, matched_locale, score} when score <= @max_match_distance ->
+          matched_locale
 
-      {:ok, _locale, _score} ->
-        default
+        {:ok, _locale, _score} ->
+          default
 
-      {:error, _reason} ->
-        default
+        {:error, _reason} ->
+          default
+      end
+    end
+  else
+    defp match_locale(locale, known_locales, default) do
+      if locale in known_locales, do: locale, else: default
     end
   end
 
