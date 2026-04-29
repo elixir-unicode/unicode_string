@@ -767,16 +767,15 @@ defmodule Unicode.String do
     {atom, term}
   end
 
-  # Maximum distance score from Localize.LanguageTag.best_match/3
-  # to consider a match valid. Scores above this indicate unrelated
-  # locales and should fall back to the default.
-  @max_match_distance 10
-
   defp match_locale(nil, _known_locales, default) do
     default
   end
 
   if Code.ensure_loaded?(Localize.LanguageTag) do
+    # Scores above 10 from Localize.LanguageTag.best_match/3 indicate
+    # unrelated locales and should fall back to the default.
+    @max_match_distance 10
+
     defp match_locale(locale, known_locales, default) do
       case Localize.LanguageTag.best_match(locale, known_locales) do
         {:ok, matched_locale, score} when score <= @max_match_distance ->
@@ -790,9 +789,28 @@ defmodule Unicode.String do
       end
     end
   else
-    defp match_locale(locale, known_locales, default) do
-      if locale in known_locales, do: locale, else: default
+    defp match_locale(locale, known_locales, default) when is_atom(locale) do
+      if locale in known_locales do
+        locale
+      else
+        match_locale(Atom.to_string(locale), known_locales, default)
+      end
     end
+
+    defp match_locale(locale, known_locales, default) when is_binary(locale) do
+      case Enum.find(known_locales, &(Atom.to_string(&1) == locale)) do
+        nil ->
+          case String.split(locale, ["-", "_"], parts: 2) do
+            [^locale] -> default
+            [language, _rest] -> match_locale(language, known_locales, default)
+          end
+
+        matched ->
+          matched
+      end
+    end
+
+    defp match_locale(_locale, _known_locales, default), do: default
   end
 
   @breaks [:word, :grapheme, :line, :sentence]

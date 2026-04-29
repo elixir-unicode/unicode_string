@@ -37,14 +37,16 @@ defmodule UnicodeString.Casing.Test do
     assert Unicode.String.titlecase("island", locale: :tr) == "İsland"
   end
 
-  test "Resolving the casing locale from a Language Tag" do
-    import Localize.LanguageTag.Sigil
+  if Code.ensure_loaded?(Localize.LanguageTag.Sigil) do
+    test "Resolving the casing locale from a Language Tag" do
+      import Localize.LanguageTag.Sigil
 
-    assert Unicode.String.casing_locale(~l"az") == {:ok, :az}
-    assert Unicode.String.casing_locale(~l"tr") == {:ok, :tr}
-    assert Unicode.String.casing_locale(~l"lt") == {:ok, :lt}
-    assert Unicode.String.casing_locale(~l"en") == {:ok, :any}
-    assert Unicode.String.casing_locale(~l"ar") == {:ok, :any}
+      assert Unicode.String.casing_locale(~l"az") == {:ok, :az}
+      assert Unicode.String.casing_locale(~l"tr") == {:ok, :tr}
+      assert Unicode.String.casing_locale(~l"lt") == {:ok, :lt}
+      assert Unicode.String.casing_locale(~l"en") == {:ok, :any}
+      assert Unicode.String.casing_locale(~l"ar") == {:ok, :any}
+    end
   end
 
   test "Resolving the casing locale from a string" do
