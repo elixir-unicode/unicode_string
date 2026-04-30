@@ -210,10 +210,8 @@ defmodule Unicode.String.Break do
   def next(string, locale, :word = break, options) when locale in @dictionary_locales do
     <<char::utf8, rest::binary>> = string
 
-    case next_dict({<<char::utf8>>, rest}, locale, options) do
-      {fore, {_match, rest}} -> {fore, rest}
-      {fore, rest} -> {fore, rest}
-    end
+    {<<char::utf8>>, rest}
+    |> next_dict(locale, options)
     |> repeat_if_trimming_required(locale, break, options, options[:trim])
   end
 
