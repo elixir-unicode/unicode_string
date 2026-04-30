@@ -1,5 +1,17 @@
 # Changelog
 
+## Unicode String v2.1.0
+
+This is the changelog for Unicode String v2.1.0 released on May 1st, 2026.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
+
+### Bug Fixes
+
+* Improve line break segmentation conformance and compatibility with ICU.
+
+### Enhancements
+
+* Replaces the regex-based segmentation engine with a single-pass DFA evaluator. Sentence break on a 4 KB unbroken sentence drops from ~9,200 ms to ~11 ms (~840×); word break on a 4 KB sentence from ~7,000 ms to ~12 ms (~580×); scaling is now linear in input length instead of O(N²).
+
 ## Unicode String v2.0.1
 
 This is the changelog for Unicode String v2.0.1 released on April 29th, 2026.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
