@@ -266,41 +266,45 @@ defmodule Unicode.String.Break.Sentence do
   defp suppressed?(_string, _taken, suppressions) when suppressions == %MapSet{}, do: false
 
   defp suppressed?(string, taken, suppressions) do
-    # The current segment is binary_part(string, 0, taken).
     segment = binary_part(string, 0, taken)
-    # We compare a trailing window of the segment against suppressions.
-    # Suppression entries are stored without the trailing period so we
-    # match the form `…<word>.` by stripping the final ATerm.
-    case String.split_at(segment, byte_size(segment) - last_atomic_period_size(segment)) do
-      {prefix, "."} ->
-        check_suppressions(prefix, suppressions)
+    chars = :unicode.characters_to_list(segment) |> Enum.reverse()
 
-      _ ->
+    # The segment ends with a `(SA)Term Close* Sp* ParaSep?` tail. Walk
+    # back through any ParaSep, Sp, Close, transparent characters until
+    # we land on the ATerm itself.
+    chars_after_tail = drop_tail(chars)
+
+    case chars_after_tail do
+      [aterm_cp | rest_rev] ->
+        if SentenceBreak.sentence_break(aterm_cp) == :aterm do
+          word = trailing_word(rest_rev)
+          word != "" and MapSet.member?(suppressions, String.downcase(word))
+        else
+          false
+        end
+
+      [] ->
         false
     end
   end
 
-  # The segment ends at an ATerm token. ATerm is most often U+002E (".")
-  # but could also be U+2024 etc. For now we compare against the last
-  # codepoint and emit its byte size.
-  defp last_atomic_period_size(segment) do
-    case String.last(segment) do
-      nil -> 0
-      ch -> byte_size(ch)
+  defp drop_tail([]), do: []
+
+  defp drop_tail([cp | rest] = all) do
+    case SentenceBreak.sentence_break(cp) do
+      cls when cls in [:sep, :cr, :lf, :sp, :close, :extend, :format] ->
+        drop_tail(rest)
+
+      _ ->
+        all
     end
   end
 
-  defp check_suppressions(prefix, suppressions) do
-    # Compare against the longest trailing word in `prefix`.
-    word = trailing_word(prefix)
-    word != "" and MapSet.member?(suppressions, String.downcase(word))
-  end
-
-  # Returns the trailing run of letters/marks in `prefix` (non-space).
-  defp trailing_word(prefix) do
-    prefix
-    |> :unicode.characters_to_list()
-    |> Enum.reverse()
+  # `rev_chars` is a list of codepoints in reverse order. Take the
+  # trailing word — the contiguous run of letter/mark codepoints that
+  # ends just before the ATerm.
+  defp trailing_word(rev_chars) do
+    rev_chars
     |> Enum.take_while(&letter_like?/1)
     |> Enum.reverse()
     |> List.to_string()
