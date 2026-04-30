@@ -6,13 +6,54 @@ defmodule Unicode.String.Break.Line do
   realistic prose: the LB1 resolution of ambiguous classes, mandatory
   breaks (LB4–LB6), spaces (LB7–LB8a, LB18), combining marks (LB9–LB10),
   word-joiner / glue / quotation behavior (LB11–LB12a, LB19), the LB13
-  cluster of close/postfix punctuation, the OP/CL pair (LB14–LB16),
-  Brahmic / numeric / alphabetic continuations (LB21–LB30b), the
+  cluster of close/postfix punctuation, the OP/CL pair (LB14–LB17),
+  the LB15c/LB15d numeric-prefix carve-out, the LB20a word-initial
+  hyphen rule, the LB21a Hebrew-letter trailing hyphen rule,
+  Brahmic / numeric / alphabetic continuations (LB22–LB30b), the
   Hangul rules (LB26–LB27), Regional_Indicator parity (LB30a), and
   emoji-modifier (LB30b).
 
   Trailing space-runs are tracked via a small state vector rather than
   re-scanned each step, so each character costs O(1).
+
+  ## Limitations and known gaps
+
+  Line breaking is by far the largest UAX #14 algorithm and ICU layers
+  several locale-specific tailorings on top of it. The following parts
+  are not currently implemented; on the conformance corpora these are
+  the dominant remaining failures:
+
+  * **CJK locale tailoring (loose / normal / strict).** ICU ships
+    separate rule files (`line_loose_cj.txt`, `line_normal_cj.txt`,
+    `line_strict_cj.txt`) that adjust break behaviour around CJK
+    characters and small-kana / hyphen / iteration marks. Notably:
+
+    - In *loose* mode `CJ` resolves to `ID` and break opportunities
+      are introduced between Hiragana/Katakana characters.
+    - In *normal* mode (the standard UAX default) `CJ` resolves to
+      `NS`, which prevents most breaks within Japanese.
+    - ID × HY in CJK contexts is permitted to break to support
+      Japanese hyphen usage like `あ‐1`.
+
+    This module currently implements only the standard mode (`CJ →
+    NS`). Several Japanese-locale cases in ICU's `rbbitst.txt`
+    expect loose-mode behaviour and therefore differ.
+
+  * **LB15a / LB15b (Pi / Pf quotation).** Initial-quote and
+    final-quote sub-classes of `QU` are treated as plain `QU`. The
+    east-asian-width-aware variants in LB15a/15b are approximated.
+
+  * **LB28a (Brahmic clusters).** Indic conjunct clusters
+    (`AK`/`AP`/`AS`/`VI`/`VF`) follow the default break rules rather
+    than the Brahmic-specific cluster handling.
+
+  * **LB30 East-Asian-width sensitivity.** LB30 should distinguish
+    between F/W/H and other East-Asian-width values when deciding
+    whether `(AL|HL|NU) × OP` and `CP × (AL|HL|NU)` apply. This
+    implementation applies the rule uniformly.
+
+  These gaps are tracked by the line-break conformance regression
+  tests in `test/line_break_conformance_test.exs`.
 
   ## State
 

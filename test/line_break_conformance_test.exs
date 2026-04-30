@@ -6,13 +6,29 @@ defmodule Unicode.String.LineBreakConformanceTest do
   @ucd_path "./test/support/test_data/line_break_test.txt"
   @rbbi_path "./test/support/test_data/icu_rbbitst.txt"
 
-  # Current passing-count baselines for the line-break engine. This
-  # implementation covers the common LB rules used in realistic prose
-  # (see Unicode.String.Break.Line); some UAX #14 corner cases (LB15
-  # Pi/Pf variants, LB28a Brahmic clusters, EastAsian-width-aware LB30)
-  # are approximated. The corpora below catch regressions; any drop
-  # below the baseline fails the build, and improvements should raise
-  # the baseline.
+  # Current passing-count baselines for the line-break engine. The
+  # engine covers the rules used in realistic prose (see
+  # `Unicode.String.Break.Line` for full coverage). The corpora below
+  # catch regressions: any drop below the baseline fails the build,
+  # and improvements should raise the baseline.
+  #
+  # Known categories of remaining failures (documented in
+  # `Unicode.String.Break.Line`'s "Limitations" section):
+  #
+  # * **CJK loose / normal / strict tailoring** — ICU's `<line>` rules
+  #   in `rbbitst.txt` expect Japanese-locale loose-mode behaviour
+  #   (e.g. `CJ → ID`, ID × HY breakable, breaks between Hiragana/
+  #   Katakana). This module implements only standard `CJ → NS`.
+  #   This accounts for the majority of the remaining ICU failures.
+  #
+  # * **LB15a / LB15b (Pi / Pf quotation)** — initial- and final-
+  #   quote subclasses are folded into plain QU.
+  #
+  # * **LB28a (Brahmic clusters)** — Indic AK/AP/AS/VI/VF clusters
+  #   are not handled.
+  #
+  # * **LB30 East-Asian-width sensitivity** — LB30 (AL|HL|NU) × OP
+  #   does not distinguish F/W/H widths from others.
   @ucd_pass_floor 18_657
   @icu_pass_floor 162
 
