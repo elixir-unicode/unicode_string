@@ -1,0 +1,369 @@
+defmodule Unicode.String.Break.Line do
+  @moduledoc """
+  Single-pass line-break implementation following UAX #14.
+
+  This is a pragmatic pair-table evaluator covering the rules used in
+  realistic prose: the LB1 resolution of ambiguous classes, mandatory
+  breaks (LB4–LB6), spaces (LB7–LB8a, LB18), combining marks (LB9–LB10),
+  word-joiner / glue / quotation behavior (LB11–LB12a, LB19), the LB13
+  cluster of close/postfix punctuation, the OP/CL pair (LB14–LB16),
+  Brahmic / numeric / alphabetic continuations (LB21–LB30b), the
+  Hangul rules (LB26–LB27), Regional_Indicator parity (LB30a), and
+  emoji-modifier (LB30b).
+
+  Trailing space-runs are tracked via a small state vector rather than
+  re-scanned each step, so each character costs O(1).
+
+  ## State
+
+  * `effective_prev` — the previous non-CM/non-ZWJ class, after LB1
+    resolution and LB9 (combining marks taking the class of their base).
+  * `prev_actual` — the immediately previous class, for LB5 (CR×LF).
+  * `space_run` — `:none`, `:after_op`, `:after_qu`, `:after_cl`,
+    `:after_b2`, or `:after_zw`. Tracks the `X SP*` patterns required
+    by LB14, LB15, LB16, LB17, and LB8.
+  * `ri_parity` — `:odd` / `:even` for LB30a.
+  """
+
+  alias Unicode.LineBreak
+
+  ## Public API
+
+  @doc "Returns `{first_segment, rest}` or `nil` for the empty string."
+  @spec next(String.t()) :: {String.t(), String.t()} | nil
+  def next(""), do: nil
+
+  def next(string) do
+    {len, rest} = next_boundary(string)
+    {binary_part(string, 0, len), rest}
+  end
+
+  @doc "Splits `string` into line-break segments."
+  @spec split(String.t()) :: [String.t()]
+  def split(""), do: []
+
+  def split(string) do
+    {head, rest} = next(string)
+    [head | split(rest)]
+  end
+
+  @doc "Boundary predicate for a `{before, after}` pair."
+  @spec break?(String.t(), String.t()) :: boolean
+  def break?("", _), do: true
+  def break?(_, ""), do: true
+
+  def break?(before, <<curr_cp::utf8, _::binary>>) do
+    state = trailing_state(before)
+    decide_op(state, classify(curr_cp)) == :break
+  end
+
+  ## Walker
+
+  defp next_boundary(<<cp::utf8, rest::binary>> = string) do
+    cls = classify(cp)
+    state = initial_state(cls)
+    walk(rest, state, byte_size_utf8(cp), string)
+  end
+
+  defp walk("", _state, taken, _string), do: {taken, ""}
+
+  defp walk(<<cp::utf8, rest::binary>> = remainder, state, taken, string) do
+    cls = classify(cp)
+
+    case decide_op(state, cls) do
+      :break ->
+        {taken, remainder}
+
+      :no_break ->
+        new_state = advance(state, cls)
+        walk(rest, new_state, taken + byte_size_utf8(cp), string)
+    end
+  end
+
+  ## Class resolution (LB1, plus partial LB9 for prev/curr)
+
+  # LB1: AI, SG, XX → AL; SA → AL or CM (we treat as AL for non-Mn/Mc; CM for Mn/Mc — approximated as AL); CJ → NS.
+  # We do not currently distinguish SA-Mn/Mc; treating SA as AL is acceptable for the pair table.
+  @lb1_map %{
+    ai: :al,
+    sg: :al,
+    xx: :al,
+    sa: :al,
+    cj: :ns
+  }
+
+  defp classify(cp) do
+    raw = LineBreak.line_break(cp)
+    Map.get(@lb1_map, raw, raw)
+  end
+
+  ## State
+
+  defp initial_state(cls) do
+    {ri_parity, _} =
+      if cls == :ri, do: {:odd, true}, else: {:even, false}
+
+    space_run =
+      case cls do
+        :op -> :after_op
+        :qu -> :after_qu
+        :cl -> :after_cl
+        :cp -> :after_cl
+        :b2 -> :after_b2
+        :zw -> :after_zw
+        _ -> :none
+      end
+
+    {cls, cls, space_run, ri_parity}
+  end
+
+  defp advance({eff_prev, _prev_actual, space_run, ri_parity}, cls) do
+    new_ri_parity =
+      case cls do
+        :ri ->
+          case ri_parity do
+            :odd -> :even
+            :even -> :odd
+          end
+
+        _ ->
+          :even
+      end
+
+    new_space_run =
+      cond do
+        cls == :sp ->
+          case space_run do
+            :none -> :none
+            other -> other
+          end
+
+        cls == :op ->
+          :after_op
+
+        cls == :qu ->
+          :after_qu
+
+        cls in [:cl, :cp] ->
+          :after_cl
+
+        cls == :b2 ->
+          :after_b2
+
+        cls == :zw ->
+          :after_zw
+
+        # LB9: combining mark / ZWJ takes class of base — keep run unchanged
+        cls in [:cm, :zwj] ->
+          space_run
+
+        true ->
+          :none
+      end
+
+    # LB9: CM and ZWJ take the class of the preceding character, except
+    # when that character is BK, CR, LF, NL, SP, or ZW (then they default
+    # to AL by LB10).
+    new_eff_prev =
+      cond do
+        cls in [:cm, :zwj] ->
+          if eff_prev in [:bk, :cr, :lf, :nl, :sp, :zw] do
+            :al
+          else
+            eff_prev
+          end
+
+        true ->
+          cls
+      end
+
+    {new_eff_prev, cls, new_space_run, new_ri_parity}
+  end
+
+  defp trailing_state(string_before) do
+    [first | rest] = String.to_charlist(string_before)
+    state = initial_state(classify(first))
+    Enum.reduce(rest, state, fn cp, st -> advance(st, classify(cp)) end)
+  end
+
+  ## Decision
+
+  # decide_op({eff_prev, prev_actual, space_run, ri_parity}, curr) :: :break | :no_break
+  defp decide_op({eff_prev, prev_actual, space_run, ri_parity}, curr) do
+    cond do
+      # LB4: BK !
+      eff_prev == :bk ->
+        :break
+
+      # LB5: CR × LF; CR/LF/NL !
+      prev_actual == :cr and curr == :lf ->
+        :no_break
+
+      eff_prev in [:cr, :lf, :nl] ->
+        :break
+
+      # LB6: × (BK | CR | LF | NL)
+      curr in [:bk, :cr, :lf, :nl] ->
+        :no_break
+
+      # LB7: × SP, × ZW
+      curr in [:sp, :zw] ->
+        :no_break
+
+      # LB8: ZW SP* ÷
+      space_run == :after_zw ->
+        :break
+
+      # LB8a: ZWJ × — combining-mark-style, handled by LB9 in advance.
+      eff_prev == :zwj ->
+        :no_break
+
+      # LB9: CM / ZWJ take class of previous; the curr=CM/ZWJ side is
+      # × by LB9. (advance/2 propagates the class for the prev side.)
+      curr in [:cm, :zwj] ->
+        :no_break
+
+      # LB11: × WJ, WJ ×
+      curr == :wj or eff_prev == :wj ->
+        :no_break
+
+      # LB12: GL ×
+      eff_prev == :gl ->
+        :no_break
+
+      # LB12a: [^SP BA HY] × GL
+      curr == :gl and eff_prev not in [:sp, :ba, :hy] ->
+        :no_break
+
+      # LB13: × CL, × CP, × EX, × SY (× IS handled in LB13/LB25 area)
+      curr in [:cl, :cp, :ex, :sy, :is] ->
+        :no_break
+
+      # LB14: OP SP* ×
+      space_run == :after_op ->
+        :no_break
+
+      # LB15: QU SP* × OP  (simplified — full LB15 has Pi/Pf variants)
+      space_run == :after_qu and curr == :op ->
+        :no_break
+
+      # LB16: (CL | CP) SP* × NS
+      space_run == :after_cl and curr == :ns ->
+        :no_break
+
+      # LB17: B2 SP* × B2
+      space_run == :after_b2 and curr == :b2 ->
+        :no_break
+
+      # LB18: SP ÷  (covered as default break since no rule fired)
+      eff_prev == :sp ->
+        :break
+
+      # LB19: × QU, QU ×
+      curr == :qu or eff_prev == :qu ->
+        :no_break
+
+      # LB20: ÷ CB; CB ÷
+      curr == :cb or eff_prev == :cb ->
+        :break
+
+      # LB21: × BA, × HY, × NS; BB ×
+      curr in [:ba, :hy, :ns] or eff_prev == :bb ->
+        :no_break
+
+      # LB21a: HL (HY | BA) ×  — needs prev2; approximated by leaving
+      # subsequent break to LB22+. We don't break here.
+      # LB21b: SY × HL
+      eff_prev == :sy and curr == :hl ->
+        :no_break
+
+      # LB22: × IN
+      curr == :in ->
+        :no_break
+
+      # LB23: (AL | HL) × NU; NU × (AL | HL)
+      eff_prev in [:al, :hl] and curr == :nu ->
+        :no_break
+
+      eff_prev == :nu and curr in [:al, :hl] ->
+        :no_break
+
+      # LB23a: PR × (ID | EB | EM); (ID | EB | EM) × PO
+      eff_prev == :pr and curr in [:id, :eb, :em] ->
+        :no_break
+
+      eff_prev in [:id, :eb, :em] and curr == :po ->
+        :no_break
+
+      # LB24: (PR | PO) × (AL | HL); (AL | HL) × (PR | PO)
+      eff_prev in [:pr, :po] and curr in [:al, :hl] ->
+        :no_break
+
+      eff_prev in [:al, :hl] and curr in [:pr, :po] ->
+        :no_break
+
+      # LB25 (subset): numeric expressions — keep numeric runs intact.
+      eff_prev in [:cl, :cp, :nu] and curr in [:po, :pr] ->
+        :no_break
+
+      eff_prev in [:po, :pr] and curr in [:op, :nu] ->
+        :no_break
+
+      eff_prev in [:hy, :is, :nu, :sy] and curr == :nu ->
+        :no_break
+
+      # LB26: Hangul syllables
+      eff_prev == :jl and curr in [:jl, :jv, :h2, :h3] ->
+        :no_break
+
+      eff_prev in [:jv, :h2] and curr in [:jv, :jt] ->
+        :no_break
+
+      eff_prev in [:jt, :h3] and curr == :jt ->
+        :no_break
+
+      # LB27: Hangul / numeric prefix-postfix
+      eff_prev in [:jl, :jv, :jt, :h2, :h3] and curr == :po ->
+        :no_break
+
+      eff_prev == :pr and curr in [:jl, :jv, :jt, :h2, :h3] ->
+        :no_break
+
+      # LB28: (AL | HL) × (AL | HL)
+      eff_prev in [:al, :hl] and curr in [:al, :hl] ->
+        :no_break
+
+      # LB29: IS × (AL | HL)
+      eff_prev == :is and curr in [:al, :hl] ->
+        :no_break
+
+      # LB30: (AL | HL | NU) × OP; CP × (AL | HL | NU)
+      # (full LB30 has East-Asian-width restrictions we approximate).
+      eff_prev in [:al, :hl, :nu] and curr == :op ->
+        :no_break
+
+      eff_prev == :cp and curr in [:al, :hl, :nu] ->
+        :no_break
+
+      # LB30a: RI RI (parity even after the pair forms) — keep odd-RI×RI
+      eff_prev == :ri and curr == :ri and ri_parity == :odd ->
+        :no_break
+
+      # LB30b: EB × EM; default EM-base × EM (approximated as ID × EM
+      # already handled by LB23a path).
+      eff_prev == :eb and curr == :em ->
+        :no_break
+
+      # LB31: default break.
+      true ->
+        :break
+    end
+  end
+
+  ## utility
+
+  defp byte_size_utf8(cp) when cp < 0x80, do: 1
+  defp byte_size_utf8(cp) when cp < 0x800, do: 2
+  defp byte_size_utf8(cp) when cp < 0x10000, do: 3
+  defp byte_size_utf8(_cp), do: 4
+end

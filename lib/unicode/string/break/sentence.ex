@@ -89,7 +89,7 @@ defmodule Unicode.String.Break.Sentence do
     walk(rest, state, byte_size_utf8(cp), string, suppressions)
   end
 
-  defp walk("", _state, taken, string, _supp) do
+  defp walk("", _state, taken, _string, _supp) do
     {taken, ""}
   end
 
