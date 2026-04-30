@@ -52,9 +52,9 @@ defmodule Unicode.String.Break.Line do
   def break?("", _), do: true
   def break?(_, ""), do: true
 
-  def break?(before, <<curr_cp::utf8, _::binary>>) do
+  def break?(before, <<curr_cp::utf8, rest::binary>>) do
     state = trailing_state(before)
-    decide_op(state, classify(curr_cp)) == :break
+    decide_op(state, classify(curr_cp), rest) == :break
   end
 
   ## Walker
@@ -70,7 +70,7 @@ defmodule Unicode.String.Break.Line do
   defp walk(<<cp::utf8, rest::binary>> = remainder, state, taken, string) do
     cls = classify(cp)
 
-    case decide_op(state, cls) do
+    case decide_op(state, cls, rest) do
       :break ->
         {taken, remainder}
 
@@ -114,10 +114,13 @@ defmodule Unicode.String.Break.Line do
         _ -> :none
       end
 
-    {cls, cls, space_run, ri_parity}
+    # `:sot` (start-of-text) is the eff_prev2 sentinel for the very first
+    # character; this lets LB20a recognise word-initial hyphens at the
+    # beginning of input (^(HY|HH) AL → no break).
+    {cls, :sot, cls, space_run, ri_parity}
   end
 
-  defp advance({eff_prev, _prev_actual, space_run, ri_parity}, cls) do
+  defp advance({eff_prev, eff_prev2, _prev_actual, space_run, ri_parity}, cls) do
     new_ri_parity =
       case cls do
         :ri ->
@@ -177,7 +180,12 @@ defmodule Unicode.String.Break.Line do
           cls
       end
 
-    {new_eff_prev, cls, new_space_run, new_ri_parity}
+    # eff_prev2 is the previous *non-transparent* class — it's preserved
+    # when curr is CM/ZWJ (LB9 transparency) and otherwise rolls forward.
+    new_eff_prev2 =
+      if cls in [:cm, :zwj], do: eff_prev2, else: eff_prev
+
+    {new_eff_prev, new_eff_prev2, cls, new_space_run, new_ri_parity}
   end
 
   defp trailing_state(string_before) do
@@ -188,8 +196,9 @@ defmodule Unicode.String.Break.Line do
 
   ## Decision
 
-  # decide_op({eff_prev, prev_actual, space_run, ri_parity}, curr) :: :break | :no_break
-  defp decide_op({eff_prev, prev_actual, space_run, ri_parity}, curr) do
+  # decide_op({eff_prev, eff_prev2, prev_actual, space_run, ri_parity}, curr, rest)
+  # `rest` is the binary after `curr`; some rules require a 1-char lookahead.
+  defp decide_op({eff_prev, eff_prev2, prev_actual, space_run, ri_parity}, curr, rest) do
     cond do
       # LB4: BK !
       eff_prev == :bk ->
@@ -214,13 +223,18 @@ defmodule Unicode.String.Break.Line do
       space_run == :after_zw ->
         :break
 
-      # LB8a: ZWJ × — combining-mark-style, handled by LB9 in advance.
-      eff_prev == :zwj ->
+      # LB8a: ZWJ × — no break after a ZWJ. We check `prev_actual` (the
+      # immediate-previous class) rather than `eff_prev`, because LB9
+      # transparency rolls eff_prev past the ZWJ to its base.
+      prev_actual == :zwj ->
         :no_break
 
-      # LB9: CM / ZWJ take class of previous; the curr=CM/ZWJ side is
-      # × by LB9. (advance/2 propagates the class for the prev side.)
-      curr in [:cm, :zwj] ->
+      # LB9: × CM / × ZWJ — combining marks attach to their base.
+      # LB10 carve-out: when the preceding char has no base (BK, CR, LF,
+      # NL, SP, ZW), the CM/ZWJ doesn't attach; it is reclassified as
+      # AL and the surrounding rules (LB4, LB5, LB8, LB18) decide the
+      # break. advance/2 takes care of the reclassification.
+      curr in [:cm, :zwj] and eff_prev not in [:bk, :cr, :lf, :nl, :sp, :zw] ->
         :no_break
 
       # LB11: × WJ, WJ ×
@@ -235,11 +249,8 @@ defmodule Unicode.String.Break.Line do
       curr == :gl and eff_prev not in [:sp, :ba, :hy] ->
         :no_break
 
-      # LB13: × CL, × CP, × EX, × SY (× IS handled in LB13/LB25 area)
-      curr in [:cl, :cp, :ex, :sy, :is] ->
-        :no_break
-
-      # LB14: OP SP* ×
+      # LB14: OP SP* ×  — must come before LB15c so that "OP SP IS NU"
+      # doesn't break (e.g. "( .789").
       space_run == :after_op ->
         :no_break
 
@@ -255,6 +266,19 @@ defmodule Unicode.String.Break.Line do
       space_run == :after_b2 and curr == :b2 ->
         :no_break
 
+      # LB15c: SP ÷ IS NU — break before an IS that begins a number
+      # and follows a space (e.g. "start .789").
+      eff_prev == :sp and curr == :is and peek_class(rest) == :nu ->
+        :break
+
+      # LB15d: × IS — otherwise no break before IS.
+      curr == :is ->
+        :no_break
+
+      # LB13: × CL, × CP, × EX, × SY.
+      curr in [:cl, :cp, :ex, :sy] ->
+        :no_break
+
       # LB18: SP ÷  (covered as default break since no rule fired)
       eff_prev == :sp ->
         :break
@@ -267,12 +291,23 @@ defmodule Unicode.String.Break.Line do
       curr == :cb or eff_prev == :cb ->
         :break
 
-      # LB21: × BA, × HY, × NS; BB ×
-      curr in [:ba, :hy, :ns] or eff_prev == :bb ->
+      # LB20a: Do not break after a word-initial hyphen.
+      # ^(HY | HH) (AL | HL) — at start of text, or after a space-/
+      # break-class character. The unicode lib classifies U+2010 etc.
+      # as :hh; we treat it like :hy here.
+      eff_prev in [:hy, :hh] and curr in [:al, :hl] and
+          eff_prev2 in [:sot, :bk, :cr, :lf, :nl, :sp, :zw, :cb, :gl] ->
         :no_break
 
-      # LB21a: HL (HY | BA) ×  — needs prev2; approximated by leaving
-      # subsequent break to LB22+. We don't break here.
+      # LB21: × BA, × HY, × HH, × NS; BB ×
+      curr in [:ba, :hy, :hh, :ns] or eff_prev == :bb ->
+        :no_break
+
+      # LB21a: HL (HY | BA | HH) × — no break after a Hebrew letter
+      # followed by hyphen or break-after.
+      eff_prev2 == :hl and eff_prev in [:hy, :hh, :ba] ->
+        :no_break
+
       # LB21b: SY × HL
       eff_prev == :sy and curr == :hl ->
         :no_break
@@ -357,6 +392,18 @@ defmodule Unicode.String.Break.Line do
       # LB31: default break.
       true ->
         :break
+    end
+  end
+
+  # Look at the first codepoint of `rest`, skipping over CM and ZWJ
+  # (LB9 transparency), and return its line-break class. `nil` if rest
+  # is empty.
+  defp peek_class(""), do: nil
+
+  defp peek_class(<<cp::utf8, rest::binary>>) do
+    case classify(cp) do
+      cls when cls in [:cm, :zwj] -> peek_class(rest)
+      cls -> cls
     end
   end
 

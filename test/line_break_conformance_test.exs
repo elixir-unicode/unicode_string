@@ -13,8 +13,8 @@ defmodule Unicode.String.LineBreakConformanceTest do
   # are approximated. The corpora below catch regressions; any drop
   # below the baseline fails the build, and improvements should raise
   # the baseline.
-  @ucd_pass_floor 17_983
-  @icu_pass_floor 113
+  @ucd_pass_floor 18_655
+  @icu_pass_floor 163
 
   describe "Unicode UCD LineBreakTest.txt (#{@ucd_pass_floor} of 19_338 cases must pass)" do
     test "minimum-pass-count baseline" do

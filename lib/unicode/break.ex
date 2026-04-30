@@ -101,11 +101,101 @@ defmodule Unicode.String.Break do
     end)
   end
 
+  def split(string, locale, :line = break, options) when break in @break_keys do
+    string
+    |> rule_based_line_split(locale, options)
+    |> Enum.flat_map(&dict_subsplit_line/1)
+  end
+
   def split(string, locale, break, options) when break in @break_keys do
     case next(string, locale, break, options) do
       {fore, aft} -> [fore | split(aft, locale, break, options)]
       nil -> []
     end
+  end
+
+  # Standard rule-based line-break split (the path used before the
+  # dictionary post-pass was added).
+  defp rule_based_line_split(string, locale, options) do
+    case next(string, locale, :line, options) do
+      {fore, aft} -> [fore | rule_based_line_split(aft, locale, options)]
+      nil -> []
+    end
+  end
+
+  # Scripts whose runs need dictionary-based line break.
+  @dict_line_scripts [
+    {:th, 0x0E01..0x0E5B},
+    {:lo, 0x0E81..0x0EDF},
+    {:my, 0x1000..0x109F},
+    {:km, 0x1780..0x17FF}
+  ]
+
+  # If a rule-based segment contains a contiguous run of chars in one
+  # of the dictionary scripts, replace that run with its dictionary
+  # word breaks (keeping any surrounding non-dict prefix attached to
+  # the first dict word and any non-dict suffix attached to the last).
+  # Minimum codepoints in a contiguous dict-script run before we attempt
+  # dictionary-based line break on it. Mirrors DictionaryBreak.@min_word_span.
+  @min_dict_run 4
+
+  defp dict_subsplit_line(segment) do
+    case detect_dict_script(segment) do
+      nil ->
+        [segment]
+
+      {locale, _range} ->
+        Dictionary.ensure_dictionary_loaded_if_available(locale)
+
+        case DictionaryBreak.split_with_fallback(segment, locale, &[&1]) do
+          [] ->
+            [segment]
+
+          parts when length(parts) <= 1 ->
+            [segment]
+
+          parts ->
+            merge_trailing_whitespace(parts)
+        end
+    end
+  end
+
+  # Merge any segment that is purely whitespace into the preceding
+  # segment. This matches LB18 ("SP ÷"), where a trailing space attaches
+  # to the word it follows. The dictionary fallback tends to emit such
+  # whitespace as standalone segments.
+  defp merge_trailing_whitespace([]), do: []
+  defp merge_trailing_whitespace([head | rest]), do: merge_trailing_whitespace(rest, [head])
+
+  defp merge_trailing_whitespace([], acc), do: Enum.reverse(acc)
+
+  defp merge_trailing_whitespace([next | rest], [prev | acc_rest] = acc) do
+    if whitespace_only?(next) and prev != "" do
+      merge_trailing_whitespace(rest, [prev <> next | acc_rest])
+    else
+      merge_trailing_whitespace(rest, [next | acc])
+    end
+  end
+
+  defp whitespace_only?(""), do: false
+  defp whitespace_only?(s), do: String.trim(s) == ""
+
+  # Returns `{locale, range}` of the dictionary script if `segment`
+  # contains a run of at least `@min_dict_run` consecutive characters
+  # in that script. Otherwise `nil`.
+  defp detect_dict_script(segment) do
+    Enum.find(@dict_line_scripts, fn {_locale, range} ->
+      has_run_in?(segment, range, 0)
+    end)
+  end
+
+  defp has_run_in?(_, _range, run) when run >= @min_dict_run, do: true
+  defp has_run_in?(<<>>, _range, _run), do: false
+
+  defp has_run_in?(<<cp::utf8, rest::binary>>, range, run) do
+    if cp in range,
+      do: has_run_in?(rest, range, run + 1),
+      else: has_run_in?(rest, range, 0)
   end
 
   defp split_segment(string, locale, break, options) do
