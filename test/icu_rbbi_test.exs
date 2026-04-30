@@ -10,8 +10,7 @@ defmodule Unicode.String.IcuRbbiTest do
   # position of the case within the sent-mode block list.
   @sentence_known_divergences %{
     3 => "ICU heuristic suppresses single-letter 'D.' less aggressively than CLDR's documented rule",
-    4 => "ICU heuristic skips short suppressions like 'On.' in some contexts",
-    39 => "Greek locale-specific extension of $STerm to include U+003B is not yet applied"
+    4 => "ICU heuristic skips short suppressions like 'On.' in some contexts"
   }
 
   parsed = IcuRbbiParser.parse(@rbbi_path)

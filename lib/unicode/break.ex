@@ -72,7 +72,7 @@ defmodule Unicode.String.Break do
         :sentence_break ->
           suppressions = sentence_suppressions(locale, options)
 
-          if S.break?(string_before, string_after, suppressions),
+          if S.break?(string_before, string_after, locale, suppressions),
             do: :break,
             else: :no_break
 
@@ -138,7 +138,7 @@ defmodule Unicode.String.Break do
           W.next(string)
 
         :sentence_break ->
-          S.next(string, sentence_suppressions(locale, options))
+          S.next(string, locale, sentence_suppressions(locale, options))
 
         :line_break ->
           L.next(string)
