@@ -164,7 +164,6 @@ defmodule Unicode.String.Break do
   # segment. This matches LB18 ("SP ÷"), where a trailing space attaches
   # to the word it follows. The dictionary fallback tends to emit such
   # whitespace as standalone segments.
-  defp merge_trailing_whitespace([]), do: []
   defp merge_trailing_whitespace([head | rest]), do: merge_trailing_whitespace(rest, [head])
 
   defp merge_trailing_whitespace([], acc), do: Enum.reverse(acc)

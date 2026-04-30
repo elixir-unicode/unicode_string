@@ -89,7 +89,10 @@ defmodule Unicode.String.Break.Line do
     sg: :al,
     xx: :al,
     sa: :al,
-    cj: :ns
+    cj: :ns,
+    # The unicode dep classifies U+2010 etc. as :hh; UAX #14 itself
+    # uses :hy (Hyphen). Treat them identically.
+    hh: :hy
   }
 
   defp classify(cp) do
@@ -292,20 +295,19 @@ defmodule Unicode.String.Break.Line do
         :break
 
       # LB20a: Do not break after a word-initial hyphen.
-      # ^(HY | HH) (AL | HL) — at start of text, or after a space-/
-      # break-class character. The unicode lib classifies U+2010 etc.
-      # as :hh; we treat it like :hy here.
-      eff_prev in [:hy, :hh] and curr in [:al, :hl] and
+      # ^(HY | HH) (AL | HL) — at start of text or after a space-/
+      # break-class character. (HH is mapped to HY by LB1.)
+      eff_prev == :hy and curr in [:al, :hl] and
           eff_prev2 in [:sot, :bk, :cr, :lf, :nl, :sp, :zw, :cb, :gl] ->
         :no_break
 
-      # LB21: × BA, × HY, × HH, × NS; BB ×
-      curr in [:ba, :hy, :hh, :ns] or eff_prev == :bb ->
+      # LB21: × BA, × HY, × NS; BB ×
+      curr in [:ba, :hy, :ns] or eff_prev == :bb ->
         :no_break
 
-      # LB21a: HL (HY | BA | HH) × — no break after a Hebrew letter
-      # followed by hyphen or break-after.
-      eff_prev2 == :hl and eff_prev in [:hy, :hh, :ba] ->
+      # LB21a: HL (HY | BA) × — no break after a Hebrew letter followed
+      # by hyphen or break-after.
+      eff_prev2 == :hl and eff_prev in [:hy, :ba] ->
         :no_break
 
       # LB21b: SY × HL
