@@ -215,15 +215,6 @@ defmodule Unicode.String.IcuRbbiParser do
   end
 
   # An escaped U+2022 (BULLET) acts as a break marker, just like a raw •.
-  defp handle_escaped_codepoint(0x2022, rest, segs, current, input) do
-    flush(rest, segs, current, input)
-  end
-
-  defp handle_escaped_codepoint(cp, rest, segs, current, input) do
-    ch = <<cp::utf8>>
-    do_parse(rest, segs, current <> ch, input <> ch)
-  end
-
   defp do_parse(<<"\\\\", rest::binary>>, segs, current, input),
     do: do_parse(rest, segs, current <> "\\", input <> "\\")
 
@@ -248,6 +239,16 @@ defmodule Unicode.String.IcuRbbiParser do
   defp do_parse(<<ch::utf8, rest::binary>>, segs, current, input) do
     s = <<ch::utf8>>
     do_parse(rest, segs, current <> s, input <> s)
+  end
+
+  # An escaped U+2022 (BULLET) acts as a break marker, just like a raw •.
+  defp handle_escaped_codepoint(0x2022, rest, segs, current, input) do
+    flush(rest, segs, current, input)
+  end
+
+  defp handle_escaped_codepoint(cp, rest, segs, current, input) do
+    ch = <<cp::utf8>>
+    do_parse(rest, segs, current <> ch, input <> ch)
   end
 
   defp append_literal(<<ch::utf8, rest::binary>>, segs, current, input) do
