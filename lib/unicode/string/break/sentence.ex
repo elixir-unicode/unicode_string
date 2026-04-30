@@ -82,6 +82,72 @@ defmodule Unicode.String.Break.Sentence do
     [head | split(rest, suppressions)]
   end
 
+  @doc """
+  Boundary predicate. Returns `true` if there is a sentence break
+  between `string_before` and `string_after`.
+
+  When suppressing, the suppression check matches the trailing word
+  of `string_before`.
+  """
+  @spec break?(String.t(), String.t(), MapSet.t()) :: boolean
+  def break?("", _, _), do: true
+  def break?(_, "", _), do: true
+
+  def break?(string_before, <<curr_cp::utf8, rest::binary>> = string_after, suppressions) do
+    {state, segment_offset} = trailing_state_walk(string_before, suppressions)
+    full = string_before <> string_after
+
+    case decide(state, curr_cp, rest, byte_size(string_before) - segment_offset,
+           binary_part(full, segment_offset, byte_size(full) - segment_offset),
+           suppressions) do
+      :break -> true
+      {:no_break, _} -> false
+    end
+  end
+
+  # Walk `string_before` exactly as the splitter would, but only return
+  # the final state and the byte offset at which the *current* segment
+  # began. This lets break?/3 evaluate the boundary at end-of-prefix
+  # with the same context the walker would have.
+  defp trailing_state_walk("", _suppressions) do
+    {initial_state_empty(), 0}
+  end
+
+  defp trailing_state_walk(string_before, suppressions) do
+    do_trailing(string_before, 0, 0, string_before, suppressions, nil)
+  end
+
+  defp initial_state_empty, do: {:other, :other, :other, :none}
+
+  defp do_trailing("", _seg_start, _consumed, _full, _supp, nil) do
+    {initial_state_empty(), 0}
+  end
+
+  defp do_trailing("", seg_start, _consumed, _full, _supp, state) do
+    {state, seg_start}
+  end
+
+  defp do_trailing(<<cp::utf8, rest::binary>>, seg_start, consumed, full, supp, nil) do
+    state = initial_state(cp)
+    cp_size = byte_size_utf8(cp)
+    do_trailing(rest, seg_start, consumed + cp_size, full, supp, state)
+  end
+
+  defp do_trailing(<<cp::utf8, rest::binary>>, seg_start, consumed, full, supp, state) do
+    seg_view = binary_part(full, seg_start, consumed - seg_start)
+    cp_size = byte_size_utf8(cp)
+
+    case decide(state, cp, rest, byte_size(seg_view), seg_view, supp) do
+      :break ->
+        # `cp` starts a new segment.
+        new_state = initial_state(cp)
+        do_trailing(rest, consumed, consumed + cp_size, full, supp, new_state)
+
+      {:no_break, new_state} ->
+        do_trailing(rest, seg_start, consumed + cp_size, full, supp, new_state)
+    end
+  end
+
   ## Walker
 
   defp next_boundary(<<cp::utf8, rest::binary>> = string, suppressions) do

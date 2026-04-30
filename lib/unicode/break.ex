@@ -1,13 +1,22 @@
 defmodule Unicode.String.Break do
   @moduledoc """
-  Implements the Unicode break algorithm for words
-  and lines.
+  Implements the Unicode break algorithms for graphemes, words,
+  sentences and line-breaks.
 
+  This module is a thin dispatcher: it inspects the requested break
+  type and locale, delegates dictionary-based word segmentation to
+  `Unicode.String.Dictionary` / `Unicode.String.DictionaryBreak`, and
+  routes everything else to the single-pass DFA evaluators in
+  `Unicode.String.Break.Grapheme`, `…Word`, `…Sentence`, and `…Line`.
   """
 
   alias Unicode.String.Segment
   alias Unicode.String.Dictionary
   alias Unicode.String.DictionaryBreak
+  alias Unicode.String.Break.Grapheme, as: G
+  alias Unicode.String.Break.Word, as: W
+  alias Unicode.String.Break.Sentence, as: S
+  alias Unicode.String.Break.Line, as: L
 
   @dictionary_locales Dictionary.known_dictionary_locales()
 
@@ -25,13 +34,13 @@ defmodule Unicode.String.Break do
 
   @break_keys Map.keys(@break_map)
 
-  @combining_categories [:Mn, :Mc, :Me]
-
   # Southeast Asian scripts use the lookahead-based dictionary
-  # break algorithm for script-specific ranges. CJK locales
-  # continue to use the greedy dictionary matching via the
-  # standard split path.
+  # break algorithm for script-specific ranges.
   @lookahead_dictionary_locales [:th, :lo, :km, :my]
+
+  ## ----------------------------------------------------------------------
+  ## Public API: break? / break / split / next
+  ## ----------------------------------------------------------------------
 
   @doc false
   def break(string, locale, break, options) when break in @break_keys do
@@ -43,28 +52,50 @@ defmodule Unicode.String.Break do
     {:no_break, {"", {"", ""}}}
   end
 
-  def break_at(string, locale, segment_type, options) when is_binary(string) do
-    break_at({"", string}, locale, segment_type, options)
-  end
-
   def break_at({"", string_after}, _locale, _segment_type, _options) do
     {:break, {"", {"", string_after}}}
   end
 
-  def break_at({string_before, string_after}, locale, segment_type, options) do
-    suppress? = Keyword.get(options, :suppressions, true)
-    {:ok, rules} = rules(locale, segment_type, suppress?)
-
-    {string_before, string_after}
-    |> Segment.evaluate_rules(rules)
+  def break_at(string, locale, segment_type, options) when is_binary(string) do
+    break_at({"", string}, locale, segment_type, options)
   end
+
+  def break_at({string_before, string_after}, locale, segment_type, options) do
+    op =
+      case segment_type do
+        :grapheme_cluster_break ->
+          if G.break?(string_before, string_after), do: :break, else: :no_break
+
+        :word_break ->
+          if W.break?(string_before, string_after), do: :break, else: :no_break
+
+        :sentence_break ->
+          suppressions = sentence_suppressions(locale, options)
+
+          if S.break?(string_before, string_after, suppressions),
+            do: :break,
+            else: :no_break
+
+        :line_break ->
+          if L.break?(string_before, string_after), do: :break, else: :no_break
+      end
+
+    case {op, string_after} do
+      {_, ""} ->
+        {op, {string_before, {"", ""}}}
+
+      {_, _} ->
+        <<char::utf8, rest::binary>> = string_after
+        {op, {string_before, {<<char::utf8>>, rest}}}
+    end
+  end
+
+  ## ---- split / next dispatch -------------------------------------------
 
   @doc false
   def split(string, locale, :word = break, options) when locale in @lookahead_dictionary_locales do
     Dictionary.ensure_dictionary_loaded_if_available(locale)
 
-    # Split text into script-homogeneous ranges, apply dictionary
-    # break to target-script ranges, and rule-based break to others.
     DictionaryBreak.split_with_fallback(string, locale, fn non_dict_segment ->
       split_segment(non_dict_segment, locale, break, options)
     end)
@@ -72,11 +103,8 @@ defmodule Unicode.String.Break do
 
   def split(string, locale, break, options) when break in @break_keys do
     case next(string, locale, break, options) do
-      {fore, aft} ->
-        [fore | split(aft, locale, break, options)]
-
-      nil ->
-        []
+      {fore, aft} -> [fore | split(aft, locale, break, options)]
+      nil -> []
     end
   end
 
@@ -88,34 +116,40 @@ defmodule Unicode.String.Break do
   end
 
   @doc false
-  def next("", _locale, _break, _options) do
-    nil
-  end
+  def next("", _locale, _break, _options), do: nil
 
   def next(string, locale, :word = break, options) when locale in @dictionary_locales do
     <<char::utf8, rest::binary>> = string
 
-    case next_at({<<char::utf8>>, rest}, locale, :word, options) do
-      {fore, {_match, rest}} ->
-        {fore, rest}
-
-      {fore, rest} ->
-        {fore, rest}
+    case next_dict({<<char::utf8>>, rest}, locale, options) do
+      {fore, {_match, rest}} -> {fore, rest}
+      {fore, rest} -> {fore, rest}
     end
     |> repeat_if_trimming_required(locale, break, options, options[:trim])
   end
 
   def next(string, locale, break, options) when break in @break_keys and is_binary(string) do
-    <<char::utf8, rest::binary>> = string
+    pair =
+      case Map.fetch!(@break_map, break) do
+        :grapheme_cluster_break ->
+          G.next(string)
 
-    case next_at({<<char::utf8>>, rest}, locale, Map.fetch!(@break_map, break), options) do
-      {fore, {match, rest}} ->
-        {<<char::utf8>> <> fore, match <> rest}
+        :word_break ->
+          W.next(string)
 
-      {fore, rest} ->
-        {<<char::utf8>> <> fore, rest}
-    end
+        :sentence_break ->
+          S.next(string, sentence_suppressions(locale, options))
+
+        :line_break ->
+          L.next(string)
+      end
+
+    pair
     |> repeat_if_trimming_required(locale, break, options, options[:trim])
+  end
+
+  defp repeat_if_trimming_required(nil, _locale, _break, _options, _) do
+    nil
   end
 
   defp repeat_if_trimming_required({match, rest}, locale, break, options, true) do
@@ -130,34 +164,24 @@ defmodule Unicode.String.Break do
     {match, rest}
   end
 
-  defp next_at({string_before, ""}, locale, :word, _options)
-      when locale in @dictionary_locales do
-    {string_before, ""}
-  end
+  ## ---- dictionary-driven word splitting (CJK and friends) --------------
 
-  defp next_at({string_before, string_after}, locale, :word = break, options)
-      when locale in @dictionary_locales do
+  defp next_dict({string_before, ""}, _locale, _options), do: {string_before, ""}
+
+  defp next_dict({string_before, string_after}, locale, options) do
     <<next::utf8, rest::binary>> = string_after
     word = string_before <> <<next::utf8>>
 
     case Dictionary.find_prefix(word, locale) do
       {:ok, _} ->
-        # Found a complete word. Before breaking here, absorb any
-        # immediately following combining marks (General Category M)
-        # so that marks like Myanmar Asat (U+103A) or Khmer sign
-        # coeng (U+17D2) stay attached to their base word.
+        # Found a complete word; absorb any following combining marks.
         {word, rest} = absorb_combining_marks(word, rest)
-        next_at({word, rest}, locale, break, options)
+        next_dict({word, rest}, locale, options)
 
       :prefix ->
-        # If its a prefix then we keep going to see if we have a word
-        # But if the next step doesn't produce either a prefix or
-        # a word then it should be a break here
-        case next_at({word, rest}, locale, break, options) do
-          {fore, _aft} when fore == word ->
-            {string_before, string_after}
-          other ->
-            other
+        case next_dict({word, rest}, locale, options) do
+          {fore, _aft} when fore == word -> {string_before, string_after}
+          other -> other
         end
 
       :error ->
@@ -165,20 +189,8 @@ defmodule Unicode.String.Break do
     end
   end
 
-  defp next_at({string_before, string_after}, locale, segment_type, options) do
-    suppress? = Keyword.get(options, :suppressions, true)
-    {:ok, rules} = rules(locale, segment_type, suppress?)
+  @combining_categories [:Mn, :Mc, :Me]
 
-    {string_before, string_after}
-    |> Segment.evaluate_rules(rules)
-    |> do_next(rules, "")
-  end
-
-  # Absorb any combining marks (Unicode General Category M) that
-  # immediately follow a word boundary in dictionary-based word break.
-  # Without this, marks like Myanmar Asat (U+103A), Khmer sign coeng
-  # (U+17D2), and vowel signs get detached from their base consonant
-  # when the dictionary produces a break before them.
   defp absorb_combining_marks(word, <<next::utf8, rest::binary>> = after_word) do
     if Unicode.category(next) in @combining_categories do
       absorb_combining_marks(word <> <<next::utf8>>, rest)
@@ -189,133 +201,64 @@ defmodule Unicode.String.Break do
 
   defp absorb_combining_marks(word, ""), do: {word, ""}
 
-  defp do_next({:break, {_string_before, {"", ""}}}, _rules, acc) do
-    {acc, ""}
-  end
+  ## ----------------------------------------------------------------------
+  ## Suppressions (sentence break, locale-specific abbreviations)
+  ## ----------------------------------------------------------------------
 
-  defp do_next({:break, {_string_before, {fore, ""}}}, _rules, acc) do
-    {acc, fore}
-  end
-
-  defp do_next({:break, {_string_before, rest}}, _rules, acc) do
-    {acc, rest}
-  end
-
-  defp do_next({:no_break, {_string_before, {fore, ""}}}, _rules, acc) do
-    {acc <> fore, ""}
-  end
-
-  # Previously we were doing {acc <> fore, aft} but more context
-  # is needed for some rules so now its {string_before <> fore, aft}
-
-  defp do_next({:no_break, {string_before, {fore, aft}}}, rules, acc) do
-    {string_before <> fore, aft}
-    |> Segment.evaluate_rules(rules)
-    |> do_next(rules, acc <> fore)
-  end
-
-  # Recompile this module if any of the segment
-  # files change.
-
-  for {_locale, file} <- Segment.locale_map() do
-    @external_resource Path.join(Segment.segments_dir(), file)
-  end
-
-  @suppression_rules %{
-    sentence_break: %{id: 10.5, value: "$Sp+ $Suppressions $Close* $Sp* ($ParaSep?) ×"}
-  }
-
-  # Returns a list of rules applicable for
-  # a given locale and segment type.
-  defp rules(locale, segment_type)
-
-  # Returns the variable definitions for
-  # a given locale and segment type.
-  @doc false
-  def variables(locale, segment_type)
-
-  # Returns a list of suppressions
-  # (abbreviations) that can be used
-  # to suppress an otherwise acceptable
-  # break point.
-
-  # Examples
-  #
-  #     => Unicode.String.Break.variables "en", :sentence_break
-  #     [
-  #       %{name: "$CR", value: "\\p{Sentence_Break=CR}"},
-  #       %{name: "$LF", value: "\\p{Sentence_Break=LF}"},
-  #       %{name: "$Extend", value: "\\p{Sentence_Break=Extend}"},
-  #       %{name: "$Format", value: "\\p{Sentence_Break=Format}"},
-  #       %{name: "$Sep", value: "\\p{Sentence_Break=Sep}"},
-  #       %{name: "$Sp", value: "\\p{Sentence_Break=Sp}"},
-  #       %{name: "$Lower", value: "\\p{Sentence_Break=Lower}"},
-  #       ...
-  #     ]
-  @doc false
-  def suppressions(locale, segment_type)
-
-  @doc false
-  def suppressions_rule(locale, segment_type)
-
+  # Pull the suppression data out at compile time and freeze a MapSet of
+  # lower-cased suppression words *without* the trailing period.
   for locale <- Segment.known_segmentation_locales() do
     {:ok, segments} = Segment.segments(locale)
 
-    for segment_type <- Map.keys(segments) do
-      defp rules(unquote(locale), unquote(segment_type)) do
-        unquote(Macro.escape(Segment.rules(locale, segment_type)))
+    for {segment_type, _content} <- segments do
+      raw = Segment.suppressions!(locale, segment_type)
+
+      cleaned =
+        raw
+        |> Enum.map(fn entry ->
+          entry
+          |> String.replace_trailing(".", "")
+          |> String.trim()
+          |> String.downcase()
+        end)
+        |> Enum.reject(&(&1 == ""))
+
+      # Only emit a per-locale clause when the suppression set is
+      # non-empty. Empty sets fall through to the catch-all below.
+      if cleaned != [] do
+        defp suppression_set(unquote(locale), unquote(segment_type)) do
+          unquote(Macro.escape(MapSet.new(cleaned)))
+        end
+      end
+
+      def suppressions(unquote(locale), unquote(segment_type)) do
+        unquote(Macro.escape(raw))
       end
 
       def variables(unquote(locale), unquote(segment_type)) do
         unquote(Macro.escape(get_in(segments, [segment_type, :variables])))
       end
-
-      def suppressions(unquote(locale), unquote(segment_type)) do
-        unquote(Macro.escape(Segment.suppressions!(locale, segment_type)))
-      end
-
-      suppressions_rule = Map.get(@suppression_rules, segment_type)
-      suppressions_variable = Segment.suppressions_variable(locale, segment_type)
-
-      if suppressions_rule && suppressions_variable do
-        variables =
-          get_in(segments, [segment_type, :variables])
-          |> Segment.expand_variables([suppressions_variable])
-
-        rule = Segment.compile_rule(suppressions_rule, variables, [:caseless])
-
-        def suppressions_rule(unquote(locale), unquote(segment_type)) do
-          unquote(Macro.escape(rule))
-        end
-      end
     end
   end
 
-  @default_locale :root
+  @empty_set MapSet.new()
+  defp suppression_set(_locale, _segment_type), do: @empty_set
 
-  defp rules(_other, segment_type) do
-    rules(@default_locale, segment_type)
-  end
+  def suppressions(_locale, _segment_type), do: []
+  def variables(_locale, _segment_type), do: []
 
-  def suppressions_rule(_locale, _segment_type) do
-    nil
-  end
-
-  @doc false
-  def rules(locale, break_type, true) do
-    if suppressions_rule = suppressions_rule(locale, break_type) do
-      {:ok, rules} = rules(locale, break_type)
-      {:ok, sort_rules([suppressions_rule | rules])}
+  defp sentence_suppressions(locale, options) do
+    if Keyword.get(options, :suppressions, true) do
+      suppression_set(locale, :sentence_break)
     else
-      rules(locale, break_type)
+      MapSet.new()
     end
   end
 
-  def rules(locale, break_type, _) do
-    rules(locale, break_type)
-  end
-
-  defp sort_rules(rules) do
-    Enum.sort_by(rules, &elem(&1, 0))
+  ## Recompile this module if any segment file changes (preserved from
+  ## the original implementation so locale-specific suppressions stay
+  ## fresh).
+  for {_locale, file} <- Segment.locale_map() do
+    @external_resource Path.join(Segment.segments_dir(), file)
   end
 end
