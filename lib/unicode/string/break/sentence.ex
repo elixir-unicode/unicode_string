@@ -131,6 +131,10 @@ defmodule Unicode.String.Break.Sentence do
 
   ## Decision
 
+  # This is a direct, ordered transcription of the UAX #29 sentence-break
+  # rule table (SB1–SB12). Its branch count mirrors the specification;
+  # splitting it would obscure the one-to-one correspondence with the rules.
+  # credo:disable-for-next-line Credo.Check.Refactor.CyclomaticComplexity
   defp decide(state, curr_cp, rest, taken, string, locale, suppressions) do
     {prev_actual, effective_prev, before_aterm, phase} = state
     curr = classify(locale, curr_cp)

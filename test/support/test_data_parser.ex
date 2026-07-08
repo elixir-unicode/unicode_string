@@ -127,11 +127,6 @@ defmodule Unicode.String.TestDataParser do
   def parse_description_part(part) do
     case String.split(part, " ", parts: 2) do
       [rule_number, rule_description] ->
-        part
-        |> String.trim()
-        |> String.split(" ", parts: 2)
-        |> Enum.map(&String.trim/1)
-
         [_, rule_number, _] = String.split(rule_number, ["[", "]"])
         {rule_number, rule_description}
 

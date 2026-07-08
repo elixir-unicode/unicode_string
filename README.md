@@ -22,7 +22,7 @@ The package can be installed by adding `:unicode_string` to your list of depende
 ```elixir
 def deps do
   [
-    {:unicode_string, "~> 1.0"},
+    {:unicode_string, "~> 2.1"},
     ...
   ]
 end

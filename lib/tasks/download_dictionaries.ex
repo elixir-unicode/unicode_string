@@ -81,12 +81,12 @@ defmodule Mix.Tasks.Unicode.String.Download.Dictionaries do
 
   * `:timeout` is the number of milliseconds available
     for the request to complete. The default is
-    #{inspect @unicode_default_timeout}. This option may also be
+    #{inspect(@unicode_default_timeout)}. This option may also be
     set with the `CLDR_HTTP_TIMEOUT` environment variable.
 
   * `:connection_timeout` is the number of milliseconds
     available for the a connection to be estabklished to
-    the remote host. The default is #{inspect @unicode_default_connection_timeout}.
+    the remote host. The default is #{inspect(@unicode_default_connection_timeout)}.
     This option may also be set with the
     `CLDR_HTTP_CONNECTION_TIMEOUT` environment variable.
 
@@ -155,8 +155,8 @@ defmodule Mix.Tasks.Unicode.String.Download.Dictionaries do
   ```
 
   """
-  @spec get(String.t | {String.t, list()}, options :: Keyword.t) ::
-    {:ok, binary} | {:not_modified, any()} | {:error, any}
+  @spec get(String.t() | {String.t(), list()}, options :: Keyword.t()) ::
+          {:ok, binary} | {:not_modified, any()} | {:error, any}
 
   def get(url, options \\ [])
 
@@ -167,7 +167,8 @@ defmodule Mix.Tasks.Unicode.String.Download.Dictionaries do
     end
   end
 
-  def get({url, headers}, options) when is_binary(url) and is_list(headers) and is_list(options) do
+  def get({url, headers}, options)
+      when is_binary(url) and is_list(headers) and is_list(options) do
     case get_with_headers({url, headers}, options) do
       {:ok, _headers, body} -> {:ok, body}
       other -> other
@@ -203,12 +204,12 @@ defmodule Mix.Tasks.Unicode.String.Download.Dictionaries do
 
   * `:timeout` is the number of milliseconds available
     for the request to complete. The default is
-    #{inspect @unicode_default_timeout}. This option may also be
+    #{inspect(@unicode_default_timeout)}. This option may also be
     set with the `CLDR_HTTP_TIMEOUT` environment variable.
 
   * `:connection_timeout` is the number of milliseconds
     available for the a connection to be estabklished to
-    the remote host. The default is #{inspect @unicode_default_connection_timeout}.
+    the remote host. The default is #{inspect(@unicode_default_connection_timeout)}.
     This option may also be set with the
     `CLDR_HTTP_CONNECTION_TIMEOUT` environment variable.
 
@@ -293,8 +294,8 @@ defmodule Mix.Tasks.Unicode.String.Download.Dictionaries do
   """
   @doc since: "2.21.0"
 
-  @spec get_with_headers(String.t | {String.t, list()}, options :: Keyword.t) ::
-    {:ok, list(), binary} | {:not_modified, any()} | {:error, any}
+  @spec get_with_headers(String.t() | {String.t(), list()}, options :: Keyword.t()) ::
+          {:ok, list(), binary} | {:not_modified, any()} | {:error, any}
 
   def get_with_headers(request, options \\ [])
 
@@ -302,7 +303,11 @@ defmodule Mix.Tasks.Unicode.String.Download.Dictionaries do
     get_with_headers({url, []}, options)
   end
 
-  def get_with_headers({url, headers}, options) when is_binary(url) and is_list(headers) and is_list(options) do
+  # Dispatches on the full range of `:httpc` success and failure shapes;
+  # the branch count reflects the HTTP result space, not incidental nesting.
+  # credo:disable-for-next-line Credo.Check.Refactor.CyclomaticComplexity
+  def get_with_headers({url, headers}, options)
+      when is_binary(url) and is_list(headers) and is_list(options) do
     require Logger
 
     hostname = String.to_charlist(URI.parse(url).host)
@@ -314,8 +319,12 @@ defmodule Mix.Tasks.Unicode.String.Download.Dictionaries do
       case URI.parse(https_proxy) do
         %{host: host, port: port} when is_binary(host) and is_integer(port) ->
           :httpc.set_options([{:https_proxy, {{String.to_charlist(host), port}, []}}])
+
         _other ->
-          Logger.bare_log(:warning, "https_proxy was set to an invalid value. Found #{inspect https_proxy}.")
+          Logger.bare_log(
+            :warning,
+            "https_proxy was set to an invalid value. Found #{inspect(https_proxy)}."
+          )
       end
     end
 
@@ -329,7 +338,7 @@ defmodule Mix.Tasks.Unicode.String.Download.Dictionaries do
       {_, {{_version, code, message}, _headers, _body}} ->
         Logger.bare_log(
           :error,
-          "Failed to download #{inspect url}. " <>
+          "Failed to download #{inspect(url)}. " <>
             "HTTP Error: (#{code}) #{inspect(message)}"
         )
 
@@ -339,15 +348,15 @@ defmodule Mix.Tasks.Unicode.String.Download.Dictionaries do
         if sys_message == :timeout do
           Logger.bare_log(
             :error,
-            "Timeout connecting to #{inspect(host)} to download #{inspect url}. " <>
-            "Connection time exceeded #{http_options[:connect_timeout]}ms."
+            "Timeout connecting to #{inspect(host)} to download #{inspect(url)}. " <>
+              "Connection time exceeded #{http_options[:connect_timeout]}ms."
           )
 
           {:error, :connection_timeout}
         else
           Logger.bare_log(
             :error,
-            "Failed to connect to #{inspect(host)} to download #{inspect url}"
+            "Failed to connect to #{inspect(host)} to download #{inspect(url)}"
           )
 
           {:error, sys_message}
@@ -356,7 +365,7 @@ defmodule Mix.Tasks.Unicode.String.Download.Dictionaries do
       {:error, {other}} ->
         Logger.bare_log(
           :error,
-          "Failed to download #{inspect url}. Error #{inspect other}"
+          "Failed to download #{inspect(url)}. Error #{inspect(other)}"
         )
 
         {:error, other}
@@ -364,9 +373,10 @@ defmodule Mix.Tasks.Unicode.String.Download.Dictionaries do
       {:error, :timeout} ->
         Logger.bare_log(
           :error,
-          "Timeout downloading from #{inspect url}. " <>
-          "Request exceeded #{http_options[:timeout]}ms."
+          "Timeout downloading from #{inspect(url)}. " <>
+            "Request exceeded #{http_options[:timeout]}ms."
         )
+
         {:error, :timeout}
     end
   end
@@ -399,16 +409,21 @@ defmodule Mix.Tasks.Unicode.String.Download.Dictionaries do
       # Configured cacertfile
       Application.get_env(:unicode_string, :cacertfile),
 
-      # Populated if hex package CAStore is configured
+      # Populated if hex package CAStore is configured. `apply/3` is used
+      # deliberately: CAStore is an optional dependency, so a direct call
+      # would warn at compile time when it is absent.
+      # credo:disable-for-next-line Credo.Check.Refactor.Apply
       if(Code.ensure_loaded?(CAStore), do: apply(CAStore, :file_path, [])),
 
-      # Populated if hex package certfi is configured
+      # Populated if hex package certifi is configured. `apply/3` is used
+      # deliberately for the same reason as CAStore above.
+      # credo:disable-for-next-line Credo.Check.Refactor.Apply
       if(Code.ensure_loaded?(:certifi), do: apply(:certifi, :cacertfile, []) |> List.to_string())
     ]
     |> Enum.reject(&is_nil/1)
   end
 
-  def certificate_locations() do
+  def certificate_locations do
     dynamic_certificate_locations() ++ @static_certificate_locations
   end
 
@@ -501,7 +516,7 @@ defmodule Mix.Tasks.Unicode.String.Download.Dictionaries do
         reuse_sessions: true,
         versions: protocol_versions(),
         ciphers: preferred_ciphers(),
-        versions: protocol_versions(),
+        versions: protocol_versions()
       ]
     end
   end
@@ -554,13 +569,13 @@ defmodule Mix.Tasks.Unicode.String.Download.Dictionaries do
 
   defp https_proxy(options) do
     options[:https_proxy] ||
-    Application.get_env(:unicode, :https_proxy) ||
-    System.get_env("HTTPS_PROXY") ||
-    System.get_env("https_proxy")
+      Application.get_env(:unicode, :https_proxy) ||
+      System.get_env("HTTPS_PROXY") ||
+      System.get_env("https_proxy")
   end
 
   def otp_version do
-    :erlang.system_info(:otp_release) |> List.to_integer
+    :erlang.system_info(:otp_release) |> List.to_integer()
   end
 
   def data_path(filename) do
@@ -568,4 +583,3 @@ defmodule Mix.Tasks.Unicode.String.Download.Dictionaries do
     Path.join(priv_dir, ["dictionaries/", filename])
   end
 end
-

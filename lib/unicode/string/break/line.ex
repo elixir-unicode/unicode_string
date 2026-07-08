@@ -165,72 +165,39 @@ defmodule Unicode.String.Break.Line do
   end
 
   defp advance({eff_prev, eff_prev2, _prev_actual, space_run, ri_parity}, cls) do
-    new_ri_parity =
-      case cls do
-        :ri ->
-          case ri_parity do
-            :odd -> :even
-            :even -> :odd
-          end
-
-        _ ->
-          :even
-      end
-
-    new_space_run =
-      cond do
-        cls == :sp ->
-          case space_run do
-            :none -> :none
-            other -> other
-          end
-
-        cls == :op ->
-          :after_op
-
-        cls == :qu ->
-          :after_qu
-
-        cls in [:cl, :cp] ->
-          :after_cl
-
-        cls == :b2 ->
-          :after_b2
-
-        cls == :zw ->
-          :after_zw
-
-        # LB9: combining mark / ZWJ takes class of base — keep run unchanged
-        cls in [:cm, :zwj] ->
-          space_run
-
-        true ->
-          :none
-      end
-
-    # LB9: CM and ZWJ take the class of the preceding character, except
-    # when that character is BK, CR, LF, NL, SP, or ZW (then they default
-    # to AL by LB10).
-    new_eff_prev =
-      cond do
-        cls in [:cm, :zwj] ->
-          if eff_prev in [:bk, :cr, :lf, :nl, :sp, :zw] do
-            :al
-          else
-            eff_prev
-          end
-
-        true ->
-          cls
-      end
-
     # eff_prev2 is the previous *non-transparent* class — it's preserved
     # when curr is CM/ZWJ (LB9 transparency) and otherwise rolls forward.
-    new_eff_prev2 =
-      if cls in [:cm, :zwj], do: eff_prev2, else: eff_prev
+    new_eff_prev2 = if cls in [:cm, :zwj], do: eff_prev2, else: eff_prev
 
-    {new_eff_prev, new_eff_prev2, cls, new_space_run, new_ri_parity}
+    {next_eff_prev(cls, eff_prev), new_eff_prev2, cls, next_space_run(cls, space_run),
+     next_ri_parity(cls, ri_parity)}
   end
+
+  # RI runs toggle odd/even parity so LB30a can pair regional indicators;
+  # any other class resets the run.
+  defp next_ri_parity(:ri, :odd), do: :even
+  defp next_ri_parity(:ri, :even), do: :odd
+  defp next_ri_parity(_cls, _ri_parity), do: :even
+
+  # Track the "space run" context used by the space-sensitive rules.
+  # LB9: CM/ZWJ take the class of the base, so the run is left unchanged.
+  defp next_space_run(:sp, space_run), do: space_run
+  defp next_space_run(:op, _space_run), do: :after_op
+  defp next_space_run(:qu, _space_run), do: :after_qu
+  defp next_space_run(cls, _space_run) when cls in [:cl, :cp], do: :after_cl
+  defp next_space_run(:b2, _space_run), do: :after_b2
+  defp next_space_run(:zw, _space_run), do: :after_zw
+  defp next_space_run(cls, space_run) when cls in [:cm, :zwj], do: space_run
+  defp next_space_run(_cls, _space_run), do: :none
+
+  # LB9: CM and ZWJ take the class of the preceding character, except when
+  # that character is BK, CR, LF, NL, SP, or ZW (then they default to AL by
+  # LB10).
+  defp next_eff_prev(cls, eff_prev) when cls in [:cm, :zwj] do
+    if eff_prev in [:bk, :cr, :lf, :nl, :sp, :zw], do: :al, else: eff_prev
+  end
+
+  defp next_eff_prev(cls, _eff_prev), do: cls
 
   defp trailing_state(string_before) do
     [first | rest] = String.to_charlist(string_before)
@@ -242,6 +209,11 @@ defmodule Unicode.String.Break.Line do
 
   # decide_op({eff_prev, eff_prev2, prev_actual, space_run, ri_parity}, curr, rest)
   # `rest` is the binary after `curr`; some rules require a 1-char lookahead.
+  #
+  # This is a direct, ordered transcription of the UAX #14 line-break rule
+  # table (LB4–LB31). Its branch count mirrors the specification; splitting
+  # it would obscure the one-to-one correspondence with the rules.
+  # credo:disable-for-next-line Credo.Check.Refactor.CyclomaticComplexity
   defp decide_op({eff_prev, eff_prev2, prev_actual, space_run, ri_parity}, curr, rest) do
     cond do
       # LB4: BK !

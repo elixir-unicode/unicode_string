@@ -109,12 +109,7 @@ defmodule Unicode.String.IcuRbbiParser do
 
         m = Regex.run(~r/^\s*<data>(.*)<\/data>\s*$/, line) ->
           [_, body] = m
-
-          if state.mode in @break_modes do
-            %{state | blocks: [{state.mode, state.locale, body} | state.blocks]}
-          else
-            state
-          end
+          add_data_block(state, body)
 
         true ->
           state
@@ -122,6 +117,16 @@ defmodule Unicode.String.IcuRbbiParser do
     end)
     |> Map.fetch!(:blocks)
     |> Enum.reverse()
+  end
+
+  # Record a <data> block for the current break mode, ignoring modes we
+  # do not exercise.
+  defp add_data_block(state, body) do
+    if state.mode in @break_modes do
+      %{state | blocks: [{state.mode, state.locale, body} | state.blocks]}
+    else
+      state
+    end
   end
 
   ## --- Per-block parsing ----------------------------------------------------

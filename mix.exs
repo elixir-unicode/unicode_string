@@ -1,7 +1,7 @@
 defmodule Unicode.String.MixProject do
   use Mix.Project
 
-  @version "2.1.0"
+  @version "2.1.1"
 
   def project do
     [
@@ -17,10 +17,25 @@ defmodule Unicode.String.MixProject do
       description: description(),
       package: package(),
       elixirc_paths: elixirc_paths(Mix.env()),
+      test_coverage: [
+        summary: [threshold: 90],
+        ignore_modules: coverage_ignore_modules()
+      ],
       dialyzer: [
         plt_add_apps: ~w(mix sweet_xml)a,
         flags: [:underspecs]
       ]
+    ]
+  end
+
+  # Modules excluded from `mix test --cover` so coverage reflects the runtime
+  # library, not build tooling (Mix tasks, dictionary/data generators) or the
+  # test harness (conformance-data parsers under `test/support`).
+  defp coverage_ignore_modules do
+    [
+      ~r/^Mix\.Tasks\./,
+      Unicode.String.TestDataParser,
+      Unicode.String.IcuRbbiParser
     ]
   end
 
@@ -59,12 +74,11 @@ defmodule Unicode.String.MixProject do
   defp deps do
     [
       {:unicode_set, "~> 1.6"},
-
       {:trie, "~> 2.0"},
       {:localize, "~> 0.8 or ~> 1.0", optional: true},
-
       {:jason, "~> 1.0", optional: true},
       {:sweet_xml, "~> 0.7", runtime: false},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false, optional: true},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       # {:benchee, "~> 1.0", only: :dev, optional: true},
       {:ex_doc, "~> 0.23", only: [:dev, :release], optional: true, runtime: false}
@@ -91,7 +105,7 @@ defmodule Unicode.String.MixProject do
         "LICENSE.md",
         "CHANGELOG.md"
       ],
-      skip_undefined_reference_warnings_on: ["changelog", "CHANGELOG.md"],
+      skip_undefined_reference_warnings_on: ["changelog", "CHANGELOG.md"]
     ]
   end
 

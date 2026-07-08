@@ -19,14 +19,14 @@ defmodule Unicode.String do
 
   alias Unicode.Property
   alias Unicode.String.Break
-  alias Unicode.String.Segment
   alias Unicode.String.Case
   alias Unicode.String.Dictionary
+  alias Unicode.String.Segment
 
   defdelegate fold(string), to: Unicode.String.Case.Folding
   defdelegate fold(string, type), to: Unicode.String.Case.Folding
 
-  defguard is_language(language) when (byte_size(language) == 2 or byte_size(language) == 3)
+  defguard is_language(language) when byte_size(language) == 2 or byte_size(language) == 3
   defguard is_script(script) when byte_size(script) == 4
   defguard is_territory(territory) when byte_size(territory) == 2
 
@@ -34,12 +34,13 @@ defmodule Unicode.String do
   @type break_type :: :grapheme | :word | :line | :sentence
   @type error_return :: {:error, String.t()}
 
-  @type option :: {:locale, String.t() | map}
+  @type option ::
+          {:locale, String.t() | map}
           | {:break, break_type}
           | {:suppressions, boolean}
 
-
-  @type split_option :: {:locale, String.t() | map}
+  @type split_option ::
+          {:locale, String.t() | map}
           | {:break, break_type}
           | {:suppressions, boolean}
           | {:trim, boolean}
@@ -155,7 +156,7 @@ defmodule Unicode.String do
 
   """
   @spec break?(string_interval :: string_interval(), options :: list(option())) ::
-    boolean | no_return()
+          boolean | no_return()
 
   def break?({string_before, string_after}, options \\ []) do
     case break({string_before, string_after}, options) do
@@ -222,8 +223,8 @@ defmodule Unicode.String do
       {:break, {"This is one. ", {"T", "his is some words."}}}
 
   """
- @spec break(string_interval :: string_interval(), options :: list(option())) ::
-    break_match | error_return
+  @spec break(string_interval :: string_interval(), options :: list(option())) ::
+          break_match | error_return
 
   def break({string_before, string_after}, options \\ []) do
     break = Keyword.get(options, :break, @default_break)
@@ -283,7 +284,7 @@ defmodule Unicode.String do
 
   """
   @spec splitter(string :: String.t(), split_options :: list(split_option)) ::
-    function | error_return
+          function | error_return
 
   def splitter(string, options) when is_binary(string) do
     break = Keyword.get(options, :break, @default_break)
@@ -343,7 +344,7 @@ defmodule Unicode.String do
 
   """
   @spec next(string :: String.t(), split_options :: list(split_option)) ::
-    String.t() | nil | error_return
+          String.t() | nil | error_return
 
   def next(string, options \\ []) when is_binary(string) do
     break = Keyword.get(options, :break, @default_break)
@@ -409,7 +410,7 @@ defmodule Unicode.String do
 
   """
   @spec split(string :: String.t(), split_options :: list(split_option)) ::
-    [String.t(), ...] | error_return
+          [String.t(), ...] | error_return
 
   def split(string, options \\ []) when is_binary(string) do
     break = Keyword.get(options, :break, @default_break)
@@ -484,7 +485,7 @@ defmodule Unicode.String do
   @doc since: "1.2.0"
 
   @spec stream(string :: String.t(), split_options :: list(split_option)) ::
-    Enumerable.t() | {:error, String.t()}
+          Enumerable.t() | {:error, String.t()}
 
   def stream(string, options \\ []) do
     break = Keyword.get(options, :break, @default_break)
@@ -493,14 +494,16 @@ defmodule Unicode.String do
          {:ok, locale} <- segmentation_locale_from_options(break, options) do
       Stream.resource(
         fn -> string end,
-        fn string ->
-          case Break.next(string, locale, break, options) do
-            nil -> {:halt, ""}
-            {break, rest} -> {[break], rest}
-          end
-        end,
+        &stream_next(&1, locale, break, options),
         fn _ -> :ok end
       )
+    end
+  end
+
+  defp stream_next(string, locale, break, options) do
+    case Break.next(string, locale, break, options) do
+      nil -> {:halt, ""}
+      {break, rest} -> {[break], rest}
     end
   end
 
@@ -680,19 +683,18 @@ defmodule Unicode.String do
 
       string
       |> stream(stream_options)
-      |> Enum.map(&Case.Mapping.titlecase(&1, casing_locale))
-      |> Enum.join()
+      |> Enum.map_join("", &Case.Mapping.titlecase(&1, casing_locale))
     end
   end
 
-  # These locales have some aadditional processing
+  # These locales have some additional processing
   # beyond that specified in SpecialCasing.txt
   @special_casing_locales [:nl, :el]
   @casing_locales (@special_casing_locales ++ Unicode.Utils.known_casing_locales())
                   |> Enum.sort()
 
   @doc """
-  Returms a list of locales that have special
+  Returns a list of locales that have special
   casing rules.
 
   ### Example
@@ -730,8 +732,8 @@ defmodule Unicode.String do
   @dictionary_locales Dictionary.known_dictionary_locales()
 
   defp segmentation_locale_from_options(:word, options) do
-    locale =  Keyword.get(options, :locale)
-    segmentation_locale =  match_locale(locale, @segmentation_locales, :root)
+    locale = Keyword.get(options, :locale)
+    segmentation_locale = match_locale(locale, @segmentation_locales, :root)
     dictionary_locale = match_locale(locale, @dictionary_locales, nil)
 
     if dictionary_locale do

@@ -130,6 +130,11 @@ defmodule Unicode.String.Break.Word do
 
   # The decision: is there a break between the previous codepoint
   # (effectively `prev`) and the current codepoint `curr_cp`?
+  #
+  # This is a direct, ordered transcription of the UAX #29 word-break rule
+  # table (WB3–WB16). Its branch count mirrors the specification; splitting
+  # it would obscure the one-to-one correspondence with the rules.
+  # credo:disable-for-next-line Credo.Check.Refactor.CyclomaticComplexity
   defp decide_op({prev, prev2, ri_parity, prev_actual}, curr_cp, peek_cp) do
     curr = WordBreak.word_break(curr_cp)
     extpict? = is_extpict(curr_cp)
@@ -257,21 +262,15 @@ defmodule Unicode.String.Break.Word do
       # We still record the actual class so WB3-WB3d can see it.
       {prev, prev2, ri_parity, cls}
     else
-      new_ri_parity =
-        case cls do
-          :regional_indicator ->
-            case ri_parity do
-              :odd -> :even
-              :even -> :odd
-            end
-
-          _ ->
-            :even
-        end
-
-      {cls, prev, new_ri_parity, cls}
+      {cls, prev, next_ri_parity(cls, ri_parity), cls}
     end
   end
+
+  # Regional-indicator runs toggle odd/even parity (WB15/WB16); any other
+  # class resets the run.
+  defp next_ri_parity(:regional_indicator, :odd), do: :even
+  defp next_ri_parity(:regional_indicator, :even), do: :odd
+  defp next_ri_parity(_cls, _ri_parity), do: :even
 
   defp trailing_state(string_before) do
     [first | rest] = String.to_charlist(string_before)

@@ -10,13 +10,13 @@ defmodule Unicode.String.Break do
   `Unicode.String.Break.Grapheme`, `…Word`, `…Sentence`, and `…Line`.
   """
 
-  alias Unicode.String.Segment
+  alias Unicode.String.Break.Grapheme, as: G
+  alias Unicode.String.Break.Line, as: L
+  alias Unicode.String.Break.Sentence, as: S
+  alias Unicode.String.Break.Word, as: W
   alias Unicode.String.Dictionary
   alias Unicode.String.DictionaryBreak
-  alias Unicode.String.Break.Grapheme, as: G
-  alias Unicode.String.Break.Word, as: W
-  alias Unicode.String.Break.Sentence, as: S
-  alias Unicode.String.Break.Line, as: L
+  alias Unicode.String.Segment
 
   @dictionary_locales Dictionary.known_dictionary_locales()
 
@@ -61,24 +61,7 @@ defmodule Unicode.String.Break do
   end
 
   def break_at({string_before, string_after}, locale, segment_type, options) do
-    op =
-      case segment_type do
-        :grapheme_cluster_break ->
-          if G.break?(string_before, string_after), do: :break, else: :no_break
-
-        :word_break ->
-          if W.break?(string_before, string_after), do: :break, else: :no_break
-
-        :sentence_break ->
-          suppressions = sentence_suppressions(locale, options)
-
-          if S.break?(string_before, string_after, locale, suppressions),
-            do: :break,
-            else: :no_break
-
-        :line_break ->
-          if L.break?(string_before, string_after), do: :break, else: :no_break
-      end
+    op = break_op(segment_type, string_before, string_after, locale, options)
 
     case {op, string_after} do
       {_, ""} ->
@@ -90,10 +73,33 @@ defmodule Unicode.String.Break do
     end
   end
 
+  # Resolve the break operation for a single boundary by delegating to
+  # the segment-type-specific evaluator.
+  defp break_op(:grapheme_cluster_break, string_before, string_after, _locale, _options) do
+    to_op(G.break?(string_before, string_after))
+  end
+
+  defp break_op(:word_break, string_before, string_after, _locale, _options) do
+    to_op(W.break?(string_before, string_after))
+  end
+
+  defp break_op(:sentence_break, string_before, string_after, locale, options) do
+    suppressions = sentence_suppressions(locale, options)
+    to_op(S.break?(string_before, string_after, locale, suppressions))
+  end
+
+  defp break_op(:line_break, string_before, string_after, _locale, _options) do
+    to_op(L.break?(string_before, string_after))
+  end
+
+  defp to_op(true), do: :break
+  defp to_op(false), do: :no_break
+
   ## ---- split / next dispatch -------------------------------------------
 
   @doc false
-  def split(string, locale, :word = break, options) when locale in @lookahead_dictionary_locales do
+  def split(string, locale, :word = break, options)
+      when locale in @lookahead_dictionary_locales do
     Dictionary.ensure_dictionary_loaded_if_available(locale)
 
     DictionaryBreak.split_with_fallback(string, locale, fn non_dict_segment ->

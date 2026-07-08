@@ -41,7 +41,8 @@ defmodule Unicode.String.DictionaryBreak do
 
   # Characters that can begin a word
   @thai_begin_word_chars Enum.to_list(0x0E01..0x0E2E) ++ Enum.to_list(0x0E40..0x0E44)
-  @lao_begin_word_chars Enum.to_list(0x0E81..0x0EAE) ++ Enum.to_list(0x0EDC..0x0EDD) ++ Enum.to_list(0x0EC0..0x0EC4)
+  @lao_begin_word_chars Enum.to_list(0x0E81..0x0EAE) ++
+                          Enum.to_list(0x0EDC..0x0EDD) ++ Enum.to_list(0x0EC0..0x0EC4)
   @khmer_begin_word_chars Enum.to_list(0x1780..0x17B3)
   @burmese_begin_word_chars Enum.to_list(0x1000..0x102A)
 
@@ -110,25 +111,27 @@ defmodule Unicode.String.DictionaryBreak do
   def split_with_fallback(string, locale, fallback_fn) do
     script_range = script_range_for(locale)
     {:ok, dict_locale} = Dictionary.dictionary_locale(locale)
-    ranges = partition_by_script(string, script_range)
 
-    Enum.flat_map(ranges, fn {type, segment} ->
-      case type do
-        :dict ->
-          codepoints = String.to_charlist(segment)
-          len = length(codepoints)
-
-          if len < @min_word_span do
-            [segment]
-          else
-            breaks = find_breaks(codepoints, 0, len, dict_locale, locale)
-            extract_segments(segment, breaks)
-          end
-
-        :other ->
-          fallback_fn.(segment)
-      end
+    string
+    |> partition_by_script(script_range)
+    |> Enum.flat_map(fn
+      {:dict, segment} -> split_dict_segment(segment, dict_locale, locale)
+      {:other, segment} -> fallback_fn.(segment)
     end)
+  end
+
+  # Segment a single run of dictionary-script characters, leaving very
+  # short runs intact.
+  defp split_dict_segment(segment, dict_locale, locale) do
+    codepoints = String.to_charlist(segment)
+    len = length(codepoints)
+
+    if len < @min_word_span do
+      [segment]
+    else
+      breaks = find_breaks(codepoints, 0, len, dict_locale, locale)
+      extract_segments(segment, breaks)
+    end
   end
 
   # Unicode script ranges for dictionary locales.
@@ -207,21 +210,7 @@ defmodule Unicode.String.DictionaryBreak do
       end
 
     # Handle non-dictionary characters after a short or absent word
-    word_len =
-      if pos + word_len < range_end and word_len < @root_combine_threshold do
-        next_candidates = dictionary_candidates(codepoints, pos + word_len, range_end, dict_locale)
-        longest_prefix = longest_dictionary_prefix(codepoints, pos + word_len, range_end, dict_locale)
-
-        if next_candidates == [] and (word_len == 0 or longest_prefix < @prefix_combine_threshold) do
-          # Scan forward to find where dictionary words resume
-          extra = scan_to_resync(codepoints, pos + word_len, range_end, dict_locale, locale)
-          word_len + extra
-        else
-          word_len
-        end
-      else
-        word_len
-      end
+    word_len = maybe_scan_to_resync(codepoints, pos, word_len, range_end, dict_locale, locale)
 
     # Absorb combining marks
     word_len = absorb_marks(codepoints, pos + word_len, range_end) - pos
@@ -231,12 +220,35 @@ defmodule Unicode.String.DictionaryBreak do
     # Record break position if we have a word
     if word_len > 0 do
       break_pos = pos + word_len
-      find_breaks(codepoints, break_pos, range_end, dict_locale, locale, words_found, [break_pos | breaks])
+
+      find_breaks(codepoints, break_pos, range_end, dict_locale, locale, words_found, [
+        break_pos | breaks
+      ])
     else
       # Skip one codepoint and try again (shouldn't happen with
       # proper resync, but a safety fallback)
       find_breaks(codepoints, pos + 1, range_end, dict_locale, locale, words_found, breaks)
     end
+  end
+
+  # After a short or absent dictionary word, scan forward over
+  # non-dictionary characters to the next point where dictionary words
+  # resume, extending the current word to absorb them.
+  defp maybe_scan_to_resync(codepoints, pos, word_len, range_end, dict_locale, locale)
+       when pos + word_len < range_end and word_len < @root_combine_threshold do
+    next_pos = pos + word_len
+    next_candidates = dictionary_candidates(codepoints, next_pos, range_end, dict_locale)
+    longest_prefix = longest_dictionary_prefix(codepoints, next_pos, range_end, dict_locale)
+
+    if next_candidates == [] and (word_len == 0 or longest_prefix < @prefix_combine_threshold) do
+      word_len + scan_to_resync(codepoints, next_pos, range_end, dict_locale, locale)
+    else
+      word_len
+    end
+  end
+
+  defp maybe_scan_to_resync(_codepoints, _pos, word_len, _range_end, _dict_locale, _locale) do
+    word_len
   end
 
   # ── Dictionary candidate gathering ─────────────────────────
@@ -260,6 +272,7 @@ defmodule Unicode.String.DictionaryBreak do
         # Found a complete word — record its length and keep looking
         # for longer matches
         word_len = current - start
+
         gather_candidates(codepoints, start, current + 1, range_end, dict_locale, [word_len | acc])
 
       :prefix ->
@@ -278,40 +291,60 @@ defmodule Unicode.String.DictionaryBreak do
   # candidate and look ahead up to 2 more words to find the
   # candidate that leads to the best segmentation.
   defp lookahead_select(codepoints, pos, range_end, dict_locale, candidates) do
-    # Try candidates from longest to shortest (ICU order)
+    # Try candidates from longest to shortest (ICU order).
     result =
       candidates
       |> Enum.reverse()
       |> Enum.reduce_while(nil, fn candidate_len, _acc ->
-        next_pos = pos + candidate_len
-
-        if next_pos >= range_end do
-          # This candidate reaches the end — accept it
-          {:halt, candidate_len}
-        else
-          # Look for word 2 at the position after this candidate
-          word2_candidates = dictionary_candidates(codepoints, next_pos, range_end, dict_locale)
-
-          if word2_candidates != [] do
-            # Word 2 exists — try to confirm with word 3
-            confirmed = try_word3(codepoints, next_pos, range_end, dict_locale, word2_candidates)
-
-            if confirmed do
-              {:halt, candidate_len}
-            else
-              # Word 2 existed but no word 3 confirmed it.
-              # Mark this as best-so-far but keep trying shorter candidates.
-              {:cont, candidate_len}
-            end
-          else
-            # No word 2 — try next shorter candidate
-            {:cont, nil}
-          end
-        end
+        lookahead_step(codepoints, pos, range_end, dict_locale, candidate_len)
       end)
 
-    # If no candidate worked via lookahead, take the longest
+    # If no candidate worked via lookahead, take the longest.
     result || List.last(candidates)
+  end
+
+  # Evaluate a single candidate word length, looking ahead for a word 2
+  # (and, via `try_word3/5`, a word 3) that confirms it.
+  defp lookahead_step(codepoints, pos, range_end, dict_locale, candidate_len) do
+    next_pos = pos + candidate_len
+
+    if next_pos >= range_end do
+      # This candidate reaches the end — accept it.
+      {:halt, candidate_len}
+    else
+      word2_candidates = dictionary_candidates(codepoints, next_pos, range_end, dict_locale)
+
+      confirm_with_word3(
+        codepoints,
+        next_pos,
+        range_end,
+        dict_locale,
+        word2_candidates,
+        candidate_len
+      )
+    end
+  end
+
+  # No word 2 follows — try the next shorter candidate.
+  defp confirm_with_word3(_codepoints, _next_pos, _range_end, _dict_locale, [], _candidate_len) do
+    {:cont, nil}
+  end
+
+  # Word 2 exists; halt if a word 3 confirms it, otherwise keep it as the
+  # best-so-far while trying shorter candidates.
+  defp confirm_with_word3(
+         codepoints,
+         next_pos,
+         range_end,
+         dict_locale,
+         word2_candidates,
+         candidate_len
+       ) do
+    if try_word3(codepoints, next_pos, range_end, dict_locale, word2_candidates) do
+      {:halt, candidate_len}
+    else
+      {:cont, candidate_len}
+    end
   end
 
   # Try to find a word 3 for any of the word 2 candidates
@@ -343,28 +376,28 @@ defmodule Unicode.String.DictionaryBreak do
   end
 
   defp scan_to_resync(codepoints, start, current, range_end, dict_locale, locale) do
-    # Check if we're at a plausible word boundary:
-    # previous char can end a word AND current char can begin a word
-    if current > start do
-      prev_cp = Enum.at(codepoints, current - 1)
-      curr_cp = Enum.at(codepoints, current)
-
-      if can_end_word?(prev_cp, locale) and can_begin_word?(curr_cp, locale) do
-        # Check if a dictionary word starts here
-        candidates = dictionary_candidates(codepoints, current, range_end, dict_locale)
-
-        if candidates != [] do
-          # Found a resync point — return characters consumed
-          current - start
-        else
-          scan_to_resync(codepoints, start, current + 1, range_end, dict_locale, locale)
-        end
-      else
-        scan_to_resync(codepoints, start, current + 1, range_end, dict_locale, locale)
-      end
+    if resync_point?(codepoints, start, current, range_end, dict_locale, locale) do
+      # Found a resync point — return characters consumed.
+      current - start
     else
       scan_to_resync(codepoints, start, current + 1, range_end, dict_locale, locale)
     end
+  end
+
+  # A plausible word boundary where dictionary words resume: the previous
+  # char can end a word, the current char can begin one, and a dictionary
+  # word actually starts here.
+  defp resync_point?(_codepoints, start, current, _range_end, _dict_locale, _locale)
+       when current <= start do
+    false
+  end
+
+  defp resync_point?(codepoints, _start, current, range_end, dict_locale, locale) do
+    prev_cp = Enum.at(codepoints, current - 1)
+    curr_cp = Enum.at(codepoints, current)
+
+    can_end_word?(prev_cp, locale) and can_begin_word?(curr_cp, locale) and
+      dictionary_candidates(codepoints, current, range_end, dict_locale) != []
   end
 
   # ── Combining mark absorption ───────────────────────────────
@@ -392,36 +425,12 @@ defmodule Unicode.String.DictionaryBreak do
   defp maybe_absorb_suffix(codepoints, pos, word_len, range_end, :th, _locale)
        when word_len > 0 and pos + word_len < range_end do
     next_pos = pos + word_len
-    next_cp = Enum.at(codepoints, next_pos)
 
-    # Only absorb suffix if no dictionary word follows
-    candidates = dictionary_candidates(codepoints, next_pos, range_end, :th)
-
-    if candidates == [] do
-      cond do
-        next_cp == @thai_paiyannoi ->
-          # PAIYANNOI — absorb unless preceded by another suffix
-          prev_cp = Enum.at(codepoints, next_pos - 1)
-
-          if prev_cp not in [@thai_paiyannoi, @thai_maiyamok] do
-            word_len + 1
-          else
-            word_len
-          end
-
-        next_cp == @thai_maiyamok ->
-          # MAIYAMOK — absorb unless preceded by another MAIYAMOK
-          prev_cp = Enum.at(codepoints, next_pos - 1)
-
-          if prev_cp != @thai_maiyamok do
-            word_len + 1
-          else
-            word_len
-          end
-
-        true ->
-          word_len
-      end
+    # Only absorb a suffix if no dictionary word follows.
+    if dictionary_candidates(codepoints, next_pos, range_end, :th) == [] do
+      next_cp = Enum.at(codepoints, next_pos)
+      prev_cp = Enum.at(codepoints, next_pos - 1)
+      thai_suffix_length(next_cp, prev_cp, word_len)
     else
       word_len
     end
@@ -431,14 +440,29 @@ defmodule Unicode.String.DictionaryBreak do
     word_len
   end
 
+  # PAIYANNOI and MAIYAMOK are absorbed into the preceding word unless
+  # they themselves follow another such suffix character.
+  defp thai_suffix_length(@thai_paiyannoi, prev_cp, word_len)
+       when prev_cp in [@thai_paiyannoi, @thai_maiyamok],
+       do: word_len
+
+  defp thai_suffix_length(@thai_paiyannoi, _prev_cp, word_len), do: word_len + 1
+  defp thai_suffix_length(@thai_maiyamok, @thai_maiyamok, word_len), do: word_len
+  defp thai_suffix_length(@thai_maiyamok, _prev_cp, word_len), do: word_len + 1
+  defp thai_suffix_length(_next_cp, _prev_cp, word_len), do: word_len
+
   # ── Script-specific character set checks ────────────────────
 
+  # `can_begin_word?/2` is only ever evaluated as the right operand of
+  # `can_end_word?(prev_cp, locale) and can_begin_word?(curr_cp, locale)`
+  # in `scan_to_resync/6`. Reaching that operand implies `can_end_word?`
+  # returned true, which narrows `locale` to a dictionary locale, so a
+  # non-dictionary-locale catch-all clause here is unreachable.
   defp can_begin_word?(nil, _locale), do: false
   defp can_begin_word?(cp, :th), do: cp in @thai_begin_word_chars
   defp can_begin_word?(cp, :lo), do: cp in @lao_begin_word_chars
   defp can_begin_word?(cp, :km), do: cp in @khmer_begin_word_chars
   defp can_begin_word?(cp, :my), do: cp in @burmese_begin_word_chars
-  defp can_begin_word?(_cp, _locale), do: false
 
   defp can_end_word?(nil, _locale), do: false
 
@@ -484,7 +508,14 @@ defmodule Unicode.String.DictionaryBreak do
 
     case Dictionary.find_prefix(word, dict_locale) do
       {:ok, _} ->
-        find_longest_prefix(codepoints, start, current + 1, range_end, dict_locale, current - start)
+        find_longest_prefix(
+          codepoints,
+          start,
+          current + 1,
+          range_end,
+          dict_locale,
+          current - start
+        )
 
       :prefix ->
         find_longest_prefix(codepoints, start, current + 1, range_end, dict_locale, longest)

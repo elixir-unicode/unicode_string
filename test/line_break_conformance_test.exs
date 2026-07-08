@@ -84,14 +84,11 @@ defmodule Unicode.String.LineBreakConformanceTest do
         {char, _}, {input, segs, cur} when is_binary(char) ->
           {input <> char, segs, cur <> char}
 
-        {op, _}, {input, segs, cur} ->
-          case op do
-            :"÷" ->
-              if cur == "", do: {input, segs, ""}, else: {input, [cur | segs], ""}
+        {:"÷", _}, {input, segs, cur} ->
+          if cur == "", do: {input, segs, ""}, else: {input, [cur | segs], ""}
 
-            :"×" ->
-              {input, segs, cur}
-          end
+        {:"×", _}, {input, segs, cur} ->
+          {input, segs, cur}
       end)
 
     expected =

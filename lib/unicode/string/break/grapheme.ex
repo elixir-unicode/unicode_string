@@ -202,39 +202,25 @@ defmodule Unicode.String.Break.Grapheme do
   # advance: produce the next state given the current state, the new
   # codepoint's classifications, and the codepoint itself.
   defp advance({_prev, ri_parity, ext_pict_zwj, incb_state}, curr, incb, extpict, _cp) do
-    new_ri_parity =
-      case curr do
-        :regional_indicator ->
-          case ri_parity do
-            :odd -> :even
-            :even -> :odd
-          end
-
-        _ ->
-          :even
-      end
-
-    new_ext_pict_zwj =
-      cond do
-        # ExtPict starts a new ExtPict-… sequence
-        extpict and curr not in [:zwj] -> :pending
-        # Extend keeps an in-progress sequence alive (still pending)
-        ext_pict_zwj == :pending and curr == :extend -> :pending
-        # ZWJ closes the sequence: now ready to consume an ExtPict via GB11
-        ext_pict_zwj == :pending and curr == :zwj -> true
-        # Anything else clears it
-        true -> false
-      end
-      |> case do
-        :pending -> :pending
-        true -> true
-        false -> false
-      end
-
-    new_incb_state = next_incb_state(incb_state, incb)
-
-    {curr, new_ri_parity, new_ext_pict_zwj, new_incb_state}
+    {curr, next_ri_parity(curr, ri_parity), next_ext_pict_zwj(ext_pict_zwj, curr, extpict),
+     next_incb_state(incb_state, incb)}
   end
+
+  # Regional-indicator runs toggle odd/even parity (GB12/GB13); any other
+  # class resets the run.
+  defp next_ri_parity(:regional_indicator, :odd), do: :even
+  defp next_ri_parity(:regional_indicator, :even), do: :odd
+  defp next_ri_parity(_curr, _ri_parity), do: :even
+
+  # Track the ExtPict-Extend*-ZWJ sequence used by GB11.
+  #   ExtPict (not ZWJ)  → :pending (start / restart a sequence)
+  #   Extend while pending → :pending (keep it alive)
+  #   ZWJ while pending    → true (ready to consume an ExtPict)
+  #   anything else        → false
+  defp next_ext_pict_zwj(_ext_pict_zwj, curr, true) when curr != :zwj, do: :pending
+  defp next_ext_pict_zwj(:pending, :extend, _extpict), do: :pending
+  defp next_ext_pict_zwj(:pending, :zwj, _extpict), do: true
+  defp next_ext_pict_zwj(_ext_pict_zwj, _curr, _extpict), do: false
 
   # GB9c InCB tracking.
   #   :none → :consonant on Consonant; otherwise stays :none

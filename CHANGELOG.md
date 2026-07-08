@@ -1,5 +1,18 @@
 # Changelog
 
+## Unicode String v2.1.1
+
+This is the changelog for Unicode String v2.1.1.
+
+### Bug Fixes
+
+* Fix an unreachable `can_begin_word?/2` clause that produced a compiler warning under `--warnings-as-errors`.
+
+### Enhancements
+
+* Add Credo (strict) to CI and development, a 90% test coverage gate, and a checked-in `mix format` pre-commit hook.
+* Harden the CI workflow: OTP/Elixir-scoped dependency and build caches, refreshed toolchain matrix, and separate lint, coverage and Dialyzer stages.
+
 ## Unicode String v2.1.0
 
 This is the changelog for Unicode String v2.1.0 released on May 1st, 2026.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)

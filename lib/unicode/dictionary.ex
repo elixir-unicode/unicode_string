@@ -38,7 +38,17 @@ defmodule Unicode.String.Dictionary do
   @dictionary_dir "dictionaries/"
 
   @dictionary_locales [
-    :zh, :th, :lo, :my, :km, :ja, :"zh-Hant", :"zh-Hant-HK", :yue, :"yue-Hant", :"yue-Hans"
+    :zh,
+    :th,
+    :lo,
+    :my,
+    :km,
+    :ja,
+    :"zh-Hant",
+    :"zh-Hant-HK",
+    :yue,
+    :"yue-Hant",
+    :"yue-Hans"
   ]
 
   @doc """
@@ -75,7 +85,7 @@ defmodule Unicode.String.Dictionary do
   end
 
   def ensure_dictionary_loaded_if_available(locale) do
-    {:ok, "No dictionary for #{inspect locale} found"}
+    {:ok, "No dictionary for #{inspect(locale)} found"}
   end
 
   @doc false
@@ -86,10 +96,9 @@ defmodule Unicode.String.Dictionary do
   end
 
   @doc false
-  def is_loaded(locale) do
-    with {:ok, locale} <- dictionary_locale(locale) do
-      :persistent_term.get({@app_name, locale}, false) && true
-    else
+  def loaded?(locale) do
+    case dictionary_locale(locale) do
+      {:ok, locale} -> :persistent_term.get({@app_name, locale}, false) && true
       _other -> false
     end
   end
@@ -133,8 +142,7 @@ defmodule Unicode.String.Dictionary do
       file_name
       |> read_dictionary()
       |> String.split("\n")
-      |> Enum.reject(&String.starts_with?(&1, @comment_marker))
-      |> Enum.reject(&(String.length(&1) == 0))
+      |> Enum.reject(&(String.starts_with?(&1, @comment_marker) or String.length(&1) == 0))
       |> Enum.map(fn line ->
         case String.split(line, "\t") do
           [word] -> word
@@ -170,6 +178,5 @@ defmodule Unicode.String.Dictionary do
   def dictionary_locale(:km), do: {:ok, :km}
   def dictionary_locale(:ja), do: {:ok, :zh}
   def dictionary_locale(%{language: language}), do: dictionary_locale(language)
-  def dictionary_locale(language), do: {:error, "No dictionary for #{inspect language} found."}
-
+  def dictionary_locale(language), do: {:error, "No dictionary for #{inspect(language)} found."}
 end

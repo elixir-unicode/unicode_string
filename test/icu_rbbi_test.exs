@@ -9,7 +9,8 @@ defmodule Unicode.String.IcuRbbiTest do
   # behaviour deliberately diverges from ICU. The 1-based index is the
   # position of the case within the sent-mode block list.
   @sentence_known_divergences %{
-    3 => "ICU heuristic suppresses single-letter 'D.' less aggressively than CLDR's documented rule",
+    3 =>
+      "ICU heuristic suppresses single-letter 'D.' less aggressively than CLDR's documented rule",
     4 => "ICU heuristic skips short suppressions like 'On.' in some contexts"
   }
 

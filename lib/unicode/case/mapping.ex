@@ -110,7 +110,8 @@ defmodule Unicode.String.Case.Mapping do
         <<prior::binary-size(^bytes_so_far), _remaining::binary>> = string
         bytes_so_far = bytes_so_far + unquote(codepoint_bytes)
 
-        if Regex.match?(~r/#{@final_sigma_before}/u, prior) && !Regex.match?(~r/#{@final_sigma_after}/u, rest) do
+        if Regex.match?(~r/#{@final_sigma_before}/u, prior) &&
+             !Regex.match?(~r/#{@final_sigma_after}/u, rest) do
           casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [
             unquote(replacement) | acc
           ])
@@ -136,11 +137,7 @@ defmodule Unicode.String.Case.Mapping do
         <<prior::binary-size(^bytes_so_far), _remaining::binary>> = string
         bytes_so_far = bytes_so_far + unquote(codepoint_bytes)
 
-        if !Regex.match?(~r/#{@before_dot}/u, prior) do
-          casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [
-            unquote(replacement) | acc
-          ])
-        else
+        if Regex.match?(~r/#{@before_dot}/u, prior) do
           this =
             casing(
               <<unquote(codepoint)::utf8>>,
@@ -152,6 +149,10 @@ defmodule Unicode.String.Case.Mapping do
             )
 
           casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [this | acc])
+        else
+          casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [
+            unquote(replacement) | acc
+          ])
         end
       end
 

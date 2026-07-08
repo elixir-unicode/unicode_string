@@ -70,7 +70,7 @@ defmodule Unicode.String.WordBreakTest do
   test "Unicode.String.next/2 when the passing rule is a :no_break" do
     assert Unicode.String.next(~s(“Hi), locale: :en, break: :word) == {"“", "Hi"}
     assert Unicode.String.next(~s("Du), locale: :de, break: :word) == {"\"", "Du"}
-    assert Unicode.String.next(~s("Hi"), locale: :en, break: :word) ==  {"\"", "Hi\""}
+    assert Unicode.String.next(~s("Hi"), locale: :en, break: :word) == {"\"", "Hi\""}
     assert Unicode.String.next(~s("Hi ), locale: :en, break: :word) == {"\"", "Hi "}
   end
 
@@ -95,16 +95,25 @@ defmodule Unicode.String.WordBreakTest do
     assert Unicode.String.split("明德", locale: :yue_Hant) == ["明德"]
     assert Unicode.String.split("明德", locale: :yue_Hans) == ["明德"]
     assert Unicode.String.split("明德", locale: :zh) == ["明德"]
-    assert Unicode.String.split("明德", locale: :ja) ==["明德"]
+    assert Unicode.String.split("明德", locale: :ja) == ["明德"]
 
     assert Unicode.String.split("สวัสดีเจ้านาย", locale: :th) == ["สวัสดี", "เจ้า", "นาย"]
     assert Unicode.String.split("ສະບາຍດີນາຍຈ້າງ", locale: :lo) == ["ສະບາຍດີ", "ນາຍ", "ຈ້າງ"]
-    assert Unicode.String.split("ສະမင်္ဂလာပါ သူဌေး", locale: :my) == ["ສ", "ະ", "မင်္ဂလာ", "ပါ", " ", "သူဌေး"]
+
+    assert Unicode.String.split("ສະမင်္ဂလာပါ သူဌေး", locale: :my) == [
+             "ສ",
+             "ະ",
+             "မင်္ဂလာ",
+             "ပါ",
+             " ",
+             "သူဌေး"
+           ]
+
     assert Unicode.String.split("ສជំរាបសួរចៅហ្វាយ", locale: :km) == ["ສ", "ជំរាបសួរ", "ចៅហ្វាយ"]
   end
 
   test "Doesn't break after a word-break=extend codepoint when followed by a letter" do
     assert ["Ẹ́va", "Sophia"] ==
-      Unicode.String.split("Ẹ́va Sophia", locale: :pcm, trim: true, break: :word)
+             Unicode.String.split("Ẹ́va Sophia", locale: :pcm, trim: true, break: :word)
   end
 end

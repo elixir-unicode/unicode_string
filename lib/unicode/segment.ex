@@ -190,7 +190,10 @@ defmodule Unicode.String.Segment do
   @split_options [parts: 2, include_captures: true, trim: true]
 
   # Process an `:any op regex` rule at end of string
-  defp evaluate_rule({string_before, <<_::utf8>> = string_after}, {_seq, {_operator, :any, {aft, regex_options}}}) do
+  defp evaluate_rule(
+         {string_before, <<_::utf8>> = string_after},
+         {_seq, {_operator, :any, {aft, regex_options}}}
+       ) do
     aft = Regex.compile!(aft, regex_options)
 
     if Regex.match?(aft, string_after) do
@@ -200,7 +203,10 @@ defmodule Unicode.String.Segment do
     end
   end
 
-  defp evaluate_rule({string_before, string_after}, {_seq, {_operator, :any, {aft, regex_options}}}) do
+  defp evaluate_rule(
+         {string_before, string_after},
+         {_seq, {_operator, :any, {aft, regex_options}}}
+       ) do
     aft = Regex.compile!(aft, regex_options)
 
     case Regex.split(aft, string_after, @split_options) do
@@ -210,7 +216,10 @@ defmodule Unicode.String.Segment do
   end
 
   # Ignore suppressions at end of the string
-  defp evaluate_rule({string_before, string_after}, {10.5, {_operator, {fore, regex_options}, :any}}) do
+  defp evaluate_rule(
+         {string_before, string_after},
+         {10.5, {_operator, {fore, regex_options}, :any}}
+       ) do
     fore = Regex.compile!(fore, regex_options)
 
     if Regex.match?(fore, string_before) do
@@ -231,7 +240,10 @@ defmodule Unicode.String.Segment do
   end
 
   # :any matches end of string
-  defp evaluate_rule({string_before, "" = string_after}, {_seq, {_operator, {fore, regex_options}, :any}}) do
+  defp evaluate_rule(
+         {string_before, "" = string_after},
+         {_seq, {_operator, {fore, regex_options}, :any}}
+       ) do
     fore = Regex.compile!(fore, regex_options)
 
     if Regex.match?(fore, string_before) do
@@ -241,7 +253,10 @@ defmodule Unicode.String.Segment do
     end
   end
 
-  defp evaluate_rule({string_before, string_after}, {_seq, {_operator, {fore, regex_options}, :any}}) do
+  defp evaluate_rule(
+         {string_before, string_after},
+         {_seq, {_operator, {fore, regex_options}, :any}}
+       ) do
     fore = Regex.compile!(fore, regex_options)
 
     if Regex.match?(fore, string_before) do
@@ -252,7 +267,10 @@ defmodule Unicode.String.Segment do
     end
   end
 
-  defp evaluate_rule({string_before, string_after}, {_seq, {_operator, {fore, fore_regex_options}, {aft, aft_regex_options}}}) do
+  defp evaluate_rule(
+         {string_before, string_after},
+         {_seq, {_operator, {fore, fore_regex_options}, {aft, aft_regex_options}}}
+       ) do
     fore = Regex.compile!(fore, fore_regex_options)
     aft = Regex.compile!(aft, aft_regex_options)
 
