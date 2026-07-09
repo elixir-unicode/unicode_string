@@ -1,7 +1,7 @@
 defmodule Unicode.String.MixProject do
   use Mix.Project
 
-  @version "2.1.1"
+  @version "2.2.0"
 
   def project do
     [
@@ -73,7 +73,7 @@ defmodule Unicode.String.MixProject do
 
   defp deps do
     [
-      {:unicode_set, "~> 1.6"},
+      {:unicode_set, "~> 1.7"},
       {:trie, "~> 2.0"},
       {:localize, "~> 0.8 or ~> 1.0", optional: true},
       {:jason, "~> 1.0", optional: true},
