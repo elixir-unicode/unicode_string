@@ -11,6 +11,7 @@ This is the changelog for Unicode String v2.2.0 released on July 9th, 2026.  For
 ### Enhancements
 
 * Add Credo (strict) to CI and development, a 90% test coverage gate, and a checked-in `mix format` pre-commit hook.
+
 * Harden the CI workflow: OTP/Elixir-scoped dependency and build caches, refreshed toolchain matrix, and separate lint, coverage and Dialyzer stages.
 
 ## Unicode String v2.1.0
