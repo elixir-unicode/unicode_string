@@ -431,6 +431,61 @@ defmodule Unicode.String do
   end
 
   @doc """
+  Returns whether a segment is word-like.
+
+  A segment is word-like when it contains at least one
+  alphabetic or numeric codepoint — letters (including
+  ideographs and kana), digits, and combinations such as
+  "can't" or "١٢٣". Segments consisting only of white space,
+  punctuation, or symbols are not word-like.
+
+  This classification mirrors the `isWordLike` property of the
+  JS `Intl.Segmenter` word segments (ICU's word-break rule
+  status): apply it to the segments returned by `split/2` or
+  `stream/2` with `break: :word`.
+
+  ## Arguments
+
+  * `segment` is any `t:String.t/0`, typically a segment
+    returned by `split/2` with `break: :word`.
+
+  ## Returns
+
+  * `true` or `false`.
+
+  ## Examples
+
+      iex> Unicode.String.word_like?("sentence")
+      true
+
+      iex> Unicode.String.word_like?("can't")
+      true
+
+      iex> Unicode.String.word_like?("123")
+      true
+
+      iex> Unicode.String.word_like?(" ")
+      false
+
+      iex> Unicode.String.word_like?(".")
+      false
+
+      iex> "This is a sentence. And another." \\
+      ...> |> Unicode.String.split(break: :word)
+      ...> |> Enum.map(&{&1, Unicode.String.word_like?(&1)})
+      ...> |> Enum.take(4)
+      [{"This", true}, {" ", false}, {"is", true}, {" ", false}]
+
+  """
+  @doc since: "2.3.0"
+  @spec word_like?(segment :: String.t()) :: boolean()
+  def word_like?(segment) when is_binary(segment) do
+    segment
+    |> String.to_charlist()
+    |> Enum.any?(&Property.alphanumeric?/1)
+  end
+
+  @doc """
   Return a stream that breaks a string into
   graphemes, words, sentences or line breaks.
 

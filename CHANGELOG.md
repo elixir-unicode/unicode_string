@@ -1,5 +1,13 @@
 # Changelog
 
+## Unicode String v2.3.0
+
+This is the changelog for Unicode String v2.3.0.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
+
+### Enhancements
+
+* Add `Unicode.String.word_like?/1` which returns whether a segment contains alphabetic or numeric content, mirroring the `isWordLike` property of JS `Intl.Segmenter` word segments (ICU's word-break rule status). Apply it to segments returned by `Unicode.String.split/2` with `break: :word`.
+
 ## Unicode String v2.2.0
 
 This is the changelog for Unicode String v2.2.0 released on July 9th, 2026.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)

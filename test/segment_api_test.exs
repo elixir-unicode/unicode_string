@@ -147,4 +147,35 @@ defmodule Unicode.String.SegmentApiTest do
       assert Segment.unknown_segment_type_error(:zz) =~ "Unknown segment type"
     end
   end
+
+  describe "Unicode.String.word_like?/1" do
+    test "letters, digits, and letter-punctuation combinations are word-like" do
+      assert Unicode.String.word_like?("sentence")
+      assert Unicode.String.word_like?("can't")
+      assert Unicode.String.word_like?("123")
+      assert Unicode.String.word_like?("١٢٣")
+      assert Unicode.String.word_like?("中文")
+      assert Unicode.String.word_like?("カタカナ")
+    end
+
+    test "white space, punctuation, and symbols are not word-like" do
+      refute Unicode.String.word_like?(" ")
+      refute Unicode.String.word_like?(".")
+      refute Unicode.String.word_like?("_")
+      refute Unicode.String.word_like?("—")
+      refute Unicode.String.word_like?("")
+    end
+
+    test "classifies word segments per the JS Intl.Segmenter isWordLike property" do
+      classified =
+        "Hello, 世界! 42."
+        |> Unicode.String.split(break: :word)
+        |> Enum.map(&{&1, Unicode.String.word_like?(&1)})
+
+      assert {"Hello", true} in classified
+      assert {",", false} in classified
+      assert {"42", true} in classified
+      assert {"世界", true} in classified or {"世", true} in classified
+    end
+  end
 end
