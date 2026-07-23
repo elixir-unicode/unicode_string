@@ -75,7 +75,7 @@ defmodule Unicode.String.MixProject do
     [
       {:unicode_set, "~> 1.7"},
       {:trie, "~> 2.0"},
-      {:localize, "~> 0.8 or ~> 1.0", optional: true},
+      {:localize, "~> 1.0-rc", optional: true},
       {:jason, "~> 1.0", optional: true},
       {:sweet_xml, "~> 0.7", runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false, optional: true},
