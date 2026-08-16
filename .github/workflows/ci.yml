@@ -53,6 +53,15 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v5
 
+    # Step: Hash the lockfile in a step rather than with `hashFiles()` in a
+    # cache key. `hashFiles()` is evaluated while the step template is expanded
+    # and has started failing with "Fail to hash files under directory" even
+    # though the checkout has already populated the workspace. A step output is
+    # evaluated when the step runs, so it cannot fail that way.
+    - name: Hash the lockfile
+      id: lockfile
+      run: echo "hash=$(sha256sum mix.lock | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
+
     # Step: Define how to cache deps. Restores existing cache if present.
     # Cache keys include the OTP and Elixir versions so matrix entries
     # never share BEAMs compiled by a different toolchain.
@@ -63,7 +72,7 @@ jobs:
         cache-name: cache-elixir-deps
       with:
         path: deps
-        key: ${{ runner.os }}-otp${{ matrix.otp }}-elixir${{ matrix.elixir }}-mix-deps-${{ hashFiles('**/mix.lock') }}
+        key: ${{ runner.os }}-otp${{ matrix.otp }}-elixir${{ matrix.elixir }}-mix-deps-${{ steps.lockfile.outputs.hash }}
         restore-keys: |
           ${{ runner.os }}-otp${{ matrix.otp }}-elixir${{ matrix.elixir }}-mix-deps-
 
@@ -77,7 +86,7 @@ jobs:
         cache-name: cache-compiled-build
       with:
         path: _build
-        key: ${{ runner.os }}-otp${{ matrix.otp }}-elixir${{ matrix.elixir }}-mix-build-${{ hashFiles('**/mix.lock') }}
+        key: ${{ runner.os }}-otp${{ matrix.otp }}-elixir${{ matrix.elixir }}-mix-build-${{ steps.lockfile.outputs.hash }}
         restore-keys: |
           ${{ runner.os }}-otp${{ matrix.otp }}-elixir${{ matrix.elixir }}-mix-build-
 
