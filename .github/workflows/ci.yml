@@ -58,7 +58,7 @@ jobs:
     # never share BEAMs compiled by a different toolchain.
     - name: Cache deps
       id: cache-deps
-      uses: actions/cache@v5
+      uses: actions/cache@v4
       env:
         cache-name: cache-elixir-deps
       with:
@@ -72,7 +72,7 @@ jobs:
     # project's downloaded deps every run.
     - name: Cache compiled build
       id: cache-build
-      uses: actions/cache@v5
+      uses: actions/cache@v4
       env:
         cache-name: cache-compiled-build
       with:
@@ -114,24 +114,9 @@ jobs:
       if: ${{ matrix.lint }}
       run: mix test --cover
 
-    # Step: Cache the dialyzer PLT. Keyed on the toolchain as well as the
-    # lockfile since a PLT is tagged with the BEAM that built it. Without
-    # this the PLT is rebuilt from scratch on every run, which takes several
-    # minutes.
-    - name: Restore PLT cache
-      if: ${{ matrix.lint }}
-      uses: actions/cache@v5
-      with:
-        path: _build/dev/dialyxir_*
-        key: plt-${{ matrix.elixir }}-${{ matrix.otp }}-${{ hashFiles('mix.lock') }}
-        restore-keys: |
-          plt-${{ matrix.elixir }}-${{ matrix.otp }}-
-
     # Step: Execute dialyzer. Runs on the lint entry only; a single
     # analysis per change is sufficient and avoids rebuilding a PLT for
     # every toolchain in the matrix.
     - name: Run dialyzer
       if: ${{ matrix.lint }}
-      env:
-        MIX_ENV: dev
       run: mix dialyzer
