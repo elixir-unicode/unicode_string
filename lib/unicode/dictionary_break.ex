@@ -109,15 +109,21 @@ defmodule Unicode.String.DictionaryBreak do
   def split_with_fallback("", _locale, _fallback_fn), do: []
 
   def split_with_fallback(string, locale, fallback_fn) do
-    script_range = script_range_for(locale)
-    {:ok, dict_locale} = Dictionary.dictionary_locale(locale)
+    # Without a downloaded dictionary there is nothing to segment a script run
+    # with, so the whole string goes to the standard rules instead.
+    if Dictionary.loaded?(locale) do
+      script_range = script_range_for(locale)
+      {:ok, dict_locale} = Dictionary.dictionary_locale(locale)
 
-    string
-    |> partition_by_script(script_range)
-    |> Enum.flat_map(fn
-      {:dict, segment} -> split_dict_segment(segment, dict_locale, locale)
-      {:other, segment} -> fallback_fn.(segment)
-    end)
+      string
+      |> partition_by_script(script_range)
+      |> Enum.flat_map(fn
+        {:dict, segment} -> split_dict_segment(segment, dict_locale, locale)
+        {:other, segment} -> fallback_fn.(segment)
+      end)
+    else
+      fallback_fn.(string)
+    end
   end
 
   # Segment a single run of dictionary-script characters, leaving very

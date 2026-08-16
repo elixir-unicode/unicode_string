@@ -1,5 +1,15 @@
 # Changelog
 
+## Unicode String v2.3.1
+
+This is the changelog for Unicode String v2.3.1 released on _unreleased_.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
+
+### Bug Fixes
+
+* Word breaking in a dictionary locale now applies the dictionary only to runs of text written in the script(s) that dictionary covers, with the standard Unicode rules governing everything else. Previously `Unicode.String.split("Japanese", break: :word, locale: :ja)` returned each letter separately.
+
+* Word and line breaking no longer raise a `File.Error` when the ICU dictionaries have not been downloaded with `mix unicode.string.download.dictionaries`. Segmentation now falls back to the standard Unicode rules, and `Unicode.String.break/2` and `Unicode.String.splitter/2` return `{:error, reason}`.
+
 ## Unicode String v2.3.0
 
 This is the changelog for Unicode String v2.3.0 released on July 23rd, 2026.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)

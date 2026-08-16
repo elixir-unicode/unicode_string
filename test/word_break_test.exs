@@ -116,4 +116,72 @@ defmodule Unicode.String.WordBreakTest do
     assert ["Ẹ́va", "Sophia"] ==
              Unicode.String.split("Ẹ́va Sophia", locale: :pcm, trim: true, break: :word)
   end
+
+  # A dictionary only knows how to segment the script(s) it covers. Applying it
+  # to text in any other script shatters that text into single characters, so
+  # the standard rules have to govern everything outside a dictionary script run.
+
+  test "Unicode.String.split/2 applies the standard rules outside a dictionary script" do
+    assert Unicode.String.split("Japanese", locale: :ja, trim: true) == ["Japanese"]
+    assert Unicode.String.split("100", locale: :ja, trim: true) == ["100"]
+    assert Unicode.String.split("hello world", locale: :ja, trim: true) == ["hello", "world"]
+
+    for locale <- [:zh, :ja, :th, :lo, :my, :km] do
+      assert Unicode.String.split("hello world", locale: locale, trim: true) ==
+               ["hello", "world"]
+
+      assert Unicode.String.split("100", locale: locale, trim: true) == ["100"]
+    end
+  end
+
+  test "Unicode.String.split/2 breaks mixed script text with the dictionary and the rules" do
+    assert Unicode.String.split("日本語 100 km", locale: :ja, trim: true) ==
+             ["日本語", "100", "km"]
+
+    assert Unicode.String.split("ISO 8601形式の日付", locale: :ja, trim: true) ==
+             ["ISO", "8601", "形式", "の", "日付"]
+
+    assert Unicode.String.split("サンプルCSVファイル", locale: :ja, trim: true) ==
+             ["サンプル", "CSV", "ファイル"]
+
+    assert Unicode.String.split("hello สวัสดี world", locale: :th, trim: true) ==
+             ["hello", "สวัสดี", "world"]
+
+    assert Unicode.String.split("hello ជំរាបសួរ world", locale: :km, trim: true) ==
+             ["hello", "ជំរាបសួរ", "world"]
+  end
+
+  test "Unicode.String.split/2 keeps dictionary script runs intact" do
+    # ー (U+30FC) is Script=Common but is part of a Japanese run
+    assert Unicode.String.split("キロメートル", locale: :ja, trim: true) == ["キロメートル"]
+
+    assert Unicode.String.split("日本語のテキスト", locale: :ja, trim: true) ==
+             ["日本語", "の", "テキスト"]
+
+    # WB13b ($ExtendNumLet × $Katakana) joins these under the standard rules
+    # but the dictionary has to be the one to break the Katakana run
+    assert Unicode.String.split("abc_キロメートル", locale: :root) == ["abc_キロメートル"]
+    assert Unicode.String.split("abc_キロメートル", locale: :ja) == ["abc_", "キロメートル"]
+  end
+
+  test "Unicode.String.split/2 with a dictionary locale preserves the string" do
+    strings = [
+      "日本語 100 km",
+      "iPhone 15 Proの価格は199,800円です",
+      "  日本語  ",
+      "abc日本語def",
+      "hello สวัสดี world",
+      "hello ជំរាបសួរ world",
+      "日本語、テキスト。"
+    ]
+
+    for string <- strings, locale <- [:ja, :zh, :th, :lo, :my, :km] do
+      options = [break: :word, locale: locale]
+
+      assert Enum.join(Unicode.String.split(string, options)) == string
+
+      assert Enum.to_list(Unicode.String.stream(string, options)) ==
+               Unicode.String.split(string, options)
+    end
+  end
 end

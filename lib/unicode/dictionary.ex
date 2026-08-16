@@ -16,6 +16,12 @@ defmodule Unicode.String.Dictionary do
   they are under an open source license and also for consistency with
   [ICU](https://icu.unicode.org).
 
+  A dictionary is applied only to runs of text written in the script(s) it covers -
+  Han, Hiragana and Katakana for Chinese and Japanese, and the corresponding script
+  for Thai, Lao, Khmer and Burmese. Text in any other script, such as Latin words or
+  digits embedded in Japanese text, is broken by the standard
+  [Unicode Segmentation](https://unicode.org/reports/tr29/) rules.
+
   Note that these dictionaries need to be downloaded with
   `mix unicode.string.download.dictionaries` prior to use. Each dictionary
   will be parsed and loaded into [persistent_term](https://www.erlang.org/doc/man/persistent_term)
@@ -33,6 +39,8 @@ defmodule Unicode.String.Dictionary do
   """
 
   alias Unicode.String.Trie
+
+  require Unicode.Set
 
   @app_name :unicode_string
   @dictionary_dir "dictionaries/"
@@ -108,19 +116,97 @@ defmodule Unicode.String.Dictionary do
     :persistent_term.get({@app_name, locale}, nil)
   end
 
+  # The characters each dictionary is able to segment. These sets mirror the
+  # ones used by the ICU dictionary break engines so that a dictionary is
+  # applied only to text written in the script(s) it actually covers. Any other
+  # text - Latin words, digits, punctuation - is segmented by the standard
+  # Unicode word break rules.
+  #
+  # See https://github.com/unicode-org/icu/blob/main/icu4c/source/common/dictbe.cpp
+
+  @doc false
+  def dictionary_script?(codepoint, dictionary)
+
+  # ー and ｰ are the prolonged sound marks and ﾞ and ﾟ the halfwidth voiced
+  # sound marks. All four are Script=Common but only occur in Japanese text.
+  def dictionary_script?(codepoint, :zh)
+      when Unicode.Set.match?(
+             codepoint,
+             "[[:sc=Han:][:sc=Hiragana:][:sc=Katakana:]\\u30FC\\uFF70\\uFF9E\\uFF9F]"
+           ) do
+    true
+  end
+
+  def dictionary_script?(codepoint, :th)
+      when Unicode.Set.match?(codepoint, "[[:sc=Thai:]&[:lb=SA:]]") do
+    true
+  end
+
+  def dictionary_script?(codepoint, :lo)
+      when Unicode.Set.match?(codepoint, "[[:sc=Lao:]&[:lb=SA:]]") do
+    true
+  end
+
+  def dictionary_script?(codepoint, :km)
+      when Unicode.Set.match?(codepoint, "[[:sc=Khmer:]&[:lb=SA:]]") do
+    true
+  end
+
+  def dictionary_script?(codepoint, :my)
+      when Unicode.Set.match?(codepoint, "[[:sc=Myanmar:]&[:lb=SA:]]") do
+    true
+  end
+
+  def dictionary_script?(codepoint, _dictionary) when is_integer(codepoint) do
+    false
+  end
+
+  # Splits `string` at the start of the first run of dictionary script,
+  # returning `{text_before_the_run, run_and_everything_after_it}`. When there
+  # is no dictionary script in `string` the second element is `""`.
+
+  @doc false
+  def split_at_dictionary_run(string, dictionary) do
+    bytes = bytes_before_dictionary_run(string, dictionary, 0)
+    <<before_run::binary-size(^bytes), from_run::binary>> = string
+    {before_run, from_run}
+  end
+
+  defp bytes_before_dictionary_run(<<codepoint::utf8, rest::binary>> = string, dictionary, bytes) do
+    if dictionary_script?(codepoint, dictionary) do
+      bytes
+    else
+      bytes_before_dictionary_run(rest, dictionary, bytes + byte_size(string) - byte_size(rest))
+    end
+  end
+
+  # Either the end of the string or not valid UTF-8. Either way there is no
+  # dictionary script run left to split at.
+  defp bytes_before_dictionary_run(string, _dictionary, bytes) do
+    bytes + byte_size(string)
+  end
+
+  # These are called for every character of a dictionary script run so they
+  # take the dictionary directly from :persistent_term. A dictionary that was
+  # never downloaded is absent rather than empty, hence the explicit default.
+
   @doc false
   def has_key(string, locale) do
     with {:ok, locale} <- dictionary_locale(locale) do
-      dictionary = :persistent_term.get({@app_name, locale})
-      Trie.has_key(string, dictionary)
+      case :persistent_term.get({@app_name, locale}, nil) do
+        nil -> false
+        dictionary -> Trie.has_key(string, dictionary)
+      end
     end
   end
 
   @doc false
   def find_prefix(string, locale) do
     with {:ok, locale} <- dictionary_locale(locale) do
-      dictionary = :persistent_term.get({@app_name, locale})
-      Trie.find_prefix(string, dictionary)
+      case :persistent_term.get({@app_name, locale}, nil) do
+        nil -> :error
+        dictionary -> Trie.find_prefix(string, dictionary)
+      end
     end
   end
 
@@ -138,30 +224,45 @@ defmodule Unicode.String.Dictionary do
   defp load_dictionary(locale, file_name) do
     require Logger
 
-    trie =
-      file_name
-      |> read_dictionary()
-      |> String.split("\n")
-      |> Enum.reject(&(String.starts_with?(&1, @comment_marker) or String.length(&1) == 0))
-      |> Enum.map(fn line ->
-        case String.split(line, "\t") do
-          [word] -> word
-          [word, value] -> {word, String.to_integer(value)}
-        end
-      end)
-      |> Trie.new()
+    with {:ok, contents} <- read_dictionary(file_name) do
+      trie = contents |> dictionary_entries() |> Trie.new()
+      :ok = :persistent_term.put({@app_name, locale}, trie)
+      trie = :persistent_term.get({@app_name, locale})
 
-    :ok = :persistent_term.put({@app_name, locale}, trie)
-    trie = :persistent_term.get({@app_name, locale})
-
-    # Logger.debug("[unicode_string] Loaded word break dictionary for locale #{inspect locale}")
-    {:ok, trie}
+      # Logger.debug("[unicode_string] Loaded word break dictionary for locale #{inspect locale}")
+      {:ok, trie}
+    end
   end
+
+  defp dictionary_entries(contents) do
+    contents
+    |> String.split("\n")
+    |> Enum.reject(&(String.starts_with?(&1, @comment_marker) or String.length(&1) == 0))
+    |> Enum.map(&dictionary_entry/1)
+  end
+
+  defp dictionary_entry(line) do
+    case String.split(line, "\t") do
+      [word] -> word
+      [word, value] -> {word, String.to_integer(value)}
+    end
+  end
+
+  # A dictionary that has not been downloaded is not an error the caller
+  # should have to rescue - word breaking falls back to the standard
+  # Unicode rules - so the read returns an error rather than raising.
 
   defp read_dictionary(file_name) do
     priv_dir = :code.priv_dir(@app_name) |> to_string
     path = Path.join(priv_dir, [@dictionary_dir, file_name])
-    File.read!(path)
+
+    case File.read(path) do
+      {:ok, contents} ->
+        {:ok, contents}
+
+      {:error, reason} ->
+        {:error, "Could not read #{inspect(path)}: #{:file.format_error(reason)}"}
+    end
   end
 
   @doc false

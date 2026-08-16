@@ -213,32 +213,93 @@ defmodule Unicode.String.Break do
   @doc false
   def next("", _locale, _break, _options), do: nil
 
-  def next(string, locale, :word = break, options) when locale in @dictionary_locales do
-    <<char::utf8, rest::binary>> = string
+  def next(string, locale, :word = break, options)
+      when locale in @dictionary_locales do
+    # The guard restricts `locale` to the locales that have a dictionary, so
+    # this always resolves.
+    {:ok, dictionary} = Dictionary.dictionary_locale(locale)
 
-    {<<char::utf8>>, rest}
-    |> next_dict(locale, options)
-    |> repeat_if_trimming_required(locale, break, options, options[:trim])
+    # Without a downloaded dictionary the trie lookups find nothing and every
+    # character becomes its own segment. The standard rules are a much better
+    # answer than that, so fall back to them.
+    if Dictionary.loaded?(dictionary) do
+      next_word_with_dictionary(string, locale, dictionary, break, options)
+    else
+      next_by_rules(string, locale, break, options)
+    end
   end
 
   def next(string, locale, break, options) when break in @break_keys and is_binary(string) do
-    pair =
-      case Map.fetch!(@break_map, break) do
-        :grapheme_cluster_break ->
-          G.next(string)
+    next_by_rules(string, locale, break, options)
+  end
 
-        :word_break ->
-          W.next(string)
+  # A dictionary only knows how to segment the script(s) it covers. Applying it
+  # to anything else - Latin words, digits, punctuation - shatters that text
+  # into single characters, so only runs of dictionary script go to the
+  # dictionary and everything else goes to the standard rules.
 
-        :sentence_break ->
-          S.next(string, locale, sentence_suppressions(locale, options))
-
-        :line_break ->
-          L.next(string)
-      end
-
-    pair
+  defp next_word_with_dictionary(string, locale, dictionary, break, options) do
+    string
+    |> word_pair_with_dictionary(dictionary, locale, break, options)
     |> repeat_if_trimming_required(locale, break, options, options[:trim])
+  end
+
+  defp word_pair_with_dictionary(
+         <<char::utf8, rest::binary>> = string,
+         dictionary,
+         locale,
+         break,
+         options
+       ) do
+    if Dictionary.dictionary_script?(char, dictionary) do
+      next_dict({<<char::utf8>>, rest}, dictionary, options)
+    else
+      string
+      |> break_pair(locale, break, options)
+      |> truncate_at_dictionary_run(dictionary)
+    end
+  end
+
+  # Not valid UTF-8. Leave it to the standard rules to deal with.
+  defp word_pair_with_dictionary(string, _dictionary, locale, break, options) do
+    break_pair(string, locale, break, options)
+  end
+
+  # A rule such as WB13b (`$ExtendNumLet × $Katakana`) can carry a segment past
+  # the start of a dictionary script run. Cut the segment back so the
+  # dictionary, not the rules, decides how that run is broken.
+
+  defp truncate_at_dictionary_run(nil, _dictionary) do
+    nil
+  end
+
+  defp truncate_at_dictionary_run({segment, rest}, dictionary) do
+    case Dictionary.split_at_dictionary_run(segment, dictionary) do
+      {^segment, ""} -> {segment, rest}
+      {truncated, remaining} -> {truncated, remaining <> rest}
+    end
+  end
+
+  defp next_by_rules(string, locale, break, options) do
+    string
+    |> break_pair(locale, break, options)
+    |> repeat_if_trimming_required(locale, break, options, options[:trim])
+  end
+
+  defp break_pair(string, locale, break, options) do
+    case Map.fetch!(@break_map, break) do
+      :grapheme_cluster_break ->
+        G.next(string)
+
+      :word_break ->
+        W.next(string)
+
+      :sentence_break ->
+        S.next(string, locale, sentence_suppressions(locale, options))
+
+      :line_break ->
+        L.next(string)
+    end
   end
 
   defp repeat_if_trimming_required(nil, _locale, _break, _options, _) do
@@ -263,6 +324,17 @@ defmodule Unicode.String.Break do
 
   defp next_dict({string_before, string_after}, locale, options) do
     <<next::utf8, rest::binary>> = string_after
+
+    if Dictionary.dictionary_script?(next, locale) do
+      next_dict_word({string_before, string_after}, {next, rest}, locale, options)
+    else
+      # The end of the dictionary script run. The standard rules take over from
+      # here so the dictionary must not consume any further.
+      {string_before, string_after}
+    end
+  end
+
+  defp next_dict_word({string_before, string_after}, {next, rest}, locale, options) do
     word = string_before <> <<next::utf8>>
 
     case Dictionary.find_prefix(word, locale) do
