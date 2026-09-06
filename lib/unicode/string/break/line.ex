@@ -10,7 +10,8 @@ defmodule Unicode.String.Break.Line do
   cluster of close/postfix punctuation, the OP/CL pair (LB14–LB17),
   the LB15c/LB15d numeric-prefix carve-out, the LB20a word-initial
   hyphen rule, the LB21a Hebrew-letter trailing hyphen rule,
-  Brahmic / numeric / alphabetic continuations (LB22–LB30b), the
+  Brahmic orthographic syllables (LB28a), numeric and alphabetic
+  continuations (LB22–LB30b), the
   Hangul rules (LB26–LB27), Regional_Indicator parity (LB30a), and
   emoji-modifier (LB30b).
 
@@ -39,11 +40,6 @@ defmodule Unicode.String.Break.Line do
     This module currently implements only the standard mode (`CJ →
     NS`). Several Japanese-locale cases in ICU's `rbbitst.txt`
     expect loose-mode behaviour and therefore differ.
-
-
-  * **LB28a (Brahmic clusters).** Indic conjunct clusters
-    (`AK`/`AP`/`AS`/`VI`/`VF`) follow the default break rules rather
-    than the Brahmic-specific cluster handling.
 
   These gaps are tracked by the line-break conformance regression
   tests in `test/line_break_conformance_test.exs`.
@@ -131,6 +127,14 @@ defmodule Unicode.String.Break.Line do
     hh: :hy
   }
 
+  # LB28a gives U+25CC DOTTED CIRCLE a role of its own within a Brahmic
+  # orthographic syllable, so it is split out of AL. Everywhere else it is an
+  # ordinary alphabetic and the rules match `@alphabetic`. This mirrors the
+  # ALmEastAsianmDottedCircle symbol in the UAX #14 state machine data.
+  @dotted_circle 0x25CC
+
+  defp classify(@dotted_circle), do: :dotted_circle
+
   defp classify(cp) do
     case LineBreak.line_break(cp) do
       :sa -> sa_class(cp)
@@ -167,6 +171,13 @@ defmodule Unicode.String.Break.Line do
   end
 
   @quotation [:qu, :qu_pi, :qu_pf]
+
+  @alphabetic [:al, :dotted_circle]
+
+  # LB28a: AP × (AK | [◌] | AS) etc. `@ak_base` is (AK | [◌] | AS) and
+  # `@ak_only` is (AK | [◌]).
+  @ak_base [:ak, :as, :dotted_circle]
+  @ak_only [:ak, :dotted_circle]
 
   # LB15a: (sot | BK | CR | LF | NL | OP | QU | GL | SP | ZW) [\p{Pi}&QU] SP* ×
   @lb15a_left [:sot, :bk, :cr, :lf, :nl, :gl, :sp, :zw] ++ @open_punctuation ++ @quotation
@@ -401,7 +412,7 @@ defmodule Unicode.String.Break.Line do
       # LB20a: Do not break after a word-initial hyphen.
       # ^(HY | HH) (AL | HL) — at start of text or after a space-/
       # break-class character. (HH is mapped to HY by LB1.)
-      eff_prev == :hy and curr in [:al, :hl] and
+      eff_prev == :hy and curr in [:hl | @alphabetic] and
           eff_prev2 in [:sot, :bk, :cr, :lf, :nl, :sp, :zw, :cb, :gl] ->
         :no_break
 
@@ -423,10 +434,10 @@ defmodule Unicode.String.Break.Line do
         :no_break
 
       # LB23: (AL | HL) × NU; NU × (AL | HL)
-      eff_prev in [:al, :hl] and curr == :nu ->
+      eff_prev in [:hl | @alphabetic] and curr == :nu ->
         :no_break
 
-      eff_prev == :nu and curr in [:al, :hl] ->
+      eff_prev == :nu and curr in [:hl | @alphabetic] ->
         :no_break
 
       # LB23a: PR × (ID | EB | EM); (ID | EB | EM) × PO
@@ -437,10 +448,10 @@ defmodule Unicode.String.Break.Line do
         :no_break
 
       # LB24: (PR | PO) × (AL | HL); (AL | HL) × (PR | PO)
-      eff_prev in [:pr, :po] and curr in [:al, :hl] ->
+      eff_prev in [:pr, :po] and curr in [:hl | @alphabetic] ->
         :no_break
 
-      eff_prev in [:al, :hl] and curr in [:pr, :po] ->
+      eff_prev in [:hl | @alphabetic] and curr in [:pr, :po] ->
         :no_break
 
       # LB25 (subset): numeric expressions — keep numeric runs intact.
@@ -471,20 +482,37 @@ defmodule Unicode.String.Break.Line do
         :no_break
 
       # LB28: (AL | HL) × (AL | HL)
-      eff_prev in [:al, :hl] and curr in [:al, :hl] ->
+      eff_prev in [:hl | @alphabetic] and curr in [:hl | @alphabetic] ->
+        :no_break
+
+      # LB28a: do not break inside the orthographic syllables of Brahmic scripts.
+      #   AP × (AK | [◌] | AS)
+      eff_prev == :ap and curr in @ak_base ->
+        :no_break
+
+      #   (AK | [◌] | AS) × (VF | VI)
+      eff_prev in @ak_base and curr in [:vf, :vi] ->
+        :no_break
+
+      #   (AK | [◌] | AS) VI × (AK | [◌])
+      eff_prev == :vi and eff_prev2 in @ak_base and curr in @ak_only ->
+        :no_break
+
+      #   (AK | [◌] | AS) × (AK | [◌] | AS) VF
+      eff_prev in @ak_base and curr in @ak_base and peek_class(rest) == :vf ->
         :no_break
 
       # LB29: IS × (AL | HL)
-      eff_prev == :is and curr in [:al, :hl] ->
+      eff_prev == :is and curr in [:hl | @alphabetic] ->
         :no_break
 
       # LB30: (AL | HL | NU) × [OP - [\p{ea=F}\p{ea=W}\p{ea=H}]]
       #       [CP - [\p{ea=F}\p{ea=W}\p{ea=H}]] × (AL | HL | NU)
       # The wide variants are `:op_ea` / `:cp_ea` and deliberately excluded.
-      eff_prev in [:al, :hl, :nu] and curr == :op ->
+      eff_prev in [:hl, :nu | @alphabetic] and curr == :op ->
         :no_break
 
-      eff_prev == :cp and curr in [:al, :hl, :nu] ->
+      eff_prev == :cp and curr in [:hl, :nu | @alphabetic] ->
         :no_break
 
       # LB30a: RI RI (parity even after the pair forms) — keep odd-RI×RI

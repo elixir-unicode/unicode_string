@@ -21,11 +21,9 @@ defmodule Unicode.String.LineBreakConformanceTest do
   #   Katakana). This module implements only standard `CJ → NS`.
   #   This accounts for the majority of the remaining ICU failures.
   #
-  # * **LB28a (Brahmic clusters)** — Indic AK/AP/AS/VI/VF clusters
-  #   are not handled.
   #
-  @ucd_pass_floor 19_235
-  @icu_pass_floor 173
+  @ucd_pass_floor 19_259
+  @icu_pass_floor 176
 
   describe "Unicode UCD LineBreakTest.txt (#{@ucd_pass_floor} of 19_346 cases must pass)" do
     test "minimum-pass-count baseline" do
