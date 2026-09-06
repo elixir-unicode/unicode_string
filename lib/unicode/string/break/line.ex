@@ -6,7 +6,7 @@ defmodule Unicode.String.Break.Line do
   realistic prose: the LB1 resolution of ambiguous classes, mandatory
   breaks (LB4–LB6), spaces (LB7–LB8a, LB18), combining marks (LB9–LB10),
   word-joiner / glue / quotation behavior (LB11–LB12a, LB15a–LB15b,
-  LB19), the LB13
+  LB19–LB19a), the LB13
   cluster of close/postfix punctuation, the OP/CL pair (LB14–LB17),
   the LB15c/LB15d numeric-prefix carve-out, the LB20a word-initial
   hyphen rule, the LB21a Hebrew-letter trailing hyphen rule,
@@ -40,12 +40,6 @@ defmodule Unicode.String.Break.Line do
     NS`). Several Japanese-locale cases in ICU's `rbbitst.txt`
     expect loose-mode behaviour and therefore differ.
 
-  * **LB19 / LB19a (unresolved quotation marks).** This module
-    suppresses breaks on both sides of every `QU`. LB19 is narrower —
-    `× [QU - \p{Pi}]` and `[QU - \p{Pf}] ×` — and LB19a restores the
-    suppression only outside East Asian context. Implementing LB19
-    without LB19a would introduce breaks that LB19a is there to
-    prevent, so the two need doing together.
 
   * **LB28a (Brahmic clusters).** Indic conjunct clusters
     (`AK`/`AP`/`AS`/`VI`/`VF`) follow the default break rules rather
@@ -59,6 +53,10 @@ defmodule Unicode.String.Break.Line do
   * `effective_prev` — the previous non-CM/non-ZWJ class, after LB1
     resolution and LB9 (combining marks taking the class of their base).
   * `prev_actual` — the immediately previous class, for LB5 (CR×LF).
+  * `prev_ea` / `prev2_ea` — whether the characters behind
+    `effective_prev` and its predecessor have an `East_Asian_Width` of
+    `F`, `W` or `H`, which LB19a needs. `prev2_ea` is `:sot` at the
+    start of the text.
   * `space_run` — `:none`, `:after_op`, `:after_pi_qu`, `:after_cl`,
     `:after_b2`, or `:after_zw`. Tracks the `X SP*` patterns required
     by LB14, LB15, LB16, LB17, and LB8.
@@ -94,14 +92,14 @@ defmodule Unicode.String.Break.Line do
 
   def break?(before, <<curr_cp::utf8, rest::binary>>) do
     state = trailing_state(before)
-    decide_op(state, classify(curr_cp), rest) == :break
+    decide_op(state, classify(curr_cp), curr_cp, rest) == :break
   end
 
   ## Walker
 
   defp next_boundary(<<cp::utf8, rest::binary>> = string) do
     cls = classify(cp)
-    state = initial_state(cls)
+    state = initial_state(cls, east_asian_wide?(cp))
     walk(rest, state, byte_size_utf8(cp), string)
   end
 
@@ -110,12 +108,12 @@ defmodule Unicode.String.Break.Line do
   defp walk(<<cp::utf8, rest::binary>> = remainder, state, taken, string) do
     cls = classify(cp)
 
-    case decide_op(state, cls, rest) do
+    case decide_op(state, cls, cp, rest) do
       :break ->
         {taken, remainder}
 
       :no_break ->
-        new_state = advance(state, cls)
+        new_state = advance(state, cls, cp)
         walk(rest, new_state, taken + byte_size_utf8(cp), string)
     end
   end
@@ -198,7 +196,7 @@ defmodule Unicode.String.Break.Line do
   defp lb10_resolve(cls) when cls in [:cm, :zwj], do: :al
   defp lb10_resolve(cls), do: cls
 
-  defp initial_state(cls) do
+  defp initial_state(cls, east_asian?) do
     cls = lb10_resolve(cls)
 
     {ri_parity, _} =
@@ -218,17 +216,27 @@ defmodule Unicode.String.Break.Line do
 
     # `:sot` (start-of-text) is the eff_prev2 sentinel for the very first
     # character; this lets LB20a recognise word-initial hyphens at the
-    # beginning of input (^(HY|HH) AL → no break).
-    {cls, :sot, cls, space_run, ri_parity}
+    # beginning of input (^(HY|HH) AL → no break), and gives LB19a its
+    # `(sot | [^$EastAsian])` alternative.
+    {cls, :sot, cls, space_run, ri_parity, east_asian?, :sot}
   end
 
-  defp advance({eff_prev, eff_prev2, _prev_actual, space_run, ri_parity}, cls) do
+  defp advance(
+         {eff_prev, eff_prev2, _prev_actual, space_run, ri_parity, prev_ea, prev2_ea},
+         cls,
+         cp
+       ) do
     # eff_prev2 is the previous *non-transparent* class — it's preserved
     # when curr is CM/ZWJ (LB9 transparency) and otherwise rolls forward.
-    new_eff_prev2 = if cls in [:cm, :zwj], do: eff_prev2, else: eff_prev
+    # `prev_ea` / `prev2_ea` shadow them with the East_Asian_Width answer
+    # for the same character, which LB19a needs.
+    transparent? = cls in [:cm, :zwj]
+    new_eff_prev2 = if transparent?, do: eff_prev2, else: eff_prev
+    new_prev2_ea = if transparent?, do: prev2_ea, else: prev_ea
+    new_prev_ea = if transparent?, do: prev_ea, else: east_asian_wide?(cp)
 
     {next_eff_prev(cls, eff_prev), new_eff_prev2, cls, next_space_run(cls, space_run, eff_prev),
-     next_ri_parity(cls, ri_parity)}
+     next_ri_parity(cls, ri_parity), new_prev_ea, new_prev2_ea}
   end
 
   # RI runs toggle odd/even parity so LB30a can pair regional indicators;
@@ -266,8 +274,8 @@ defmodule Unicode.String.Break.Line do
 
   defp trailing_state(string_before) do
     [first | rest] = String.to_charlist(string_before)
-    state = initial_state(classify(first))
-    Enum.reduce(rest, state, fn cp, st -> advance(st, classify(cp)) end)
+    state = initial_state(classify(first), east_asian_wide?(first))
+    Enum.reduce(rest, state, fn cp, st -> advance(st, classify(cp), cp) end)
   end
 
   ## Decision
@@ -279,7 +287,9 @@ defmodule Unicode.String.Break.Line do
   # table (LB4–LB31). Its branch count mirrors the specification; splitting
   # it would obscure the one-to-one correspondence with the rules.
   # credo:disable-for-next-line Credo.Check.Refactor.CyclomaticComplexity
-  defp decide_op({eff_prev, eff_prev2, prev_actual, space_run, ri_parity}, curr, rest) do
+  defp decide_op(state, curr, curr_cp, rest) do
+    {eff_prev, eff_prev2, prev_actual, space_run, ri_parity, prev_ea, prev2_ea} = state
+
     cond do
       # LB4: BK !
       eff_prev == :bk ->
@@ -369,8 +379,19 @@ defmodule Unicode.String.Break.Line do
       eff_prev == :sp ->
         :break
 
-      # LB19: × QU, QU ×
-      curr in @quotation or eff_prev in @quotation ->
+      # LB19:  × [QU - \p{Pi}] and [QU - \p{Pf}] ×
+      curr in [:qu, :qu_pf] or eff_prev in [:qu, :qu_pi] ->
+        :no_break
+
+      # LB19a: unless surrounded by East Asian characters, do not break either
+      # side of any quotation mark.
+      #   [^$EastAsian] × QU        and  × QU ([^$EastAsian] | eot)
+      curr in @quotation and (not prev_ea or not peek_east_asian?(rest)) ->
+        :no_break
+
+      #   QU × [^$EastAsian]        and  (sot | [^$EastAsian]) QU ×
+      eff_prev in @quotation and
+          (not east_asian_wide?(curr_cp) or prev2_ea == :sot or not prev2_ea) ->
         :no_break
 
       # LB20: ÷ CB; CB ÷
@@ -484,6 +505,16 @@ defmodule Unicode.String.Break.Line do
   # Look at the first codepoint of `rest`, skipping over CM and ZWJ
   # (LB9 transparency), and return its line-break class. `nil` if rest
   # is empty.
+  # LB19a treats end of text like a non-East-Asian character.
+  defp peek_east_asian?(""), do: false
+
+  defp peek_east_asian?(<<cp::utf8, rest::binary>>) do
+    case classify(cp) do
+      cls when cls in [:cm, :zwj] -> peek_east_asian?(rest)
+      _cls -> east_asian_wide?(cp)
+    end
+  end
+
   defp peek_class(""), do: nil
 
   defp peek_class(<<cp::utf8, rest::binary>>) do
