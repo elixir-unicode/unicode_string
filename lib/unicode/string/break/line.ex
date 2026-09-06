@@ -123,13 +123,11 @@ defmodule Unicode.String.Break.Line do
 
   ## Class resolution (LB1, plus partial LB9 for prev/curr)
 
-  # LB1: AI, SG, XX → AL; SA → AL or CM (we treat as AL for non-Mn/Mc; CM for Mn/Mc — approximated as AL); CJ → NS.
-  # We do not currently distinguish SA-Mn/Mc; treating SA as AL is acceptable for the pair table.
+  # LB1: AI, SG, XX → AL; SA → CM or AL by General_Category; CJ → NS.
   @lb1_map %{
     ai: :al,
     sg: :al,
     xx: :al,
-    sa: :al,
     cj: :ns,
     # The unicode dep classifies U+2010 etc. as :hh; UAX #14 itself
     # uses :hy (Hyphen). Treat them identically.
@@ -137,13 +135,34 @@ defmodule Unicode.String.Break.Line do
   }
 
   defp classify(cp) do
-    raw = LineBreak.line_break(cp)
-    Map.get(@lb1_map, raw, raw)
+    case LineBreak.line_break(cp) do
+      :sa -> sa_class(cp)
+      raw -> Map.get(@lb1_map, raw, raw)
+    end
+  end
+
+  # LB1 resolves SA (Complex_Context) to CM when its General_Category is Mn or
+  # Mc, and to AL otherwise. The distinction matters wherever the preceding
+  # class treats the two differently: `ID × CM` does not break, `ID ÷ AL` does.
+  @sa_combining_categories [:Mn, :Mc]
+
+  defp sa_class(cp) do
+    if Unicode.category(cp) in @sa_combining_categories, do: :cm, else: :al
   end
 
   ## State
 
+  # LB10: a CM or ZWJ with no base to attach to is treated as AL. `next_eff_prev/2`
+  # covers the case where the base is a class LB9 excludes (BK, CR, LF, NL, SP, ZW);
+  # this covers the other one, a combining mark at the start of the text. Every
+  # break restarts the walker, so "start of the text" is also every position
+  # immediately after a break.
+  defp lb10_resolve(cls) when cls in [:cm, :zwj], do: :al
+  defp lb10_resolve(cls), do: cls
+
   defp initial_state(cls) do
+    cls = lb10_resolve(cls)
+
     {ri_parity, _} =
       if cls == :ri, do: {:odd, true}, else: {:even, false}
 

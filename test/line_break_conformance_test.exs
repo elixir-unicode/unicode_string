@@ -29,7 +29,7 @@ defmodule Unicode.String.LineBreakConformanceTest do
   #
   # * **LB30 East-Asian-width sensitivity** — LB30 (AL|HL|NU) × OP
   #   does not distinguish F/W/H widths from others.
-  @ucd_pass_floor 18_656
+  @ucd_pass_floor 18_937
   @icu_pass_floor 162
 
   describe "Unicode UCD LineBreakTest.txt (#{@ucd_pass_floor} of 19_346 cases must pass)" do

@@ -4,6 +4,12 @@
 
 This is the changelog for Unicode String v2.4.0 released on _unreleased_.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
 
+### Bug Fixes
+
+* Apply LB10 to a combining mark that begins a segment. A `CM` or `ZWJ` with no base to attach to is now treated as `AL`, where previously it kept class `CM` and admitted a spurious break before the following character.
+
+* Resolve `Line_Break=SA` by General_Category as LB1 requires, to `CM` for `Mn` and `Mc` and to `AL` otherwise. Previously all `SA` resolved to `AL`, which broke sequences such as an ideograph followed by a Thai combining mark.
+
 ### Enhancements
 
 * Support Unicode 18.0.0. Rule GB9c no longer requires a leading `Indic_Conjunct_Break=Consonant`, so a linker opens a conjunct sequence from any position including the start of text. Segmentation test data is refreshed to 18.0.0.
