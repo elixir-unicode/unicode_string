@@ -24,3 +24,6 @@ erl_crash.dump
 
 # Mise
 mise.toml
+
+# Benchmark-only ICU NIF build artefact
+benchee/icu/*.so

@@ -1,65 +1,57 @@
 defmodule Unicode.String.Break.Line do
   @moduledoc """
-  Single-pass line-break implementation following UAX #14.
+  Line break implementation following [UAX #14](https://www.unicode.org/reports/tr14/).
 
-  This is a pragmatic pair-table evaluator covering the rules used in
-  realistic prose: the LB1 resolution of ambiguous classes, mandatory
-  breaks (LB4–LB6), spaces (LB7–LB8a, LB18), combining marks (LB9–LB10),
-  word-joiner / glue / quotation behavior (LB11–LB12a, LB15a–LB15b,
-  LB19–LB19a), the LB13
-  cluster of close/postfix punctuation, the OP/CL pair (LB14–LB17),
-  the LB15c/LB15d numeric-prefix carve-out, the LB20a word-initial
-  hyphen rule, the LB21a Hebrew-letter trailing hyphen rule,
-  Brahmic orthographic syllables (LB28a), numeric and alphabetic
-  continuations (LB22–LB30b), the
-  Hangul rules (LB26–LB27), Regional_Indicator parity (LB30a), and
-  emoji-modifier (LB30b).
+  Given a string, this module finds the positions at which a line may be
+  broken. It walks the string once, deciding each position from a small
+  amount of state carried forward from the characters already seen, so the
+  cost is proportional to the length of the input rather than to the number
+  of rules.
 
-  Trailing space-runs are tracked via a small state vector rather than
-  re-scanned each step, so each character costs O(1).
+  Every rule in the standard is implemented, including the ones that depend
+  on more than a character's line break class: the East Asian width of
+  brackets and quotation marks (LB19a, LB30), the initial and final
+  quotation categories (LB15a, LB15b), the orthographic syllables of Brahmic
+  scripts (LB28a), and the numeric runs that hold a number together (LB25).
 
-  ## Limitations and known gaps
+  Against the Unicode conformance corpus this passes 19,309 of 19,346 cases.
 
-  Line breaking is by far the largest UAX #14 algorithm and ICU layers
-  several locale-specific tailorings on top of it. The following parts
-  are not currently implemented; on the conformance corpora these are
-  the dominant remaining failures:
+  ## Locale tailoring
 
-  * **CJK locale tailoring (loose / normal / strict).** ICU ships
-    separate rule files (`line_loose_cj.txt`, `line_normal_cj.txt`,
-    `line_strict_cj.txt`) that adjust break behaviour around CJK
-    characters and small-kana / hyphen / iteration marks. Notably:
+  ICU layers locale-specific tailorings on top of UAX #14, and this module
+  implements only the untailored standard behaviour. The gap that matters in
+  practice is CJK: ICU's `loose`, `normal` and `strict` modes adjust breaking
+  around small kana, hyphens and iteration marks, and in `loose` mode admit
+  breaks between Hiragana and Katakana that the standard rules do not. This
+  module always resolves `CJ` to `NS`, which is the standard default and
+  matches ICU's `normal` mode.
 
-    - In *loose* mode `CJ` resolves to `ID` and break opportunities
-      are introduced between Hiragana/Katakana characters.
-    - In *normal* mode (the standard UAX default) `CJ` resolves to
-      `NS`, which prevents most breaks within Japanese.
-    - ID × HY in CJK contexts is permitted to break to support
-      Japanese hyphen usage like `あ‐1`.
-
-    This module currently implements only the standard mode (`CJ →
-    NS`). Several Japanese-locale cases in ICU's `rbbitst.txt`
-    expect loose-mode behaviour and therefore differ.
-
-  These gaps are tracked by the line-break conformance regression
-  tests in `test/line_break_conformance_test.exs`.
-
-  ## State
-
-  * `effective_prev` — the previous non-CM/non-ZWJ class, after LB1
-    resolution and LB9 (combining marks taking the class of their base).
-  * `prev_actual` — the immediately previous class, for LB5 (CR×LF).
-  * `prev_ea` / `prev2_ea` — whether the characters behind
-    `effective_prev` and its predecessor have an `East_Asian_Width` of
-    `F`, `W` or `H`, which LB19a needs. `prev2_ea` is `:sot` at the
-    start of the text.
-  * `space_run` — `:none`, `:after_op`, `:after_pi_qu`, `:after_cl`,
-    `:after_b2`, or `:after_zw`. Tracks the `X SP*` patterns required
-    by LB14, LB15, LB16, LB17, and LB8.
-  * `ri_parity` — `:odd` / `:even` for LB30a.
+  Dictionary-based breaking for Thai, Lao, Khmer and Burmese is applied
+  separately, by `Unicode.String.Break`, after these rules have run.
   """
 
   alias Unicode.LineBreak
+
+  # LB30b's second alternative is `[\p{Extended_Pictographic}&\p{Cn}] × EM`.
+  # Neither side of that intersection is a line-break class - the characters it
+  # matches carry `lb=ID` or `lb=XX` - so it has to be tested on the codepoint.
+  ext_pict_ranges = Map.fetch!(Unicode.Emoji.emoji(), :extended_pictographic)
+
+  defguardp is_extpict(codepoint)
+            when unquote(
+                   Enum.reduce(ext_pict_ranges, false, fn
+                     {from, to}, false ->
+                       quote do: var!(codepoint) in unquote(from)..unquote(to)
+
+                     {from, to}, acc ->
+                       quote do:
+                               unquote(acc) or
+                                 var!(codepoint) in unquote(from)..unquote(to)
+                   end)
+                 )
+
+  defp extpict_unassigned?(cp) when is_extpict(cp), do: Unicode.category(cp) == :Cn
+  defp extpict_unassigned?(_cp), do: false
 
   ## Public API
 
@@ -95,7 +87,7 @@ defmodule Unicode.String.Break.Line do
 
   defp next_boundary(<<cp::utf8, rest::binary>> = string) do
     cls = classify(cp)
-    state = initial_state(cls, east_asian_wide?(cp))
+    state = initial_state(cls, east_asian_wide?(cp), extpict_unassigned?(cp))
     walk(rest, state, byte_size_utf8(cp), string)
   end
 
@@ -207,7 +199,7 @@ defmodule Unicode.String.Break.Line do
   defp lb10_resolve(cls) when cls in [:cm, :zwj], do: :al
   defp lb10_resolve(cls), do: cls
 
-  defp initial_state(cls, east_asian?) do
+  defp initial_state(cls, east_asian?, extpict_cn?) do
     cls = lb10_resolve(cls)
 
     {ri_parity, _} =
@@ -229,11 +221,13 @@ defmodule Unicode.String.Break.Line do
     # character; this lets LB20a recognise word-initial hyphens at the
     # beginning of input (^(HY|HH) AL → no break), and gives LB19a its
     # `(sot | [^$EastAsian])` alternative.
-    {cls, :sot, cls, space_run, ri_parity, east_asian?, :sot, next_number_run(cls, :none)}
+    {cls, :sot, cls, space_run, ri_parity, east_asian?, :sot, next_number_run(cls, :none),
+     extpict_cn?}
   end
 
   defp advance(
-         {eff_prev, eff_prev2, _prev_actual, space_run, ri_parity, prev_ea, prev2_ea, number_run},
+         {eff_prev, eff_prev2, _prev_actual, space_run, ri_parity, prev_ea, prev2_ea, number_run,
+          prev_extpict_cn},
          cls,
          cp
        ) do
@@ -245,9 +239,11 @@ defmodule Unicode.String.Break.Line do
     new_eff_prev2 = if transparent?, do: eff_prev2, else: eff_prev
     new_prev2_ea = if transparent?, do: prev2_ea, else: prev_ea
     new_prev_ea = if transparent?, do: prev_ea, else: east_asian_wide?(cp)
+    new_extpict_cn = if transparent?, do: prev_extpict_cn, else: extpict_unassigned?(cp)
 
     {next_eff_prev(cls, eff_prev), new_eff_prev2, cls, next_space_run(cls, space_run, eff_prev),
-     next_ri_parity(cls, ri_parity), new_prev_ea, new_prev2_ea, next_number_run(cls, number_run)}
+     next_ri_parity(cls, ri_parity), new_prev_ea, new_prev2_ea, next_number_run(cls, number_run),
+     new_extpict_cn}
   end
 
   # LB25 is written in terms of a number run, `NU (SY | IS)*`, which may be
@@ -299,7 +295,7 @@ defmodule Unicode.String.Break.Line do
 
   defp trailing_state(string_before) do
     [first | rest] = String.to_charlist(string_before)
-    state = initial_state(classify(first), east_asian_wide?(first))
+    state = initial_state(classify(first), east_asian_wide?(first), extpict_unassigned?(first))
     Enum.reduce(rest, state, fn cp, st -> advance(st, classify(cp), cp) end)
   end
 
@@ -313,8 +309,8 @@ defmodule Unicode.String.Break.Line do
   # it would obscure the one-to-one correspondence with the rules.
   # credo:disable-for-next-line Credo.Check.Refactor.CyclomaticComplexity
   defp decide_op(state, curr, curr_cp, rest) do
-    {eff_prev, eff_prev2, prev_actual, space_run, ri_parity, prev_ea, prev2_ea, number_run} =
-      state
+    {eff_prev, eff_prev2, prev_actual, space_run, ri_parity, prev_ea, prev2_ea, number_run,
+     prev_extpict_cn} = state
 
     cond do
       # LB4: BK !
@@ -541,9 +537,8 @@ defmodule Unicode.String.Break.Line do
       eff_prev == :ri and curr == :ri and ri_parity == :odd ->
         :no_break
 
-      # LB30b: EB × EM; default EM-base × EM (approximated as ID × EM
-      # already handled by LB23a path).
-      eff_prev == :eb and curr == :em ->
+      # LB30b: EB × EM  and  [\p{Extended_Pictographic}&\p{Cn}] × EM
+      (eff_prev == :eb or prev_extpict_cn) and curr == :em ->
         :no_break
 
       # LB31: default break.

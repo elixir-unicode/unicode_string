@@ -6,6 +6,8 @@ This is the changelog for Unicode String v2.4.0 released on _unreleased_.  For o
 
 ### Bug Fixes
 
+* Complete LB30b with its `[\p{Extended_Pictographic}&\p{Cn}] × EM` alternative, so an unassigned pictographic keeps its emoji modifier. These characters carry `lb=ID` or `lb=XX`, so the rule cannot be expressed in line-break classes alone.
+
 * Implement LB25 in full, tracking the `NU (SY | IS)*` number run it is defined over. Numeric prefixes and postfixes now join only where a number is actually present, so `PO × OP` no longer suppresses a break unless a number follows the open punctuation.
 
 * Implement LB28a, so breaks are suppressed inside the orthographic syllables of Brahmic scripts across the `AP`, `AK`, `AS`, `VI` and `VF` classes and U+25CC DOTTED CIRCLE.

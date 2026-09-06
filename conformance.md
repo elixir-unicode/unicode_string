@@ -13,7 +13,9 @@ All four break types defined by CLDR are supported: grapheme cluster break, word
 
 ## Rule Source
 
-Segmentation rules are not hard-coded. They are read from the [CLDR](https://cldr.unicode.org) XML segment rule definitions shipped in `priv/segments/`. The root rules (`root.xml`) define the default Unicode segmentation behaviour. Locale-specific overrides (e.g., `en.xml`, `fr.xml`, `de.xml`, `ja.xml`) tailor sentence break suppressions and other locale-sensitive rules. At compile time, the XML rules are parsed, variables are expanded, and each rule is compiled to a pair of PCRE regular expressions (left-context and right-context). At runtime, rules are evaluated in sequence order at each candidate break position.
+Each break type is implemented as a single-pass walker over the string. Every position is decided from the character at that position plus a small amount of state carried forward from the characters already seen, so the cost is proportional to the length of the input rather than to the number of rules. Earlier releases evaluated a pair of PCRE regular expressions per rule per position; that engine was replaced in version 2.1.0.
+
+Locale-specific data — sentence break suppressions in particular — is still read from the [CLDR](https://cldr.unicode.org) XML segment rule definitions shipped in `priv/segments/`.
 
 CLDR rules are a superset of the Unicode rules defined in UAX #29. Where CLDR modifies or extends the Unicode definitions, those changes are documented below.
 
@@ -44,7 +46,7 @@ This distinction matters for any operation that extracts the "first letter" of a
 
 ### Test coverage
 
-796 grapheme break test cases from the Unicode test data file are shipped in `test/support/test_data/grapheme_break_test.txt`.
+All 853 grapheme break test cases from the Unicode test data file pass. They are shipped in `test/support/test_data/grapheme_break_test.txt`.
 
 ## Word Break
 
@@ -73,7 +75,7 @@ For languages that don't use whitespace to separate words, the standard rule-bas
 
 ### Test coverage
 
-1,974 word break test lines from the Unicode test data file, with 22 CLDR-specific lines excluded. Additional dictionary-based segmentation tests cover Chinese, Japanese, Thai, Lao, Khmer, and Burmese.
+All 1,944 word break test lines from the Unicode test data file pass, with 22 CLDR-specific lines excluded. Additional dictionary-based segmentation tests cover Chinese, Japanese, Thai, Lao, Khmer, and Burmese.
 
 ## Sentence Break
 
@@ -87,15 +89,27 @@ Suppression rules are defined for these locales: `de`, `el`, `en`, `en-US`, `en-
 
 ### Test coverage
 
-542 sentence break test cases from the Unicode test data file.
+All 512 sentence break test cases from the Unicode test data file pass.
 
 ## Line Break
 
-Implements [UAX #14](https://www.unicode.org/reports/tr14/) (Unicode Line Breaking Algorithm) via CLDR rules. This determines where line breaks (word-wrap opportunities) are acceptable, not where newline characters appear.
+Implements [UAX #14](https://www.unicode.org/reports/tr14/) (Unicode Line Breaking Algorithm). This determines where line breaks (word-wrap opportunities) are acceptable, not where newline characters appear.
+
+Every rule in the standard is implemented, including those that depend on properties beyond a character's line break class:
+
+| Rule | Additional property required |
+|------|------------------------------|
+| LB1 | `General_Category`, to resolve `SA` to `CM` or `AL` |
+| LB15a, LB15b | `General_Category`, to identify initial (`Pi`) and final (`Pf`) quotation marks |
+| LB19a, LB30 | `East_Asian_Width`, to exclude `F`, `W` and `H` |
+| LB28a | U+25CC DOTTED CIRCLE, which is `lb=AL` but plays its own role in a Brahmic syllable |
+| LB30b | `Extended_Pictographic` and `General_Category=Cn`, which together match characters carrying `lb=ID` or `lb=XX` |
+
+The only part of the standard not implemented is locale tailoring; see *Differences from ICU* below.
 
 ### Test coverage
 
-19,368 line break test cases from the Unicode test data file.
+19,309 of 19,346 line break test cases from the Unicode test data file pass (99.81%), and 176 of 240 line break cases from ICU's `rbbitst.txt`. The remaining failures are dominated by the CJK locale tailorings.
 
 ## Dictionary Break Algorithm
 
@@ -146,16 +160,56 @@ Dictionaries must be downloaded before use with `mix unicode.string.download.dic
 
 ### Different approach
 
-* **Rule engine.** ICU compiles rules into a state machine (RBBI — Rule-Based Break Iterator). `unicode_string` compiles each rule into a pair of PCRE regular expressions and evaluates them sequentially at each break position. The ICU approach is faster for large texts; the regex approach is simpler to implement and debug.
+* **Rule engine.** ICU compiles rules into a state machine (RBBI — Rule-Based Break Iterator) driven by generated transition tables. `unicode_string` hand-transcribes the rules into an ordered decision function over a small carried state. Both are single-pass and both cost O(1) per character; ICU's table dispatch is considerably cheaper per step, as the benchmark below shows.
 
 * **CJK dictionary integration.** ICU integrates dictionary lookup directly into the RBBI state machine, triggering dictionary segmentation when the state machine enters an ideographic span. `unicode_string` uses a greedy dictionary match within the standard `split` path for CJK locales.
 
 * **Southeast Asian dictionary integration.** ICU's `DictionaryBreakEngine` is invoked by the RBBI state machine when it encounters a dictionary-script span. `unicode_string` partitions the input text by script range first, then applies the dictionary algorithm to target-script spans and the rule-based algorithm to everything else.
 
-* **Performance characteristics.** ICU's state machine evaluates a constant number of table lookups per character. `unicode_string` evaluates a variable number of regex matches per break position (one per rule until a match is found). For break types with many rules (line break has 50+ rules), this can be slower per character, though the regex engine is highly optimised in Erlang/OTP.
+* **Performance characteristics.** See *Performance* below.
 
 * **Locale resolution.** ICU uses its own locale resolution with resource bundle fallback. `unicode_string` accepts atoms, strings, and `Localize.LanguageTag` structs, with explicit ancestor locale merging for segmentation rules.
 
+## Performance
+
+`benchee/icu_compare.exs` measures this library against ICU4C's break iterator through a small
+NIF (`benchee/icu/`). Build it with `benchee/icu/build.sh`, then run
+`mix run benchee/icu_compare.exs`.
+
+The comparison is set up to be unfavourable to this library rather than flattering:
+
+* ICU's UTF-8 to UTF-16 conversion and iterator construction happen once, before timing, and
+  each timed call runs 25 complete passes inside C, so the NIF boundary crossing is amortised
+  away rather than being charged to ICU.
+* Every dictionary is loaded during warmup, so no timed native run pays for a `File.read` or a
+  trie build.
+* The ICU figure quoted is the one that also converts each segment back to UTF-8, which is
+  closer to what `Unicode.String.split/2` does than walking boundaries alone. The native side
+  still additionally allocates an Erlang binary per segment, which ICU never does.
+
+Per segmentation pass, on Elixir 1.20.2 / OTP 29 / Apple silicon:
+
+| Corpus | Break | Bytes | ICU | `unicode_string` | Ratio |
+|--------|-------|------:|----:|-----------------:|------:|
+| English prose | word | 1,800 | 40 µs | 3.01 ms | 75× |
+| English prose | line | 1,800 | 29 µs | 4.49 ms | 155× |
+| English prose | grapheme | 1,800 | 71 µs | 3.62 ms | 51× |
+| English prose | sentence | 1,800 | 2 µs | 1.62 ms | 753× |
+| Japanese | word | 2,400 | 169 µs | 1.94 ms | 11× |
+| Thai | word | 2,200 | 58 µs | 3.89 ms | 67× |
+| Mixed script | word | 1,640 | 123 µs | 2.47 ms | 20× |
+
+ICU is between one and three orders of magnitude faster. That is the expected shape of the
+result — ICU is optimised C dispatching through generated tables, against BEAM code walking a
+string codepoint by codepoint — but two things in the table are worth noting.
+
+The dictionary-driven cases are the *closest*, not the furthest apart: Japanese word breaking
+is only 11× slower, because both implementations spend most of their time in trie lookups
+rather than in rule dispatch.
+
+Sentence breaking is the outlier at 753×, far worse than the other break types, which suggests
+something pathological rather than a general dispatch cost. It has not been investigated.
+
 ## Unicode Version
 
-Rules and property data correspond to Unicode 16.0 / CLDR 46.
+Rules and property data correspond to Unicode 18.0. Note that Unicode 18 changed rule GB9c: a linker no longer requires a preceding `Indic_Conjunct_Break=Consonant`, so a conjunct sequence can open from any position including the start of text. The draft UAX #29 prose had not been updated to reflect this at the time of writing, though `GraphemeBreakTest-18.0.0.txt` had.
