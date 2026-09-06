@@ -108,9 +108,16 @@ defmodule Unicode.String.Break do
   end
 
   def split(string, locale, :line = break, options) when break in @break_keys do
-    string
-    |> rule_based_line_split(locale, options)
-    |> Enum.flat_map(&dict_subsplit_line/1)
+    segments = rule_based_line_split(string, locale, options)
+
+    # Checking the whole string once is much cheaper than checking every
+    # segment, and text with no dictionary script at all — most Western text —
+    # skips the post-pass entirely.
+    if maybe_dictionary_script?(string) do
+      Enum.flat_map(segments, &dict_subsplit_line/1)
+    else
+      segments
+    end
   end
 
   def split(string, locale, break, options) when break in @break_keys do
@@ -145,7 +152,31 @@ defmodule Unicode.String.Break do
   # dictionary-based line break on it. Mirrors DictionaryBreak.@min_word_span.
   @min_dict_run 4
 
-  defp dict_subsplit_line(segment) do
+  @doc false
+  # Applies dictionary-based breaking to a rule-based line segment. Exposed so
+  # that an alternative rule engine can reuse it rather than reimplement the
+  # dictionary pass; `Unicode.String.Dfa` does exactly that.
+  def dict_subsplit_line(segment) do
+    if maybe_dictionary_script?(segment) do
+      dict_subsplit_run(segment)
+    else
+      [segment]
+    end
+  end
+
+  # Every dictionary script lies in U+0E01..U+17FF, which UTF-8 encodes with a
+  # lead byte of 0xE0 or 0xE1. Neither byte can occur as a continuation byte, so
+  # a string containing neither cannot contain a dictionary character. The test
+  # is a single `:binary.match`, against `detect_dict_script/1`'s scan of the
+  # segment once per script. It over-reports — other scripts in U+0800..U+1FFF
+  # share those lead bytes — and the full check then rejects them.
+  @dictionary_lead_bytes [<<0xE0>>, <<0xE1>>]
+
+  defp maybe_dictionary_script?(string) do
+    :binary.match(string, @dictionary_lead_bytes) != :nomatch
+  end
+
+  defp dict_subsplit_run(segment) do
     case detect_dict_script(segment) do
       nil ->
         [segment]

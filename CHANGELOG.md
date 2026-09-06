@@ -10,11 +10,17 @@ This is the changelog for Unicode String v2.4.0 released on _unreleased_.  For o
 
 ### Performance
 
+* Skip the dictionary pass in line breaking for text that cannot contain a dictionary script. Thai, Lao, Khmer and Burmese all lie in U+0E01..U+17FF, which UTF-8 encodes with a lead byte of `0xE0` or `0xE1`, and neither byte can occur as a continuation byte, so a single `:binary.match` rules them out. Line breaking is 1.85x faster on Latin text.
+
 * Skip the Unicode property table lookups for Latin-1 codepoints in all four break types. The break class of every codepoint below U+0100 is resolved at compile time into a tuple indexed by codepoint, and below U+00A9 no character is `Extended_Pictographic` or carries an `Indic_Conjunct_Break` value, so grapheme breaking skips those two tests entirely. Measured on 1,800 bytes of Latin text: word breaking 3.8x faster, sentence breaking 3.5x faster, line breaking 1.6x faster and grapheme breaking 1.4x faster.
 
 * Decide grapheme and word boundaries from raw UTF-8 bytes where the answer is certain, without decoding a codepoint or consulting a property table. Two printable ASCII bytes in a row are always a grapheme boundary, and a run of ASCII letters is always a whole word provided the byte ending the run cannot join to it. Both preconditions are computed from the Unicode data at compile time. Grapheme breaking is 4.1x faster and word breaking a further 1.4x on Latin text.
 
 * Compile the `Extended_Pictographic` property into a balanced binary tree of comparisons rather than a flat chain of 156 `or` clauses. Because `or` short-circuits on true, the flat form cost all 156 comparisons for every character that is *not* pictographic, which is almost every character in ordinary text. The tree answers in about 8 and remains valid in a guard.
+
+### Experimental
+
+* Add `Unicode.String.Dfa`, a break engine driven by the state machine data proposed in PRI #555, together with the Unicode 18 data files under `priv/pri555/`. Nothing calls it yet. Against the UCD corpora it is 100% conformant on all four break types where the hand-written line breaker reaches 99.81%, and it is 1.5x faster for grapheme, 1.1x for sentence and 2.0x for line breaking, at the cost of 1.3x on word breaking. See `conformance.md` for the full comparison.
 
 ### Bug Fixes
 
