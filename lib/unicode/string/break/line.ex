@@ -47,11 +47,6 @@ defmodule Unicode.String.Break.Line do
     (`AK`/`AP`/`AS`/`VI`/`VF`) follow the default break rules rather
     than the Brahmic-specific cluster handling.
 
-  * **LB30 East-Asian-width sensitivity.** LB30 should distinguish
-    between F/W/H and other East-Asian-width values when deciding
-    whether `(AL|HL|NU) × OP` and `CP × (AL|HL|NU)` apply. This
-    implementation applies the rule uniformly.
-
   These gaps are tracked by the line-break conformance regression
   tests in `test/line_break_conformance_test.exs`.
 
@@ -137,9 +132,25 @@ defmodule Unicode.String.Break.Line do
   defp classify(cp) do
     case LineBreak.line_break(cp) do
       :sa -> sa_class(cp)
+      :op -> if east_asian_wide?(cp), do: :op_ea, else: :op
+      :cp -> if east_asian_wide?(cp), do: :cp_ea, else: :cp
       raw -> Map.get(@lb1_map, raw, raw)
     end
   end
+
+  # LB30 is the only rule that distinguishes East-Asian-width F, W and H open
+  # and close punctuation from the rest, so OP and CP are split into narrow and
+  # wide variants here. Every other rule treats the two alike and matches on
+  # `@open_punctuation` / `@close_punctuation` below. This mirrors the
+  # OPmEastAsian and CLmEastAsian symbols in the UAX #14 state machine data.
+  @east_asian_wide [:f, :w, :h]
+
+  defp east_asian_wide?(cp) do
+    Unicode.EastAsianWidth.east_asian_width_category(cp) in @east_asian_wide
+  end
+
+  @open_punctuation [:op, :op_ea]
+  @close_punctuation [:cp, :cp_ea]
 
   # LB1 resolves SA (Complex_Context) to CM when its General_Category is Mn or
   # Mc, and to AL otherwise. The distinction matters wherever the preceding
@@ -168,10 +179,10 @@ defmodule Unicode.String.Break.Line do
 
     space_run =
       case cls do
-        :op -> :after_op
+        cls when cls in @open_punctuation -> :after_op
         :qu -> :after_qu
         :cl -> :after_cl
-        :cp -> :after_cl
+        cls when cls in @close_punctuation -> :after_cl
         :b2 -> :after_b2
         :zw -> :after_zw
         _ -> :none
@@ -201,9 +212,12 @@ defmodule Unicode.String.Break.Line do
   # Track the "space run" context used by the space-sensitive rules.
   # LB9: CM/ZWJ take the class of the base, so the run is left unchanged.
   defp next_space_run(:sp, space_run), do: space_run
-  defp next_space_run(:op, _space_run), do: :after_op
+  defp next_space_run(cls, _space_run) when cls in @open_punctuation, do: :after_op
   defp next_space_run(:qu, _space_run), do: :after_qu
-  defp next_space_run(cls, _space_run) when cls in [:cl, :cp], do: :after_cl
+
+  defp next_space_run(cls, _space_run) when cls in [:cl | @close_punctuation],
+    do: :after_cl
+
   defp next_space_run(:b2, _space_run), do: :after_b2
   defp next_space_run(:zw, _space_run), do: :after_zw
   defp next_space_run(cls, space_run) when cls in [:cm, :zwj], do: space_run
@@ -290,7 +304,7 @@ defmodule Unicode.String.Break.Line do
         :no_break
 
       # LB15: QU SP* × OP  (simplified — full LB15 has Pi/Pf variants)
-      space_run == :after_qu and curr == :op ->
+      space_run == :after_qu and curr in @open_punctuation ->
         :no_break
 
       # LB16: (CL | CP) SP* × NS
@@ -311,7 +325,7 @@ defmodule Unicode.String.Break.Line do
         :no_break
 
       # LB13: × CL, × CP, × EX, × SY.
-      curr in [:cl, :cp, :ex, :sy] ->
+      curr in [:cl, :ex, :sy | @close_punctuation] ->
         :no_break
 
       # LB18: SP ÷  (covered as default break since no rule fired)
@@ -372,10 +386,10 @@ defmodule Unicode.String.Break.Line do
         :no_break
 
       # LB25 (subset): numeric expressions — keep numeric runs intact.
-      eff_prev in [:cl, :cp, :nu] and curr in [:po, :pr] ->
+      eff_prev in [:cl, :nu | @close_punctuation] and curr in [:po, :pr] ->
         :no_break
 
-      eff_prev in [:po, :pr] and curr in [:op, :nu] ->
+      eff_prev in [:po, :pr] and curr in [:nu | @open_punctuation] ->
         :no_break
 
       eff_prev in [:hy, :is, :nu, :sy] and curr == :nu ->
@@ -406,8 +420,9 @@ defmodule Unicode.String.Break.Line do
       eff_prev == :is and curr in [:al, :hl] ->
         :no_break
 
-      # LB30: (AL | HL | NU) × OP; CP × (AL | HL | NU)
-      # (full LB30 has East-Asian-width restrictions we approximate).
+      # LB30: (AL | HL | NU) × [OP - [\p{ea=F}\p{ea=W}\p{ea=H}]]
+      #       [CP - [\p{ea=F}\p{ea=W}\p{ea=H}]] × (AL | HL | NU)
+      # The wide variants are `:op_ea` / `:cp_ea` and deliberately excluded.
       eff_prev in [:al, :hl, :nu] and curr == :op ->
         :no_break
 

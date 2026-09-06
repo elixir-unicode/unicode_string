@@ -6,6 +6,8 @@ This is the changelog for Unicode String v2.4.0 released on _unreleased_.  For o
 
 ### Bug Fixes
 
+* Apply the LB30 East-Asian-width restriction, so `(AL | HL | NU) × OP` and `CP × (AL | HL | NU)` no longer suppress a break when the punctuation has an `East_Asian_Width` of `F`, `W` or `H`.
+
 * Apply LB10 to a combining mark that begins a segment. A `CM` or `ZWJ` with no base to attach to is now treated as `AL`, where previously it kept class `CM` and admitted a spurious break before the following character.
 
 * Resolve `Line_Break=SA` by General_Category as LB1 requires, to `CM` for `Mn` and `Mc` and to `AL` otherwise. Previously all `SA` resolved to `AL`, which broke sequences such as an ideograph followed by a Thai combining mark.
