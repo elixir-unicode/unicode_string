@@ -1,50 +1,36 @@
-# Three-way comparison: native Elixir, the ICU NIF as a consumer actually calls
-# it, and ICU with the BEAM boundary excluded.
+# Three-way comparison of segmentation performance.
 #
-#     benchee/icu/build.sh
 #     UNICODE_STRING_NIF=true mix compile
 #     UNICODE_STRING_NIF=true mix run benchee/nif_compare.exs
 #
 # The three subjects
 #
-#   native            `Unicode.String.split/2`.
+#   native            `Unicode.String.split/2`, the pure Elixir implementation.
 #
 #   nif (end to end)  `Unicode.String.split/2` with `backend: :nif`. Every call
 #                     converts UTF-8 to UTF-16, builds a break iterator, walks
 #                     it, converts each segment back to UTF-8 and allocates an
-#                     Erlang binary for it. This is what a caller pays.
+#                     Erlang binary for it. This is what a caller actually pays.
 #
-#   icu (raw)         The same ICU work with all of that excluded: conversion
-#                     and iterator construction happen once, up front, and the
-#                     timed call runs the iteration inside C. It is the ceiling
-#                     ICU could reach if the boundary were free, and no
-#                     implementation callable from the BEAM can beat it.
+#   icu (raw)         The same ICU work with the BEAM boundary excluded:
+#                     conversion and iterator construction happen once, before
+#                     timing, and the timed call runs whole segmentation passes
+#                     inside C. No implementation callable from the BEAM can
+#                     beat this, so it is the ceiling rather than an option.
 #
-# The gap between the second and third is the price of the boundary, which is
-# the number worth knowing before adopting the NIF.
+# The gap between the second and third columns is the cost of the boundary, and
+# it is the number worth knowing before deciding to enable the NIF.
 #
-# Dictionaries are warmed before timing so no native run pays to load one.
-
-defmodule IcuBreak do
-  @on_load :load_nif
-  @nif_path Path.join(__DIR__, "icu/icu_break") |> String.to_charlist()
-
-  def load_nif, do: :erlang.load_nif(@nif_path, 0)
-  def prepare(_text, _type, _locale), do: :erlang.nif_error(:not_loaded)
-  def run(_resource, _iterations), do: :erlang.nif_error(:not_loaded)
-  def run_extract(_resource, _iterations), do: :erlang.nif_error(:not_loaded)
-
-  def type(:grapheme), do: 0
-  def type(:word), do: 1
-  def type(:line), do: 2
-  def type(:sentence), do: 3
-end
+# Dictionaries are loaded during warmup, so no native run pays to load one.
 
 unless Unicode.String.Nif.available?() do
   IO.puts("""
   The ICU NIF is not available. Build it with:
 
       UNICODE_STRING_NIF=true mix compile
+
+  It needs ICU installed — `brew install icu4c` on macOS, `apt install
+  libicu-dev` on Debian or Ubuntu.
   """)
 
   System.halt(1)
@@ -62,7 +48,8 @@ corpora = [
   {"english sentences", :sentence, :en,
    String.duplicate("The quick brown fox jumps over the lazy dog. ", 40)},
   {"japanese words", :word, :ja, String.duplicate("日本語のテキストです。これはテストです。", 40)},
-  {"thai words", :word, :th, String.duplicate("สวัสดีเจ้านายทุกคน ", 40)}
+  {"thai words", :word, :th, String.duplicate("สวัสดีเจ้านายทุกคน ", 40)},
+  {"mixed script", :word, :ja, String.duplicate("日本語 ISO 8601形式の日付 100 km ", 40)}
 ]
 
 IO.puts("Warming dictionaries...")
@@ -76,7 +63,12 @@ for {_name, break, locale, text} <- corpora do
 end
 
 for {name, break, locale, text} <- corpora do
-  {:ok, resource} = IcuBreak.prepare(text, IcuBreak.type(break), Atom.to_string(locale))
+  {:ok, prepared} =
+    Unicode.String.Nif.benchmark_prepare(
+      text,
+      Unicode.String.Nif.break_type(break),
+      Atom.to_string(locale)
+    )
 
   IO.puts("""
 
@@ -98,7 +90,7 @@ for {name, break, locale, text} <- corpora do
           Unicode.String.split(text, break: break, locale: locale, backend: :nif)
         end)
       end,
-      "icu (raw)" => fn -> IcuBreak.run_extract(resource, iterations) end
+      "icu (raw)" => fn -> Unicode.String.Nif.benchmark_run(prepared, iterations) end
     },
     time: 3,
     warmup: 1,

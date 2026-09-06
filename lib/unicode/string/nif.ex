@@ -133,4 +133,21 @@ defmodule Unicode.String.Nif do
 
   @doc false
   def do_split(_string, _type, _locale), do: :erlang.nif_error(:nif_not_loaded)
+
+  # Benchmark support. `benchmark_prepare/3` converts the text to UTF-16 and
+  # builds an iterator once; `benchmark_run/2` then performs whole segmentation
+  # passes inside C. Together they measure ICU's segmentation with the cost of
+  # the BEAM boundary excluded, which is what `benchee/nif_compare.exs` needs in
+  # order to show how much of ICU's advantage that boundary consumes. They are
+  # not part of the public interface and are useless for actually segmenting
+  # anything, since they return a byte count rather than the segments.
+
+  @doc false
+  def benchmark_prepare(_string, _type, _locale), do: :erlang.nif_error(:nif_not_loaded)
+
+  @doc false
+  def benchmark_run(_prepared, _iterations), do: :erlang.nif_error(:nif_not_loaded)
+
+  @doc false
+  def break_type(break) when break in @break_names, do: Map.fetch!(@break_types, break)
 end
