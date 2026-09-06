@@ -229,11 +229,11 @@ defmodule Unicode.String.Break.Line do
     # character; this lets LB20a recognise word-initial hyphens at the
     # beginning of input (^(HY|HH) AL → no break), and gives LB19a its
     # `(sot | [^$EastAsian])` alternative.
-    {cls, :sot, cls, space_run, ri_parity, east_asian?, :sot}
+    {cls, :sot, cls, space_run, ri_parity, east_asian?, :sot, next_number_run(cls, :none)}
   end
 
   defp advance(
-         {eff_prev, eff_prev2, _prev_actual, space_run, ri_parity, prev_ea, prev2_ea},
+         {eff_prev, eff_prev2, _prev_actual, space_run, ri_parity, prev_ea, prev2_ea, number_run},
          cls,
          cp
        ) do
@@ -247,8 +247,22 @@ defmodule Unicode.String.Break.Line do
     new_prev_ea = if transparent?, do: prev_ea, else: east_asian_wide?(cp)
 
     {next_eff_prev(cls, eff_prev), new_eff_prev2, cls, next_space_run(cls, space_run, eff_prev),
-     next_ri_parity(cls, ri_parity), new_prev_ea, new_prev2_ea}
+     next_ri_parity(cls, ri_parity), new_prev_ea, new_prev2_ea, next_number_run(cls, number_run)}
   end
+
+  # LB25 is written in terms of a number run, `NU (SY | IS)*`, which may be
+  # followed by a single CL or CP before a numeric prefix or postfix. Tracking
+  # it here keeps the rule itself a set of ordinary comparisons.
+  #   :number       - inside NU (SY | IS)*
+  #   :number_close - that run followed by one CL or CP
+  defp next_number_run(:nu, _number_run), do: :number
+  defp next_number_run(cls, :number) when cls in [:sy, :is], do: :number
+
+  defp next_number_run(cls, :number) when cls in [:cl | @close_punctuation],
+    do: :number_close
+
+  defp next_number_run(cls, number_run) when cls in [:cm, :zwj], do: number_run
+  defp next_number_run(_cls, _number_run), do: :none
 
   # RI runs toggle odd/even parity so LB30a can pair regional indicators;
   # any other class resets the run.
@@ -299,7 +313,8 @@ defmodule Unicode.String.Break.Line do
   # it would obscure the one-to-one correspondence with the rules.
   # credo:disable-for-next-line Credo.Check.Refactor.CyclomaticComplexity
   defp decide_op(state, curr, curr_cp, rest) do
-    {eff_prev, eff_prev2, prev_actual, space_run, ri_parity, prev_ea, prev2_ea} = state
+    {eff_prev, eff_prev2, prev_actual, space_run, ri_parity, prev_ea, prev2_ea, number_run} =
+      state
 
     cond do
       # LB4: BK !
@@ -454,14 +469,21 @@ defmodule Unicode.String.Break.Line do
       eff_prev in [:hl | @alphabetic] and curr in [:pr, :po] ->
         :no_break
 
-      # LB25 (subset): numeric expressions — keep numeric runs intact.
-      eff_prev in [:cl, :nu | @close_punctuation] and curr in [:po, :pr] ->
+      # LB25: do not break numbers.
+      #   NU (SY | IS)* × NU  and  NU (SY | IS)* × (PO | PR)
+      number_run == :number and curr in [:nu, :po, :pr] ->
         :no_break
 
-      eff_prev in [:po, :pr] and curr in [:nu | @open_punctuation] ->
+      #   NU (SY | IS)* (CL | CP) × (PO | PR)
+      number_run == :number_close and curr in [:po, :pr] ->
         :no_break
 
-      eff_prev in [:hy, :is, :nu, :sy] and curr == :nu ->
+      #   (PO | PR) × NU,  HY × NU,  IS × NU
+      eff_prev in [:po, :pr, :hy, :is] and curr == :nu ->
+        :no_break
+
+      #   (PO | PR) × OP NU  and  (PO | PR) × OP IS NU
+      eff_prev in [:po, :pr] and curr in @open_punctuation and number_follows?(rest) ->
         :no_break
 
       # LB26: Hangul syllables
@@ -543,12 +565,26 @@ defmodule Unicode.String.Break.Line do
     end
   end
 
-  defp peek_class(""), do: nil
+  defp peek_class(string), do: string |> peek() |> elem(0)
 
-  defp peek_class(<<cp::utf8, rest::binary>>) do
+  # The next non-transparent class and what follows it. LB9 makes CM and ZWJ
+  # transparent, so they are skipped.
+  defp peek(""), do: {nil, ""}
+
+  defp peek(<<cp::utf8, rest::binary>>) do
     case classify(cp) do
-      cls when cls in [:cm, :zwj] -> peek_class(rest)
-      cls -> cls
+      cls when cls in [:cm, :zwj] -> peek(rest)
+      cls -> {cls, rest}
+    end
+  end
+
+  # LB25's `(PO | PR) × OP NU` and `(PO | PR) × OP IS NU` both require a number
+  # after the open punctuation, optionally separated by a single IS.
+  defp number_follows?(rest) do
+    case peek(rest) do
+      {:nu, _after} -> true
+      {:is, after_is} -> peek_class(after_is) == :nu
+      _other -> false
     end
   end
 

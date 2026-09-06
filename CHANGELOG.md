@@ -6,6 +6,8 @@ This is the changelog for Unicode String v2.4.0 released on _unreleased_.  For o
 
 ### Bug Fixes
 
+* Implement LB25 in full, tracking the `NU (SY | IS)*` number run it is defined over. Numeric prefixes and postfixes now join only where a number is actually present, so `PO × OP` no longer suppresses a break unless a number follows the open punctuation.
+
 * Implement LB28a, so breaks are suppressed inside the orthographic syllables of Brahmic scripts across the `AP`, `AK`, `AS`, `VI` and `VF` classes and U+25CC DOTTED CIRCLE.
 
 * Implement LB19 and LB19a, so breaks are suppressed only before a non-initial and after a non-final quotation mark, and on both sides of any quotation mark that is not surrounded by East Asian characters. Previously every quotation mark suppressed breaks on both sides unconditionally.

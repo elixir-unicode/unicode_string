@@ -22,7 +22,7 @@ defmodule Unicode.String.LineBreakConformanceTest do
   #   This accounts for the majority of the remaining ICU failures.
   #
   #
-  @ucd_pass_floor 19_259
+  @ucd_pass_floor 19_304
   @icu_pass_floor 176
 
   describe "Unicode UCD LineBreakTest.txt (#{@ucd_pass_floor} of 19_346 cases must pass)" do
