@@ -10,10 +10,12 @@ defmodule Unicode.String.Break.Grapheme do
     Regional_Indicators ending at `prev` (used by GB12/GB13)
   * `ext_pict_zwj` — `true` when the prefix ends with
     `\\p{Extended_Pictographic} \\p{Extend}* \\p{ZWJ}` (used by GB11)
-  * `incb` — `:none | :consonant | :linker`, tracking progress through
-    the GB9c sequence
-    `\\p{InCB=Consonant} [\\p{InCB=Extend}\\p{InCB=Linker}]* \\p{InCB=Linker}
-     [\\p{InCB=Extend}\\p{InCB=Linker}]* × \\p{InCB=Consonant}`
+  * `incb` — `:none | :linker`, tracking progress through the GB9c
+    sequence
+    `[\\p{InCB=Extend}\\p{InCB=Linker}]* \\p{InCB=Linker}
+     [\\p{InCB=Extend}\\p{InCB=Linker}]* × \\p{InCB=Consonant}`.
+    Unicode 18 removed the leading `\\p{InCB=Consonant}` that this rule
+    previously required.
 
   Each character is classified once via `Unicode.GraphemeClusterBreak`,
   `Unicode.IndicConjunctBreak` and a compile-time set of
@@ -147,7 +149,7 @@ defmodule Unicode.String.Break.Grapheme do
   # GB9b: Prepend ×
   defp decide_op({:prepend, _, _, _}, _, _, _, _), do: :no_break
 
-  # GB9c: …Linker [Extend|Linker]* × \p{InCB=Consonant}
+  # GB9c: [Extend|Linker]* Linker [Extend|Linker]* × \p{InCB=Consonant}
   defp decide_op({_, _, _, :linker}, _, :consonant, _, _), do: :no_break
 
   # GB11: ExtPict Extend* ZWJ × ExtPict
@@ -177,7 +179,7 @@ defmodule Unicode.String.Break.Grapheme do
 
     incb_state =
       case incb do
-        :consonant -> :consonant
+        :linker -> :linker
         _ -> :none
       end
 
@@ -223,14 +225,16 @@ defmodule Unicode.String.Break.Grapheme do
   defp next_ext_pict_zwj(_ext_pict_zwj, _curr, _extpict), do: false
 
   # GB9c InCB tracking.
-  #   :none → :consonant on Consonant; otherwise stays :none
-  #   :consonant → :consonant on Extend; → :linker on Linker; → reset on Consonant; else :none
-  #   :linker → :linker on Extend or Linker; → :consonant on a Consonant boundary (already absorbed); else :none
-  defp next_incb_state(_state, :consonant), do: :consonant
-  defp next_incb_state(:consonant, :extend), do: :consonant
-  defp next_incb_state(:consonant, :linker), do: :linker
+  #
+  # Unicode 18 dropped the leading \p{InCB=Consonant} that Unicode 17
+  # required, so a Linker opens the sequence from any state - including the
+  # start of text. Anything other than a Linker or an InCB=Extend closes it.
+  #
+  #   any → :linker on Linker
+  #   :linker → :linker on InCB=Extend (which includes ZWJ)
+  #   anything else → :none
+  defp next_incb_state(_state, :linker), do: :linker
   defp next_incb_state(:linker, :extend), do: :linker
-  defp next_incb_state(:linker, :linker), do: :linker
   defp next_incb_state(_state, _), do: :none
 
   # ----- helpers ----------------------------------------------------------

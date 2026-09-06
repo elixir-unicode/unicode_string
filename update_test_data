@@ -1,12 +1,15 @@
 #! /bin/bash
-# Update the test data from Unicode
-wget https://www.unicode.org/Public/UCD/latest/ucd/auxiliary/GraphemeBreakTest.txt \
+# Update the test data from Unicode.
+#
+# This branch tracks the Unicode 18.0.0 draft, so the data comes from
+# /Public/draft/. Once 18.0.0 is released, /Public/UCD/latest/ will serve
+# it and this can go back to pointing there.
+BASE=https://www.unicode.org/Public/draft/ucd/auxiliary
+wget $BASE/GraphemeBreakTest.txt \
   -O ./test/support/test_data/grapheme_break_test.txt
-wget https://www.unicode.org/Public/UCD/latest/ucd/auxiliary/WordBreakTest.txt \
+wget $BASE/WordBreakTest.txt \
   -O ./test/support/test_data/word_break_test.txt
-wget https://www.unicode.org/Public/UCD/latest/ucd/auxiliary/SentenceBreakTest.txt \
+wget $BASE/SentenceBreakTest.txt \
   -O ./test/support/test_data/sentence_break_test.txt
-wget https://www.unicode.org/Public/UCD/latest/ucd/auxiliary/LineBreakTest.txt \
+wget $BASE/LineBreakTest.txt \
   -O ./test/support/test_data/line_break_test.txt
-
-

@@ -1,5 +1,13 @@
 # Changelog
 
+## Unicode String v2.4.0
+
+This is the changelog for Unicode String v2.4.0 released on _unreleased_.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
+
+### Enhancements
+
+* Support Unicode 18.0.0. Rule GB9c no longer requires a leading `Indic_Conjunct_Break=Consonant`, so a linker opens a conjunct sequence from any position including the start of text. Segmentation test data is refreshed to 18.0.0.
+
 ## Unicode String v2.3.1
 
 This is the changelog for Unicode String v2.3.1 released on August 16th, 2026.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
