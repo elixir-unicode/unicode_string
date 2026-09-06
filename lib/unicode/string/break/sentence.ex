@@ -51,6 +51,18 @@ defmodule Unicode.String.Break.Sentence do
 
   alias Unicode.SentenceBreak
 
+  # The sentence break class of every Latin-1 codepoint is known at compile
+  # time, so the table lookup becomes a tuple index for the bulk of ordinary
+  # Western text.
+  @latin1_limit 0x100
+  @latin1_sentence_breaks 0..(@latin1_limit - 1)
+                          |> Enum.map(&SentenceBreak.sentence_break/1)
+                          |> List.to_tuple()
+
+  @compile {:inline, sentence_break: 1}
+  defp sentence_break(cp) when cp < @latin1_limit, do: elem(@latin1_sentence_breaks, cp)
+  defp sentence_break(cp), do: SentenceBreak.sentence_break(cp)
+
   @transparent [:extend, :format]
 
   @doc """
@@ -383,7 +395,7 @@ defmodule Unicode.String.Break.Sentence do
   defp classify(:el, 0x003B), do: :sterm
   defp classify(:el, 0x037E), do: :sterm
 
-  defp classify(_locale, cp), do: SentenceBreak.sentence_break(cp)
+  defp classify(_locale, cp), do: sentence_break(cp)
 
   ## utility
 

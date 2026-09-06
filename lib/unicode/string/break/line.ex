@@ -32,25 +32,14 @@ defmodule Unicode.String.Break.Line do
 
   alias Unicode.LineBreak
 
+  import Unicode.String.ExtendedPictographic, only: [is_extended_pictographic: 1]
+
   # LB30b's second alternative is `[\p{Extended_Pictographic}&\p{Cn}] × EM`.
   # Neither side of that intersection is a line-break class - the characters it
   # matches carry `lb=ID` or `lb=XX` - so it has to be tested on the codepoint.
-  ext_pict_ranges = Map.fetch!(Unicode.Emoji.emoji(), :extended_pictographic)
+  defp extpict_unassigned?(cp) when is_extended_pictographic(cp),
+    do: Unicode.category(cp) == :Cn
 
-  defguardp is_extpict(codepoint)
-            when unquote(
-                   Enum.reduce(ext_pict_ranges, false, fn
-                     {from, to}, false ->
-                       quote do: var!(codepoint) in unquote(from)..unquote(to)
-
-                     {from, to}, acc ->
-                       quote do:
-                               unquote(acc) or
-                                 var!(codepoint) in unquote(from)..unquote(to)
-                   end)
-                 )
-
-  defp extpict_unassigned?(cp) when is_extpict(cp), do: Unicode.category(cp) == :Cn
   defp extpict_unassigned?(_cp), do: false
 
   ## Public API
@@ -127,15 +116,28 @@ defmodule Unicode.String.Break.Line do
 
   defp classify(@dotted_circle), do: :dotted_circle
 
-  defp classify(cp) do
-    case LineBreak.line_break(cp) do
-      :sa -> sa_class(cp)
-      :op -> if east_asian_wide?(cp), do: :op_ea, else: :op
-      :cp -> if east_asian_wide?(cp), do: :cp_ea, else: :cp
-      :qu -> qu_class(cp)
-      raw -> Map.get(@lb1_map, raw, raw)
-    end
+  # The line break class of every Latin-1 codepoint is known at compile time,
+  # so the table lookup can be replaced by a tuple index for the bulk of
+  # ordinary Western text. Only the raw class is precomputed; the resolution
+  # below it is shared with the general clause so the two cannot drift.
+  @latin1_limit 0x100
+  @latin1_line_breaks 0..(@latin1_limit - 1)
+                      |> Enum.map(&LineBreak.line_break/1)
+                      |> List.to_tuple()
+
+  defp classify(cp) when cp < @latin1_limit do
+    resolve_class(elem(@latin1_line_breaks, cp), cp)
   end
+
+  defp classify(cp) do
+    resolve_class(LineBreak.line_break(cp), cp)
+  end
+
+  defp resolve_class(:sa, cp), do: sa_class(cp)
+  defp resolve_class(:op, cp), do: if(east_asian_wide?(cp), do: :op_ea, else: :op)
+  defp resolve_class(:cp, cp), do: if(east_asian_wide?(cp), do: :cp_ea, else: :cp)
+  defp resolve_class(:qu, cp), do: qu_class(cp)
+  defp resolve_class(raw, _cp), do: Map.get(@lb1_map, raw, raw)
 
   # LB30 is the only rule that distinguishes East-Asian-width F, W and H open
   # and close punctuation from the rest, so OP and CP are split into narrow and

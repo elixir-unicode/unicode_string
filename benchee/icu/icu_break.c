@@ -84,6 +84,13 @@ static ERL_NIF_TERM run(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
     if (!enif_get_int(env, argv[1], &iterations)) return enif_make_badarg(env);
 
     for (int i = 0; i < iterations; i++) {
+        UErrorCode status = U_ZERO_ERROR;
+        /* Reset the text each pass. ICU caches recently returned boundaries,
+         * and for break types with few boundaries an entire text can sit in
+         * that cache, so reusing the iterator would replay the first pass
+         * instead of segmenting again. ubrk_setText does not re-convert
+         * UTF-8, so this forces the work without adding marshalling. */
+        ubrk_setText(r->bi, r->text, r->len, &status);
         int32_t p = ubrk_first(r->bi);
         while ((p = ubrk_next(r->bi)) != UBRK_DONE) count++;
     }
@@ -111,6 +118,8 @@ static ERL_NIF_TERM run_extract(ErlNifEnv *env, int argc, const ERL_NIF_TERM arg
     if (!scratch) return enif_make_badarg(env);
 
     for (int i = 0; i < iterations; i++) {
+        UErrorCode reset = U_ZERO_ERROR;
+        ubrk_setText(r->bi, r->text, r->len, &reset);
         int32_t prev = ubrk_first(r->bi);
         int32_t p;
         while ((p = ubrk_next(r->bi)) != UBRK_DONE) {

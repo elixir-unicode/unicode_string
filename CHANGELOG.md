@@ -4,6 +4,18 @@
 
 This is the changelog for Unicode String v2.4.0 released on _unreleased_.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
 
+### Enhancements
+
+* Add an optional ICU4C backend, `Unicode.String.Nif`, selected with `backend: :nif` on `Unicode.String.split/2`. It is opt-in via `UNICODE_STRING_NIF=true` or `config :unicode_string, :nif, true`, requires ICU system libraries and `:elixir_make`, and falls back to the native implementation whenever it is unavailable, so the option is always safe to pass. See `conformance.md` for when it is worth enabling — end to end it is 5-7x faster for line breaking and the dictionary locales, but only 1.3-1.5x for word and grapheme breaking.
+
+### Performance
+
+* Skip the Unicode property table lookups for Latin-1 codepoints in all four break types. The break class of every codepoint below U+0100 is resolved at compile time into a tuple indexed by codepoint, and below U+00A9 no character is `Extended_Pictographic` or carries an `Indic_Conjunct_Break` value, so grapheme breaking skips those two tests entirely. Measured on 1,800 bytes of Latin text: word breaking 3.8x faster, sentence breaking 3.5x faster, line breaking 1.6x faster and grapheme breaking 1.4x faster.
+
+* Decide grapheme and word boundaries from raw UTF-8 bytes where the answer is certain, without decoding a codepoint or consulting a property table. Two printable ASCII bytes in a row are always a grapheme boundary, and a run of ASCII letters is always a whole word provided the byte ending the run cannot join to it. Both preconditions are computed from the Unicode data at compile time. Grapheme breaking is 4.1x faster and word breaking a further 1.4x on Latin text.
+
+* Compile the `Extended_Pictographic` property into a balanced binary tree of comparisons rather than a flat chain of 156 `or` clauses. Because `or` short-circuits on true, the flat form cost all 156 comparisons for every character that is *not* pictographic, which is almost every character in ordinary text. The tree answers in about 8 and remains valid in a guard.
+
 ### Bug Fixes
 
 * Complete LB30b with its `[\p{Extended_Pictographic}&\p{Cn}] × EM` alternative, so an unassigned pictographic keeps its emoji modifier. These characters carry `lb=ID` or `lb=XX`, so the rule cannot be expressed in line-break classes alone.

@@ -26,23 +26,7 @@ defmodule Unicode.String.Break.Grapheme do
   alias Unicode.GraphemeClusterBreak
   alias Unicode.IndicConjunctBreak
 
-  # Build a guard for Extended_Pictographic from the unicode data so we
-  # can test it with a single is_extpict/1 guard rather than a function
-  # call.
-  ext_pict_ranges = Map.fetch!(Unicode.Emoji.emoji(), :extended_pictographic)
-
-  defguardp is_extpict(codepoint)
-            when unquote(
-                   Enum.reduce(ext_pict_ranges, false, fn
-                     {from, to}, false ->
-                       quote do: var!(codepoint) in unquote(from)..unquote(to)
-
-                     {from, to}, acc ->
-                       quote do:
-                               unquote(acc) or
-                                 var!(codepoint) in unquote(from)..unquote(to)
-                   end)
-                 )
+  import Unicode.String.ExtendedPictographic, only: [is_extended_pictographic: 1]
 
   @doc """
   Returns the index of the next grapheme cluster boundary after position 0
@@ -55,8 +39,35 @@ defmodule Unicode.String.Break.Grapheme do
     nil
   end
 
+  # Two printable ASCII bytes in a row means the first is a complete grapheme
+  # cluster, and it can be decided without decoding either codepoint or
+  # consulting any property table. Every codepoint in 0x20..0x7E has
+  # Grapheme_Cluster_Break=Other, none is Extended_Pictographic and none carries
+  # an Indic_Conjunct_Break value, so no rule joins such a pair and GB999
+  # applies. In Latin text this is the overwhelmingly common case, and it costs
+  # two byte comparisons against the roughly two hundred a full classification
+  # of both codepoints would need. Both returned binaries are sub-binaries of
+  # the input, so nothing is copied.
+  #
+  # The precondition is asserted against the Unicode data at compile time,
+  # immediately below, so it cannot be invalidated silently.
+  @printable_ascii 0x20..0x7E
+
+  for codepoint <- @printable_ascii do
+    if GraphemeClusterBreak.grapheme_break(codepoint) != :other do
+      raise "U+#{Integer.to_string(codepoint, 16)} is no longer " <>
+              "Grapheme_Cluster_Break=Other; the ASCII fast path in #{__MODULE__} " <>
+              "is no longer valid."
+    end
+  end
+
+  def next(<<first, second, _rest::binary>> = string)
+      when first in @printable_ascii and second in @printable_ascii do
+    {binary_part(string, 0, 1), binary_part(string, 1, byte_size(string) - 1)}
+  end
+
   def next(<<cp::utf8, rest::binary>> = string) do
-    state = initial_state(cp, is_extpict(cp))
+    state = initial_state(cp, is_extended_pictographic(cp))
     do_next(rest, state, byte_size_utf8(cp), string)
   end
 
@@ -108,10 +119,40 @@ defmodule Unicode.String.Break.Grapheme do
 
   # The decision function: given current state and the next codepoint,
   # return {:break | :no_break, new_state}.
+  # Below the lowest Extended_Pictographic codepoint no character is
+  # pictographic, and none carries an Indic_Conjunct_Break value other than
+  # `:none`, so both property lookups and the guard can be skipped entirely.
+  # That covers all of ASCII and most of Latin-1, which is the bulk of ordinary
+  # Western text. The boundary and the break values are taken from the Unicode
+  # data at compile time rather than written out here, and the assumption about
+  # Indic_Conjunct_Break is asserted below, so a Unicode update cannot silently
+  # invalidate this.
+  @latin1_limit Map.fetch!(Unicode.Emoji.emoji(), :extended_pictographic)
+                |> Enum.map(&elem(&1, 0))
+                |> Enum.min()
+
+  for codepoint <- 0..(@latin1_limit - 1) do
+    if IndicConjunctBreak.indic_conjunct_break(codepoint) != :none do
+      raise "Indic_Conjunct_Break is no longer :none for all codepoints below " <>
+              "U+#{Integer.to_string(@latin1_limit, 16)}; the grapheme break fast path " <>
+              "in #{__MODULE__} is no longer valid."
+    end
+  end
+
+  @latin1_breaks 0..(@latin1_limit - 1)
+                 |> Enum.map(&GraphemeClusterBreak.grapheme_break/1)
+                 |> List.to_tuple()
+
+  defp decide(state, cp) when cp < @latin1_limit do
+    curr = elem(@latin1_breaks, cp)
+
+    {decide_op(state, curr, :none, false, cp), advance(state, curr, :none, false, cp)}
+  end
+
   defp decide(state, cp) do
     curr = GraphemeClusterBreak.grapheme_break(cp)
     incb = IndicConjunctBreak.indic_conjunct_break(cp)
-    extpict = is_extpict(cp)
+    extpict = is_extended_pictographic(cp)
 
     operator = decide_op(state, curr, incb, extpict, cp)
     new_state = advance(state, curr, incb, extpict, cp)
@@ -191,12 +232,12 @@ defmodule Unicode.String.Break.Grapheme do
   # by break?/2.
   defp trailing_state(string_before) do
     [first | rest] = String.to_charlist(string_before)
-    state = initial_state(first, is_extpict(first))
+    state = initial_state(first, is_extended_pictographic(first))
 
     Enum.reduce(rest, state, fn cp, st ->
       curr = GraphemeClusterBreak.grapheme_break(cp)
       incb = IndicConjunctBreak.indic_conjunct_break(cp)
-      extpict = is_extpict(cp)
+      extpict = is_extended_pictographic(cp)
       advance(st, curr, incb, extpict, cp)
     end)
   end

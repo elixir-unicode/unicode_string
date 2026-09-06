@@ -21,6 +21,7 @@ defmodule Unicode.String do
   alias Unicode.String.Break
   alias Unicode.String.Case
   alias Unicode.String.Dictionary
+  alias Unicode.String.Nif
   alias Unicode.String.Segment
 
   defdelegate fold(string), to: Unicode.String.Case.Folding
@@ -417,10 +418,28 @@ defmodule Unicode.String do
 
     with {:ok, break} <- validate(:break, break),
          {:ok, locale} <- segmentation_locale_from_options(break, options) do
-      Break.split(string, locale, break, options)
+      split_with_backend(string, locale, break, options)
     end
     |> maybe_trim(options[:trim])
   end
+
+  # `backend: :nif` asks for the optional ICU backend. It is advisory: when the
+  # NIF was not built, or ICU cannot serve the request, the native
+  # implementation answers instead, so the option is always safe to pass.
+  defp split_with_backend(string, locale, break, options) do
+    with :nif <- Keyword.get(options, :backend, :native),
+         {:ok, segments} <- Nif.split(string, break, icu_locale(locale)) do
+      segments
+    else
+      _other -> Break.split(string, locale, break, options)
+    end
+  end
+
+  # ICU identifies locales with a string; this library uses an atom.
+  defp icu_locale(locale) when is_atom(locale), do: locale |> Atom.to_string() |> icu_locale()
+  defp icu_locale("root"), do: "root"
+  defp icu_locale(locale) when is_binary(locale), do: String.replace(locale, "-", "_")
+  defp icu_locale(_locale), do: "root"
 
   defp maybe_trim(list, true) when is_list(list) do
     Enum.reject(list, &Property.white_space?/1)

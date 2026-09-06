@@ -191,24 +191,72 @@ Per segmentation pass, on Elixir 1.20.2 / OTP 29 / Apple silicon:
 
 | Corpus | Break | Bytes | ICU | `unicode_string` | Ratio |
 |--------|-------|------:|----:|-----------------:|------:|
-| English prose | word | 1,800 | 40 µs | 3.01 ms | 75× |
-| English prose | line | 1,800 | 29 µs | 4.49 ms | 155× |
-| English prose | grapheme | 1,800 | 71 µs | 3.62 ms | 51× |
-| English prose | sentence | 1,800 | 2 µs | 1.62 ms | 753× |
-| Japanese | word | 2,400 | 169 µs | 1.94 ms | 11× |
-| Thai | word | 2,200 | 58 µs | 3.89 ms | 67× |
-| Mixed script | word | 1,640 | 123 µs | 2.47 ms | 20× |
+| English prose | word | 1,800 | 41 µs | 1.04 ms | 26× |
+| English prose | line | 1,800 | 28 µs | 3.11 ms | 110× |
+| English prose | grapheme | 1,800 | 72 µs | 0.85 ms | 12× |
+| English prose | sentence | 1,800 | 11 µs | 0.76 ms | 67× |
+| Japanese | word | 2,400 | 174 µs | 2.07 ms | 12× |
+| Thai | word | 2,200 | 59 µs | 3.84 ms | 65× |
+| Mixed script | word | 1,640 | 125 µs | 1.70 ms | 14× |
 
-ICU is between one and three orders of magnitude faster. That is the expected shape of the
-result — ICU is optimised C dispatching through generated tables, against BEAM code walking a
-string codepoint by codepoint — but two things in the table are worth noting.
+Line breaking is the outlier now, and it is the one break type with no byte-level fast path: its
+rules depend on East Asian width, General_Category and lookahead in ways a raw-byte test cannot
+settle. Grapheme and word breaking decide the common Latin cases directly from UTF-8 bytes,
+which is why they sit closest to ICU.
 
-The dictionary-driven cases are the *closest*, not the furthest apart: Japanese word breaking
-is only 11× slower, because both implementations spend most of their time in trie lookups
-rather than in rule dispatch.
+ICU remains one to two orders of magnitude faster on the rule-driven paths. That is the expected shape of the result — ICU is
+optimised C dispatching through generated tables, against BEAM code walking a string codepoint
+by codepoint — and the ratios are consistent across break types once the measurement is set up
+correctly.
 
-Sentence breaking is the outlier at 753×, far worse than the other break types, which suggests
-something pathological rather than a general dispatch cost. It has not been investigated.
+The dictionary-driven cases are the *closest*, not the furthest apart: Japanese word breaking is
+only 12× slower, because both implementations spend most of their time in trie lookups rather
+than in rule dispatch. Those are also the cases that benefit least from the Latin-1 fast path,
+for the same reason: there is little Latin-1 text in them for it to skip lookups on.
+
+### A measurement trap worth recording
+
+An earlier version of this benchmark reused a single `UBreakIterator` across all 25 passes and
+reported sentence breaking at 753×, far outside the range of every other break type. That figure
+was wrong. ICU caches recently returned boundaries, and sentence breaking produces few enough
+boundaries that an entire 1,800-byte text fits in that cache — so passes 2 through 25 were
+replaying the first pass rather than segmenting. Word and grapheme breaking produce too many
+boundaries to fit, which is why only the sentence figure was distorted.
+
+Calling `ubrk_setText` at the start of each pass resets the cache and forces the work to happen.
+It does not re-convert UTF-8, so it adds no marshalling to ICU's side. Doing so raised ICU's
+sentence figure 5.7× and left every other break type essentially unchanged, putting sentence
+breaking back in line with the others.
+
+For the record, this library's sentence breaking scales linearly and is its *fastest* break type
+on the same input — roughly 1.2 ms against 2.5 ms for word breaking on 1,800 bytes.
+
+### The optional ICU backend
+
+`Unicode.String.Nif` exposes ICU's break iterator through an opt-in NIF, selected with
+`backend: :nif` on `Unicode.String.split/2`. `benchee/nif_compare.exs` measures three subjects:
+the native implementation, the NIF as a caller actually invokes it, and ICU with the BEAM
+boundary excluded. Per segmentation pass:
+
+| Corpus | Break | native | NIF, end to end | ICU, boundary excluded | NIF gain |
+|--------|-------|-------:|----------------:|-----------------------:|---------:|
+| English prose | word | 1.05 ms | 0.79 ms | 41 µs | 1.3× |
+| English prose | line | 3.40 ms | 0.49 ms | 29 µs | 6.9× |
+| English prose | grapheme | 0.86 ms | 0.57 ms | 72 µs | 1.5× |
+| English prose | sentence | 0.76 ms | 0.40 ms | 12 µs | 1.9× |
+| Japanese | word | 2.04 ms | 0.92 ms | 173 µs | 2.2× |
+| Thai | word | 3.87 ms | 0.78 ms | 59 µs | 5.0× |
+
+The gap between the last two columns is the cost of the boundary — converting UTF-8 to UTF-16,
+constructing an iterator, and allocating an Erlang binary per segment — and it is between 5×
+and 34× depending on how many segments come back. It consumes most of ICU's advantage.
+
+The practical conclusion is that the NIF is worth enabling for **line breaking and the
+dictionary locales**, where it is 5–7× faster, and close to pointless for word and grapheme
+breaking, where the byte-level fast paths bring the native implementation to within 1.3–1.5× of
+it. Sentence breaking sits in between. Since the NIF also brings ICU's own locale tailorings and
+its own dictionaries, enabling it changes results as well as timings; it is not a drop-in
+accelerator.
 
 ## Unicode Version
 

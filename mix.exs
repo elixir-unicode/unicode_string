@@ -12,6 +12,9 @@ defmodule Unicode.String.MixProject do
       build_embedded: Mix.env() == :prod,
       deps: deps(),
       docs: docs(),
+      compilers: maybe_elixir_make() ++ Mix.compilers(),
+      make_makefile: "c_src/Makefile",
+      make_clean: ["clean"],
       name: "Unicode String",
       source_url: "https://github.com/elixir-unicode/unicode_string",
       description: description(),
@@ -84,8 +87,25 @@ defmodule Unicode.String.MixProject do
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false, optional: true},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:benchee, "~> 1.0", only: :dev, optional: true, runtime: false},
+      {:elixir_make, "~> 0.4", runtime: false, optional: true},
       {:ex_doc, "~> 0.23", only: [:dev, :release], optional: true, runtime: false}
     ]
+  end
+
+  # The ICU NIF is opt-in, so the :elixir_make compiler is only added when it
+  # has been asked for. Without this a default build would require ICU headers
+  # and a C toolchain, which most users of a pure Elixir library will not have.
+  defp maybe_elixir_make do
+    if nif_enabled?() do
+      [:elixir_make]
+    else
+      []
+    end
+  end
+
+  defp nif_enabled? do
+    String.downcase(System.get_env("UNICODE_STRING_NIF", "false")) == "true" ||
+      Application.get_env(:unicode_string, :nif, false) == true
   end
 
   def links do

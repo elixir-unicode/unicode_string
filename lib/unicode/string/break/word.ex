@@ -32,6 +32,17 @@ defmodule Unicode.String.Break.Word do
 
   alias Unicode.WordBreak
 
+  # The word break class of every Latin-1 codepoint is known at compile time, so
+  # the table lookup becomes a tuple index for the bulk of ordinary Western text.
+  @latin1_limit 0x100
+  @latin1_word_breaks 0..(@latin1_limit - 1)
+                      |> Enum.map(&WordBreak.word_break/1)
+                      |> List.to_tuple()
+
+  @compile {:inline, word_break: 1}
+  defp word_break(cp) when cp < @latin1_limit, do: elem(@latin1_word_breaks, cp)
+  defp word_break(cp), do: WordBreak.word_break(cp)
+
   ext_pict_ranges = Map.fetch!(Unicode.Emoji.emoji(), :extended_pictographic)
 
   defguardp is_extpict(codepoint)
@@ -51,16 +62,77 @@ defmodule Unicode.String.Break.Word do
   @midnumletq [:midnumlet, :single_quote]
   @transparent [:extend, :format, :zwj]
 
+  # A run of ASCII letters is a whole word, provided the byte that ends the run
+  # cannot join to it. WB5 keeps letters together, so the run itself is never in
+  # doubt; what needs checking is the terminator, because WB6/WB7 join across a
+  # mid-letter ("don't"), WB9 joins a digit ("a1"), WB13a joins an extender
+  # ("a_b") and WB4 skips over Extend, Format and ZWJ. The set of bytes that
+  # cannot do any of that is computed from the Unicode data below, so this
+  # cannot drift.
+  #
+  # Reaching the end of the string is equally safe, since a boundary always
+  # follows the final character.
+  @word_joins_a_letter [
+    :aletter,
+    :hebrew_letter,
+    :numeric,
+    :extend,
+    :format,
+    :zwj,
+    :midletter,
+    :midnumlet,
+    :single_quote,
+    :double_quote,
+    :extendnumlet,
+    :katakana,
+    :regional_indicator
+  ]
+
+  @safe_terminators for byte <- 0..0x7F,
+                        WordBreak.word_break(byte) not in @word_joins_a_letter,
+                        do: byte
+
+  defguardp is_ascii_letter(byte) when byte in ?A..?Z or byte in ?a..?z
+
   @doc """
   Returns `{first_word, rest}` for `string`, or `nil` for the empty string.
   """
   @spec next(String.t()) :: {String.t(), String.t()} | nil
   def next(""), do: nil
 
-  def next(string) do
+  def next(<<first, second, _rest::binary>> = string)
+      when is_ascii_letter(first) and second in @safe_terminators do
+    {binary_part(string, 0, 1), binary_part(string, 1, byte_size(string) - 1)}
+  end
+
+  def next(<<first, second, rest::binary>> = string)
+      when is_ascii_letter(first) and is_ascii_letter(second) do
+    case ascii_word_run(rest, 2) do
+      nil ->
+        next_general(string)
+
+      length ->
+        {binary_part(string, 0, length), binary_part(string, length, byte_size(string) - length)}
+    end
+  end
+
+  def next(string), do: next_general(string)
+
+  defp next_general(string) do
     {head_len, rest} = next_boundary(string)
     {binary_part(string, 0, head_len), rest}
   end
+
+  defp ascii_word_run(<<byte, rest::binary>>, length) when is_ascii_letter(byte) do
+    ascii_word_run(rest, length + 1)
+  end
+
+  defp ascii_word_run(<<byte, _rest::binary>>, length) when byte in @safe_terminators do
+    length
+  end
+
+  defp ascii_word_run(<<_byte, _rest::binary>>, _length), do: nil
+  defp ascii_word_run(<<>>, length), do: length
 
   @doc """
   Splits `string` into a list of word-break segments.
@@ -118,7 +190,7 @@ defmodule Unicode.String.Break.Word do
   defp peek_effective(""), do: nil
 
   defp peek_effective(<<cp::utf8, rest::binary>>) do
-    case WordBreak.word_break(cp) do
+    case word_break(cp) do
       cls when cls in [:extend, :format, :zwj] -> peek_effective(rest)
       _ -> cp
     end
@@ -136,7 +208,7 @@ defmodule Unicode.String.Break.Word do
   # it would obscure the one-to-one correspondence with the rules.
   # credo:disable-for-next-line Credo.Check.Refactor.CyclomaticComplexity
   defp decide_op({prev, prev2, ri_parity, prev_actual}, curr_cp, peek_cp) do
-    curr = WordBreak.word_break(curr_cp)
+    curr = word_break(curr_cp)
     extpict? = is_extpict(curr_cp)
 
     cond do
@@ -240,12 +312,12 @@ defmodule Unicode.String.Break.Word do
   # (AHLetter / HebrewLetter / Numeric) are never transparent, so we
   # don't have to skip — but if the next char IS transparent we should
   # treat it as "not the relevant class".
-  defp peek_class(cp), do: WordBreak.word_break(cp)
+  defp peek_class(cp), do: word_break(cp)
 
   ## State management
 
   defp initial_state(cp) do
-    cls = WordBreak.word_break(cp)
+    cls = word_break(cp)
     ri_parity = if cls == :regional_indicator, do: :odd, else: :even
 
     {effective_prev, effective_prev2} =
@@ -255,7 +327,7 @@ defmodule Unicode.String.Break.Word do
   end
 
   defp advance({prev, prev2, ri_parity, _prev_actual}, cp) do
-    cls = WordBreak.word_break(cp)
+    cls = word_break(cp)
 
     if cls in @transparent do
       # WB4: transparent; effective prev/prev2 unchanged. RI parity is also unchanged.

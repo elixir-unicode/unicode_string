@@ -9,6 +9,14 @@
 #     @iterations complete passes inside C, so the single NIF boundary crossing
 #     is amortised across all of them rather than being charged to ICU.
 #
+#   * Each pass calls `ubrk_setText` first. ICU caches recently returned
+#     boundaries, and for a break type with few boundaries - sentences, most
+#     obviously - an entire text can sit in that cache, so a reused iterator
+#     replays the first pass instead of segmenting again. Resetting the text
+#     forces the work. It does not re-convert UTF-8, so it adds nothing to
+#     ICU's measured cost. Without it, sentence breaking measured 5.7x faster
+#     than it really is.
+#
 #   * The native side runs the same @iterations passes per timed call, and the
 #     dictionaries every dictionary locale needs are loaded during warmup, so
 #     no run pays a one-off `File.read` or trie build.

@@ -27,3 +27,7 @@ mise.toml
 
 # Benchmark-only ICU NIF build artefact
 benchee/icu/*.so
+
+c_src/*.o
+c_src/env.mk
+priv/*.so
