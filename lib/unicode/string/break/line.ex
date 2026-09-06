@@ -5,7 +5,8 @@ defmodule Unicode.String.Break.Line do
   This is a pragmatic pair-table evaluator covering the rules used in
   realistic prose: the LB1 resolution of ambiguous classes, mandatory
   breaks (LB4–LB6), spaces (LB7–LB8a, LB18), combining marks (LB9–LB10),
-  word-joiner / glue / quotation behavior (LB11–LB12a, LB19), the LB13
+  word-joiner / glue / quotation behavior (LB11–LB12a, LB15a–LB15b,
+  LB19), the LB13
   cluster of close/postfix punctuation, the OP/CL pair (LB14–LB17),
   the LB15c/LB15d numeric-prefix carve-out, the LB20a word-initial
   hyphen rule, the LB21a Hebrew-letter trailing hyphen rule,
@@ -39,9 +40,12 @@ defmodule Unicode.String.Break.Line do
     NS`). Several Japanese-locale cases in ICU's `rbbitst.txt`
     expect loose-mode behaviour and therefore differ.
 
-  * **LB15a / LB15b (Pi / Pf quotation).** Initial-quote and
-    final-quote sub-classes of `QU` are treated as plain `QU`. The
-    east-asian-width-aware variants in LB15a/15b are approximated.
+  * **LB19 / LB19a (unresolved quotation marks).** This module
+    suppresses breaks on both sides of every `QU`. LB19 is narrower —
+    `× [QU - \p{Pi}]` and `[QU - \p{Pf}] ×` — and LB19a restores the
+    suppression only outside East Asian context. Implementing LB19
+    without LB19a would introduce breaks that LB19a is there to
+    prevent, so the two need doing together.
 
   * **LB28a (Brahmic clusters).** Indic conjunct clusters
     (`AK`/`AP`/`AS`/`VI`/`VF`) follow the default break rules rather
@@ -55,7 +59,7 @@ defmodule Unicode.String.Break.Line do
   * `effective_prev` — the previous non-CM/non-ZWJ class, after LB1
     resolution and LB9 (combining marks taking the class of their base).
   * `prev_actual` — the immediately previous class, for LB5 (CR×LF).
-  * `space_run` — `:none`, `:after_op`, `:after_qu`, `:after_cl`,
+  * `space_run` — `:none`, `:after_op`, `:after_pi_qu`, `:after_cl`,
     `:after_b2`, or `:after_zw`. Tracks the `X SP*` patterns required
     by LB14, LB15, LB16, LB17, and LB8.
   * `ri_parity` — `:odd` / `:even` for LB30a.
@@ -134,6 +138,7 @@ defmodule Unicode.String.Break.Line do
       :sa -> sa_class(cp)
       :op -> if east_asian_wide?(cp), do: :op_ea, else: :op
       :cp -> if east_asian_wide?(cp), do: :cp_ea, else: :cp
+      :qu -> qu_class(cp)
       raw -> Map.get(@lb1_map, raw, raw)
     end
   end
@@ -151,6 +156,28 @@ defmodule Unicode.String.Break.Line do
 
   @open_punctuation [:op, :op_ea]
   @close_punctuation [:cp, :cp_ea]
+
+  # LB15a and LB15b apply only to the initial (Pi) and final (Pf) quotation
+  # marks, so QU is split three ways. Rules that apply to quotation marks
+  # generally - LB19, and the left context of LB15a - match `@quotation`.
+  defp qu_class(cp) do
+    case Unicode.category(cp) do
+      :Pi -> :qu_pi
+      :Pf -> :qu_pf
+      _other -> :qu
+    end
+  end
+
+  @quotation [:qu, :qu_pi, :qu_pf]
+
+  # LB15a: (sot | BK | CR | LF | NL | OP | QU | GL | SP | ZW) [\p{Pi}&QU] SP* ×
+  @lb15a_left [:sot, :bk, :cr, :lf, :nl, :gl, :sp, :zw] ++ @open_punctuation ++ @quotation
+
+  # LB15b: × [\p{Pf}&QU] (SP | GL | WJ | CL | QU | CP | EX | IS | SY | BK | CR
+  #                        | LF | NL | ZW | eot)
+  # `peek_class/1` returns nil at end of text, which is the `eot` alternative.
+  @lb15b_right [nil, :sp, :gl, :wj, :cl, :ex, :is, :sy, :bk, :cr, :lf, :nl, :zw] ++
+                 @close_punctuation ++ @quotation
 
   # LB1 resolves SA (Complex_Context) to CM when its General_Category is Mn or
   # Mc, and to AL otherwise. The distinction matters wherever the preceding
@@ -180,7 +207,8 @@ defmodule Unicode.String.Break.Line do
     space_run =
       case cls do
         cls when cls in @open_punctuation -> :after_op
-        :qu -> :after_qu
+        # LB15a's left context includes sot, so a leading Pi quote opens the run.
+        :qu_pi -> :after_pi_qu
         :cl -> :after_cl
         cls when cls in @close_punctuation -> :after_cl
         :b2 -> :after_b2
@@ -199,7 +227,7 @@ defmodule Unicode.String.Break.Line do
     # when curr is CM/ZWJ (LB9 transparency) and otherwise rolls forward.
     new_eff_prev2 = if cls in [:cm, :zwj], do: eff_prev2, else: eff_prev
 
-    {next_eff_prev(cls, eff_prev), new_eff_prev2, cls, next_space_run(cls, space_run),
+    {next_eff_prev(cls, eff_prev), new_eff_prev2, cls, next_space_run(cls, space_run, eff_prev),
      next_ri_parity(cls, ri_parity)}
   end
 
@@ -211,17 +239,21 @@ defmodule Unicode.String.Break.Line do
 
   # Track the "space run" context used by the space-sensitive rules.
   # LB9: CM/ZWJ take the class of the base, so the run is left unchanged.
-  defp next_space_run(:sp, space_run), do: space_run
-  defp next_space_run(cls, _space_run) when cls in @open_punctuation, do: :after_op
-  defp next_space_run(:qu, _space_run), do: :after_qu
+  defp next_space_run(:sp, space_run, _eff_prev), do: space_run
 
-  defp next_space_run(cls, _space_run) when cls in [:cl | @close_punctuation],
+  defp next_space_run(cls, _space_run, _eff_prev) when cls in @open_punctuation,
+    do: :after_op
+
+  defp next_space_run(:qu_pi, _space_run, eff_prev) when eff_prev in @lb15a_left,
+    do: :after_pi_qu
+
+  defp next_space_run(cls, _space_run, _eff_prev) when cls in [:cl | @close_punctuation],
     do: :after_cl
 
-  defp next_space_run(:b2, _space_run), do: :after_b2
-  defp next_space_run(:zw, _space_run), do: :after_zw
-  defp next_space_run(cls, space_run) when cls in [:cm, :zwj], do: space_run
-  defp next_space_run(_cls, _space_run), do: :none
+  defp next_space_run(:b2, _space_run, _eff_prev), do: :after_b2
+  defp next_space_run(:zw, _space_run, _eff_prev), do: :after_zw
+  defp next_space_run(cls, space_run, _eff_prev) when cls in [:cm, :zwj], do: space_run
+  defp next_space_run(_cls, _space_run, _eff_prev), do: :none
 
   # LB9: CM and ZWJ take the class of the preceding character, except when
   # that character is BK, CR, LF, NL, SP, or ZW (then they default to AL by
@@ -303,8 +335,13 @@ defmodule Unicode.String.Break.Line do
       space_run == :after_op ->
         :no_break
 
-      # LB15: QU SP* × OP  (simplified — full LB15 has Pi/Pf variants)
-      space_run == :after_qu and curr in @open_punctuation ->
+      # LB15a: (sot | BK | CR | LF | NL | OP | QU | GL | SP | ZW) [Pi&QU] SP* ×
+      space_run == :after_pi_qu ->
+        :no_break
+
+      # LB15b: × [Pf&QU] (SP | GL | WJ | CL | QU | CP | EX | IS | SY | BK | CR
+      #                   | LF | NL | ZW | eot)
+      curr == :qu_pf and peek_class(rest) in @lb15b_right ->
         :no_break
 
       # LB16: (CL | CP) SP* × NS
@@ -333,7 +370,7 @@ defmodule Unicode.String.Break.Line do
         :break
 
       # LB19: × QU, QU ×
-      curr == :qu or eff_prev == :qu ->
+      curr in @quotation or eff_prev in @quotation ->
         :no_break
 
       # LB20: ÷ CB; CB ÷

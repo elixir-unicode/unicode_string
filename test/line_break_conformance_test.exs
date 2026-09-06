@@ -21,14 +21,15 @@ defmodule Unicode.String.LineBreakConformanceTest do
   #   Katakana). This module implements only standard `CJ → NS`.
   #   This accounts for the majority of the remaining ICU failures.
   #
-  # * **LB15a / LB15b (Pi / Pf quotation)** — initial- and final-
-  #   quote subclasses are folded into plain QU.
+  # * **LB19 / LB19a (unresolved quotation marks)** — breaks are
+  #   suppressed on both sides of every QU, rather than only for
+  #   non-initial/non-final quotes and outside East Asian context.
   #
   # * **LB28a (Brahmic clusters)** — Indic AK/AP/AS/VI/VF clusters
   #   are not handled.
   #
-  @ucd_pass_floor 18_974
-  @icu_pass_floor 162
+  @ucd_pass_floor 19_230
+  @icu_pass_floor 167
 
   describe "Unicode UCD LineBreakTest.txt (#{@ucd_pass_floor} of 19_346 cases must pass)" do
     test "minimum-pass-count baseline" do

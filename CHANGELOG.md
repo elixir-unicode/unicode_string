@@ -6,6 +6,8 @@ This is the changelog for Unicode String v2.4.0 released on _unreleased_.  For o
 
 ### Bug Fixes
 
+* Implement LB15a and LB15b, so a break is suppressed after an initial (`Pi`) quotation mark across any following spaces, and before a final (`Pf`) quotation mark that ends the text or is followed by space, glue or closing punctuation. This also removes a `QU SP* × OP` rule that no longer exists in UAX #14.
+
 * Apply the LB30 East-Asian-width restriction, so `(AL | HL | NU) × OP` and `CP × (AL | HL | NU)` no longer suppress a break when the punctuation has an `East_Asian_Width` of `F`, `W` or `H`.
 
 * Apply LB10 to a combining mark that begins a segment. A `CM` or `ZWJ` with no base to attach to is now treated as `AL`, where previously it kept class `CM` and admitted a spurious break before the following character.
