@@ -67,7 +67,7 @@ jobs:
     # never share BEAMs compiled by a different toolchain.
     - name: Cache deps
       id: cache-deps
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       env:
         cache-name: cache-elixir-deps
       with:
@@ -81,7 +81,7 @@ jobs:
     # project's downloaded deps every run.
     - name: Cache compiled build
       id: cache-build
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       env:
         cache-name: cache-compiled-build
       with:
@@ -129,7 +129,7 @@ jobs:
     # update it incrementally rather than building one from scratch.
     - name: Restore PLT cache
       if: ${{ matrix.lint }}
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: _build/test/dialyxir_*
         key: plt-${{ matrix.elixir }}-${{ matrix.otp }}-${{ steps.lockfile.outputs.hash }}

@@ -15,6 +15,16 @@ Adds functions supporting some string algorithms in the Unicode standard. For ex
 
 * The [Unicode Line Breaking](https://www.unicode.org/reports/tr14/) algorithm to determine line breaks (breaks meaning where word-wrapping would be acceptable).
 
+## Guides
+
+* [Introduction](guides/introduction.md) — an overview of the library and the four break types.
+* [Grapheme Cluster Break](guides/grapheme_break.md) — user-perceived characters, emoji and Indic conjuncts.
+* [Word Break](guides/word_break.md) — word segmentation, CLDR tailoring and dictionary locales.
+* [Sentence Break](guides/sentence_break.md) — sentence boundaries and abbreviation suppressions.
+* [Line Break](guides/line_break.md) — where a line may be wrapped, and CJK tailoring.
+* [Casing](guides/casing.md) — locale-aware upper, lower and title casing, and case-insensitive comparison.
+* [Conformance](conformance.md) — conformance results and differences from ICU.
+
 ## Installation
 
 The package can be installed by adding `:unicode_string` to your list of dependencies in `mix.exs`:

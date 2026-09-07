@@ -10,7 +10,7 @@ This is the changelog for Unicode String v2.4.0 released on _unreleased_.  For o
 
 * Segment all four break types with a table-driven engine generated from the state machine data published in PRI #555. Line breaking now passes all 19,346 cases of `LineBreakTest.txt` where the previous engine passed 99.81%.
 
-* Remove the direct-coded rule engine modules `Unicode.String.Break.Grapheme`, `…Word`, `…Sentence` and `…Line`, superseded by the table-driven engine. They were internal; the public API is unchanged.
+* **Breaking.** Remove the direct-coded rule engine modules `Unicode.String.Break.Grapheme`, `…Word`, `…Sentence` and `…Line`, superseded by the table-driven engine. They were documented modules, so code calling them directly must move to `Unicode.String.split/2` and friends, which are unchanged.
 
 * Support CLDR locale tailoring of break classes through `Unicode.String.Break.Tailoring`. Greek sentences break at U+003B and U+037E, and `ja`, `zh` and `zh-Hant` line breaking treats conditional Japanese starters as ideographs rather than non-starters.
 
