@@ -42,7 +42,7 @@ Linkers = maps:get(virama, GBP) ++ maps:get(invisible_stacker, GBP),
 Consonants = maps:get(consonant, GBP) ++ maps:get(vowel_independent, GBP) ++ [{16#1B0B, 16#1B0C}],
 ```
 
-Every Indic virama therefore counts as a linker, producing 41 rather than 23, and independent vowels count as consonants. The consequence is that OTP joins conjuncts in scripts where `Indic_Conjunct_Break` does not. U+0CCD KANNADA SIGN VIRAMA is `InCB=Extend` in the UCD but a linker to OTP, so a Kannada conjunct stays together under `String.graphemes/1` and breaks under UAX #29.
+Every Indic virama therefore counts as a linker, producing 41 rather than 23, and independent vowels count as consonants, so OTP's sets are strict supersets of the property's — 1,943 extra consonants as well as 21 extra linkers. (OTP 29 reports `unicode_util:spec_version()` of `{17,0}`, where the property defines 20 linkers rather than 18.0's 23; the derivation is the same either way.) The consequence is that OTP joins conjuncts in scripts where `Indic_Conjunct_Break` does not. U+0CCD KANNADA SIGN VIRAMA is `InCB=Extend` in the UCD but a linker to OTP, so a Kannada conjunct stays together under `String.graphemes/1` and breaks under UAX #29.
 
 Where the two sets agree the results agree: Devanagari U+0915 U+094D U+0937 is a single cluster under both, because U+094D is `InCB=Linker` and both consonants are `InCB=Consonant`.
 
