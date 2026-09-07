@@ -1,7 +1,10 @@
 defmodule Unicode.String.Break.Grapheme do
   @moduledoc """
-  Single-pass DFA-style implementation of UAX #29 grapheme cluster
+  Direct-coded rule engine implementing UAX #29 grapheme cluster
   segmentation.
+
+  The rules are compiled into ordered guards and function clauses, not into
+  regular expressions and not into a transition table.
 
   The state carried between characters is intentionally small:
 

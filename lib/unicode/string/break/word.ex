@@ -1,6 +1,9 @@
 defmodule Unicode.String.Break.Word do
   @moduledoc """
-  Single-pass DFA-style implementation of UAX #29 word break.
+  Direct-coded rule engine implementing UAX #29 word break.
+
+  The rules are compiled into ordered guards and function clauses, not into
+  regular expressions and not into a transition table.
 
   ## State
 
@@ -25,7 +28,7 @@ defmodule Unicode.String.Break.Word do
   ## Lookahead
 
   Some rules require knowing the character *after* the candidate
-  break (WB6, WB7b, WB12). The walker therefore reads codepoints with
+  break (WB6, WB7b, WB12). The engine therefore reads codepoints with
   one codepoint of buffered lookahead and resolves these rules at
   decision time.
   """

@@ -1,7 +1,10 @@
 defmodule Unicode.String.Break.Sentence do
   @moduledoc """
-  Single-pass DFA-style implementation of UAX #29 sentence break with
+  Direct-coded rule engine implementing UAX #29 sentence break with
   locale-specific class extensions and abbreviation suppressions.
+
+  The rules are compiled into ordered guards and function clauses, not into
+  regular expressions and not into a transition table.
 
   ## Background
 
@@ -22,12 +25,12 @@ defmodule Unicode.String.Break.Sentence do
   Some locales extend the standard Sentence_Break property classes.
   CLDR's `el.xml`, for example, extends `$STerm` to include U+003B
   (ASCII semicolon) so that Greek text like "γδ; Ε" breaks at the
-  semicolon. The walker accepts a `locale` argument and applies these
+  semicolon. The engine accepts a `locale` argument and applies these
   per-locale overrides via `classify/2`.
 
   ## State
 
-  The walker carries:
+  The engine carries:
 
   * `prev_actual` — the property of the immediately-previous codepoint
     (without the SB5 transparent skip). Needed for SB3 (`CR × LF`).
@@ -45,7 +48,7 @@ defmodule Unicode.String.Break.Sentence do
 
   Locale-specific suppressions (e.g. "Mr.", "Dr.") are applied as a
   post-pass: when SB11 would fire after an ATerm-led sequence, the
-  walker compares the trailing fragment of the segment against the
+  engine compares the trailing fragment of the segment against the
   suppression set and cancels the break on a longest-match.
   """
 
@@ -120,7 +123,7 @@ defmodule Unicode.String.Break.Sentence do
     end
   end
 
-  ## Walker
+  ## Rule engine
 
   defp next_boundary(<<cp::utf8, rest::binary>> = string, locale, suppressions) do
     state = initial_state(cp, locale)

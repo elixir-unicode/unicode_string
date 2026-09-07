@@ -13,7 +13,7 @@ All four break types defined by CLDR are supported: grapheme cluster break, word
 
 ## Rule Source
 
-Each break type is implemented as a single-pass walker over the string. Every position is decided from the character at that position plus a small amount of state carried forward from the characters already seen, so the cost is proportional to the length of the input rather than to the number of rules. Earlier releases evaluated a pair of PCRE regular expressions per rule per position; that engine was replaced in version 2.1.0.
+Each break type is implemented as a *direct-coded rule engine*: the rules of the relevant annex are compiled into ordered guards and function clauses, not into regular expressions and not into a transition table. The string is scanned once, and every position is decided from the character at that position plus a small amount of state carried forward from the characters already seen, so the cost is proportional to the length of the input rather than to the number of rules. Earlier releases evaluated a pair of PCRE regular expressions per rule per position; that engine was replaced in version 2.1.0.
 
 Locale-specific data — sentence break suppressions in particular — is still read from the [CLDR](https://cldr.unicode.org) XML segment rule definitions shipped in `priv/segments/`.
 
@@ -33,7 +33,18 @@ Implements **extended grapheme clusters** as defined in [UAX #29 Section 3.1](ht
 
 ### Difference from Erlang/OTP grapheme clusters
 
-Erlang's `string` module (which underlies Elixir's `String.first/1` and `String.graphemes/1`) implements an older grapheme cluster algorithm that does not include rule GB9c (Indic conjunct break). This means Erlang treats a virama as a combining mark that joins with both the preceding and following consonants into a single cluster, while UAX #29 breaks the cluster at the conjunct boundary.
+Erlang's `string` module — which underlies Elixir's `String.first/1` and `String.graphemes/1` — does implement GB9c. The difference is in how the sets that rule operates on are derived.
+
+UAX #29 defines GB9c over the `Indic_Conjunct_Break` property, a derived property curated for this purpose: 23 codepoints have `InCB=Linker`. OTP instead derives its equivalent sets from `IndicSyllabicCategory.txt`, in [`gen_unicode_mod.escript`](https://github.com/erlang/otp/blob/master/lib/stdlib/uc_spec/gen_unicode_mod.escript), which generates the `unicode_util` module at build time:
+
+```erlang
+Linkers = maps:get(virama, GBP) ++ maps:get(invisible_stacker, GBP),
+Consonants = maps:get(consonant, GBP) ++ maps:get(vowel_independent, GBP) ++ [{16#1B0B, 16#1B0C}],
+```
+
+Every Indic virama therefore counts as a linker, producing 41 rather than 23, and independent vowels count as consonants. The consequence is that OTP joins conjuncts in scripts where `Indic_Conjunct_Break` does not. U+0CCD KANNADA SIGN VIRAMA is `InCB=Extend` in the UCD but a linker to OTP, so a Kannada conjunct stays together under `String.graphemes/1` and breaks under UAX #29.
+
+Where the two sets agree the results agree: Devanagari U+0915 U+094D U+0937 is a single cluster under both, because U+094D is `InCB=Linker` and both consonants are `InCB=Consonant`.
 
 Example with Kannada `ಕ್ಯಾಥಿ` (KA + VIRAMA + YA + AA-vowel + THA + I-vowel):
 
@@ -42,7 +53,7 @@ Example with Kannada `ಕ್ಯಾಥಿ` (KA + VIRAMA + YA + AA-vowel + THA + I
 | Erlang/OTP | ಕ್ಯಾ (4 codepoints) | ಥಿ (2 codepoints) | — |
 | UAX #29 / `unicode_string` | ಕ್ (2 codepoints) | ಯಾ (2 codepoints) | ಥಿ (2 codepoints) |
 
-This distinction matters for any operation that extracts the "first letter" of a word in a Brahmic script (Devanagari, Bengali, Tamil, Telugu, Kannada, Malayalam, Sinhala, Khmer, Myanmar, Thai, Lao, Tibetan, etc.).
+The scripts affected are those whose virama is not `InCB=Linker` — Kannada, Tamil, Gurmukhi and Sinhala among them. Devanagari, Bengali, Gujarati, Oriya, Telugu and Malayalam are unaffected, since their viramas are in both sets. The distinction matters for any operation that extracts the "first letter" of a word in one of the affected scripts.
 
 ### Test coverage
 

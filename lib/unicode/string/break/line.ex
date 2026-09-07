@@ -3,10 +3,12 @@ defmodule Unicode.String.Break.Line do
   Line break implementation following [UAX #14](https://www.unicode.org/reports/tr14/).
 
   Given a string, this module finds the positions at which a line may be
-  broken. It walks the string once, deciding each position from a small
-  amount of state carried forward from the characters already seen, so the
-  cost is proportional to the length of the input rather than to the number
-  of rules.
+  broken. It is a *direct-coded rule engine*: the rules are compiled into
+  ordered guards and function clauses, not into regular expressions and not
+  into a transition table. The string is scanned once, deciding each position
+  from a small amount of state carried forward from the characters already
+  seen, so the cost is proportional to the length of the input rather than to
+  the number of rules.
 
   Every rule in the standard is implemented, including the ones that depend
   on more than a character's line break class: the East Asian width of
@@ -72,7 +74,7 @@ defmodule Unicode.String.Break.Line do
     decide_op(state, classify(curr_cp), curr_cp, rest) == :break
   end
 
-  ## Walker
+  ## Rule engine
 
   defp next_boundary(<<cp::utf8, rest::binary>> = string) do
     cls = classify(cp)
@@ -196,7 +198,7 @@ defmodule Unicode.String.Break.Line do
   # LB10: a CM or ZWJ with no base to attach to is treated as AL. `next_eff_prev/2`
   # covers the case where the base is a class LB9 excludes (BK, CR, LF, NL, SP, ZW);
   # this covers the other one, a combining mark at the start of the text. Every
-  # break restarts the walker, so "start of the text" is also every position
+  # break restarts the scan, so "start of the text" is also every position
   # immediately after a break.
   defp lb10_resolve(cls) when cls in [:cm, :zwj], do: :al
   defp lb10_resolve(cls), do: cls
