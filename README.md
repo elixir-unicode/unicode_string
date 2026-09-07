@@ -139,9 +139,9 @@ iex> Unicode.String.split "No, I don't have a Ph.D. but I don't think it matters
 ["No, I don't have a Ph.D. but I don't think it matters."]
 
 # Sentence Break suppressions are locale sensitive.
-iex> Unicode.String.Segment.known_locales
-["de", "el", "en", "en-US", "en-US-POSIX", "es", "fi", "fr", "it", "ja", "pt",
- "root", "ru", "sv", "zh", "zh-Hant"]
+iex> Unicode.String.Segment.known_segmentation_locales
+[:de, :el, :en, :"en-US", :"en-US-POSIX", :es, :fi, :fr, :it, :ja, :pt, :root,
+ :ru, :sv, :zh, :"zh-Hant"]
 
 iex> Unicode.String.split "Non, c'est M. Dubois.", break: :sentence, trim: true, locale: "fr"
 ["Non, c'est M. Dubois."]
@@ -210,7 +210,8 @@ See `conformance.md` for details on conformance with the UAX #29 break algorithm
 Segmentation can also be streamed using `Unicode.String.stream/2`. For large strings this may improve memory usage since the intermediate segments will be garbage collected when they fall out of scope.
 
 ```elixir
-iex> Enum.to_list Unicode.String.stream("this is a list of words", trim: true)                       ["this", "is", "a", "list", "of", "words"]
+iex> Enum.to_list Unicode.String.stream("this is a list of words", trim: true)
+["this", "is", "a", "list", "of", "words"]
 
 iex> Enum.map Unicode.String.stream("this is a list of words", trim: true),
 ...>   fn word -> %{word: word, length: String.length(word)} end
@@ -218,7 +219,7 @@ iex> Enum.map Unicode.String.stream("this is a list of words", trim: true),
   %{length: 4, word: "this"},
   %{length: 2, word: "is"},
   %{length: 1, word: "a"},
-  %{length: 3, word: "list"},
+  %{length: 4, word: "list"},
   %{length: 2, word: "of"},
   %{length: 5, word: "words"}
 ]

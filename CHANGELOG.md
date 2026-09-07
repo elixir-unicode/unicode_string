@@ -6,7 +6,11 @@ This is the changelog for Unicode String v2.4.0 released on _unreleased_.  For o
 
 ### Enhancements
 
-* Segment all four break types with a table-driven engine generated from the state machine data published in PRI #555. Line breaking now passes all 19,346 cases of `LineBreakTest.txt` where the previous engine passed 99.81%; that engine is retained as an independent cross-check.
+* Support Unicode 18.0.0. Rule GB9c no longer requires a leading `Indic_Conjunct_Break=Consonant`, so a linker opens a conjunct sequence from any position including the start of text. Segmentation test data is refreshed to 18.0.0.
+
+* Segment all four break types with a table-driven engine generated from the state machine data published in PRI #555. Line breaking now passes all 19,346 cases of `LineBreakTest.txt` where the previous engine passed 99.81%.
+
+* Remove the direct-coded rule engine modules `Unicode.String.Break.Grapheme`, `…Word`, `…Sentence` and `…Line`, superseded by the table-driven engine. They were internal; the public API is unchanged.
 
 * Support CLDR locale tailoring of break classes through `Unicode.String.Break.Tailoring`. Greek sentences break at U+003B and U+037E, and `ja`, `zh` and `zh-Hant` line breaking treats conditional Japanese starters as ideographs rather than non-starters.
 
@@ -23,6 +27,8 @@ This is the changelog for Unicode String v2.4.0 released on _unreleased_.  For o
 * Compile the `Extended_Pictographic` property into a balanced binary tree of comparisons rather than a flat chain of 156 `or` clauses. Because `or` short-circuits on true, the flat form cost all 156 comparisons for every character that is *not* pictographic, which is almost every character in ordinary text. The tree answers in about 8 and remains valid in a guard.
 
 ### Bug Fixes
+
+* Keep dictionary-based line breaking inside its own script, so a boundary is added only between two characters of the dictionary script. Adjacent punctuation no longer becomes its own segment, which had broken after an opening bracket where LB14 forbids it and before a closing one where LB13 does.
 
 * Apply the line-break dictionary pass in `Unicode.String.stream/2` and `Unicode.String.splitter/2`. Both previously returned different segments from `Unicode.String.split/2` for Thai, Lao, Khmer and Burmese.
 
@@ -41,10 +47,6 @@ This is the changelog for Unicode String v2.4.0 released on _unreleased_.  For o
 * Apply LB10 to a combining mark that begins a segment. A `CM` or `ZWJ` with no base to attach to is now treated as `AL`, where previously it kept class `CM` and admitted a spurious break before the following character.
 
 * Resolve `Line_Break=SA` by General_Category as LB1 requires, to `CM` for `Mn` and `Mc` and to `AL` otherwise. Previously all `SA` resolved to `AL`, which broke sequences such as an ideograph followed by a Thai combining mark.
-
-### Enhancements
-
-* Support Unicode 18.0.0. Rule GB9c no longer requires a leading `Indic_Conjunct_Break=Consonant`, so a linker opens a conjunct sequence from any position including the start of text. Segmentation test data is refreshed to 18.0.0.
 
 ## Unicode String v2.3.1
 

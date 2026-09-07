@@ -65,12 +65,12 @@ defmodule Unicode.String do
   arguments which are then compared with the
   `==` operator.
 
-  ## Arguments
+  ### Arguments
 
   * `string_a` and `string_b` are two strings
     to be compared
 
-  ## Returns
+  ### Returns
 
   * `true` or `false`
 
@@ -88,7 +88,7 @@ defmodule Unicode.String do
     it is recommended they be normalized before comparison
     using `String.normalize(string, :nfc)`.
 
-  ## Examples
+  ### Examples
 
       iex> Unicode.String.equals_ignoring_case? "ABC", "abc"
       true
@@ -111,7 +111,7 @@ defmodule Unicode.String do
   at the point between the two string
   segments represented by `{string_before, string_after}`.
 
-  ## Arguments
+  ### Arguments
 
   * `string_interval` is any 2-tuple consisting
     of the string before a possible break and the string
@@ -120,7 +120,7 @@ defmodule Unicode.String do
   * `options` is a keyword list of
     options.
 
-  ## Options
+  ### Options
 
   * `:locale` is any locale returned by
     `Unicode.String.Segment.known_segmentation_locales/0` or
@@ -138,13 +138,13 @@ defmodule Unicode.String do
     abbreviations defined for the `locale`. The
     default is `true`.
 
-  ## Returns
+  ### Returns
 
   * `true` or `false` or
 
   * raises an exception if there is an error.
 
-  ## Examples
+  ### Examples
 
       iex> Unicode.String.break? {"This is ", "some words"}
       true
@@ -173,7 +173,7 @@ defmodule Unicode.String do
   at the point between the two string
   segments represented by `{string_before, string_after}`.
 
-  ## Arguments
+  ### Arguments
 
   * `string_interval` is any 2-tuple consisting
     of the string before a possible break and the string
@@ -182,7 +182,7 @@ defmodule Unicode.String do
   * `options` is a keyword list of
     options.
 
-  ## Options
+  ### Options
 
   * `:locale` is any locale returned by
     `Unicode.String.Segment.known_segmentation_locales/0` or
@@ -200,7 +200,7 @@ defmodule Unicode.String do
     abbreviations defined for the `locale`. The
     default is `true`.
 
-  ## Returns
+  ### Returns
 
   A tuple indicating if a break would
   be applicable at this point between
@@ -212,7 +212,7 @@ defmodule Unicode.String do
 
   * `{:error, reason}`.
 
-  ## Examples
+  ### Examples
 
       iex> Unicode.String.break {"This is ", "some words"}
       {:break, {"This is ", {"s", "ome words"}}}
@@ -240,21 +240,21 @@ defmodule Unicode.String do
   @doc """
   Returns an enumerable that splits a string on demand.
 
-  ## Arguments
+  ### Arguments
 
   * `string` is any `t:String.t/0`.
 
   * `options` is a keyword list of
     options.
 
-  ## Returns
+  ### Returns
 
   * A function that implements the enumerable
     protocol or
 
   * `{:error, reason}`
 
-  ## Options
+  ### Options
 
   * `:locale` is any locale returned by
     `Unicode.String.Segment.known_segmentation_locales/0` or
@@ -277,7 +277,7 @@ defmodule Unicode.String do
     excluded from the returned list.  The default
     is `false`.
 
-  ## Examples
+  ### Examples
 
       iex> enum = Unicode.String.splitter "This is a sentence. And another.", break: :word, trim: true
       iex> Enum.take enum, 3
@@ -300,14 +300,14 @@ defmodule Unicode.String do
   @doc """
   Returns next segment in a string.
 
-  ## Arguments
+  ### Arguments
 
   * `string` is any `t:String.t/0`.
 
   * `options` is a keyword list of
     options.
 
-  ## Returns
+  ### Returns
 
   A tuple with the segment and the remainder of the string or `""`
   in case the String reached its end.
@@ -316,7 +316,7 @@ defmodule Unicode.String do
 
   * `{:error, reason}`
 
-  ## Options
+  ### Options
 
   * `:locale` is any locale returned by
     `Unicode.String.Segment.known_segmentation_locales/0` or
@@ -335,7 +335,7 @@ defmodule Unicode.String do
     abbreviations defined for the `locale`. The
     default is `true`.
 
-  ## Examples
+  ### Examples
 
       iex> Unicode.String.next "This is a sentence. And another.", break: :word
       {"This", " is a sentence. And another."}
@@ -360,21 +360,21 @@ defmodule Unicode.String do
   Splits a string according to the
   specified break type.
 
-  ## Arguments
+  ### Arguments
 
   * `string` is any `t:String.t/0`.
 
   * `options` is a keyword list of
     options.
 
-  ## Returns
+  ### Returns
 
   * A list of strings after applying the
     specified break rules or
 
   * `{:error, reason}`
 
-  ## Options
+  ### Options
 
   * `:locale` is any locale returned by
     `Unicode.String.Segment.known_segmentation_locales/0`  or
@@ -398,7 +398,7 @@ defmodule Unicode.String do
     excluded from the returned list.  The default
     is `false`.
 
-  ## Examples
+  ### Examples
 
       iex> Unicode.String.split "This is a sentence. And another.", break: :word
       ["This", " ", "is", " ", "a", " ", "sentence", ".", " ", "And", " ", "another", "."]
@@ -463,16 +463,16 @@ defmodule Unicode.String do
   status): apply it to the segments returned by `split/2` or
   `stream/2` with `break: :word`.
 
-  ## Arguments
+  ### Arguments
 
   * `segment` is any `t:String.t/0`, typically a segment
     returned by `split/2` with `break: :word`.
 
-  ## Returns
+  ### Returns
 
   * `true` or `false`.
 
-  ## Examples
+  ### Examples
 
       iex> Unicode.String.word_like?("sentence")
       true
@@ -508,14 +508,14 @@ defmodule Unicode.String do
   Return a stream that breaks a string into
   graphemes, words, sentences or line breaks.
 
-  ## Arguments
+  ### Arguments
 
   * `string` is any `t:String.t/0`.
 
   * `options` is a keyword list of
     options.
 
-  ## Returns
+  ### Returns
 
   * A stream that is an `t:Enumerable.t/0` that
     can be used with the functions in the `Stream`
@@ -523,7 +523,7 @@ defmodule Unicode.String do
 
   * `{:error, reason}`
 
-  ## Options
+  ### Options
 
   * `:locale` is any locale returned by
     `Unicode.String.Segment.known_segmentation_locales/0` or
@@ -547,7 +547,7 @@ defmodule Unicode.String do
     excluded from the returned list.  The default
     is `false`.
 
-  ## Examples
+  ### Examples
 
     iex> Enum.to_list Unicode.String.stream("this is a set of words", trim: true)
     ["this", "is", "a", "set", "of", "words"]

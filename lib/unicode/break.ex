@@ -9,9 +9,7 @@ defmodule Unicode.String.Break do
   routes everything else to the table-driven break engines.
 
   Those engines are generated at compile time from the state machine tables
-  published in PRI #555. The direct-coded rule engines under
-  `Unicode.String.Break` implement the same annexes by hand; they are retained
-  as an independent cross-check and are no longer on the dispatch path.
+  published in PRI #555, so no rule of either annex appears as code.
   """
 
   alias Unicode.String.Dfa.Grapheme, as: G

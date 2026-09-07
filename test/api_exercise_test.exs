@@ -3,28 +3,29 @@ defmodule Unicode.String.ApiExerciseTest do
 
   alias Unicode.String
   alias Unicode.String.Break
+  alias Unicode.String.Dfa
   alias Unicode.String.Dictionary
   alias Unicode.String.DictionaryBreak
   alias Unicode.String.Segment
 
   describe "standalone grapheme break functions" do
     test "split/1, next/1 and break?/2" do
-      assert Break.Grapheme.split("abc") == ["a", "b", "c"]
-      assert Break.Grapheme.split("") == []
-      assert Break.Grapheme.next("") == nil
-      assert Break.Grapheme.break?("", "x")
-      assert Break.Grapheme.break?("ab", "c")
+      assert Dfa.Grapheme.split("abc") == ["a", "b", "c"]
+      assert Dfa.Grapheme.split("") == []
+      assert Dfa.Grapheme.next("") == nil
+      assert Dfa.Grapheme.break?("", "x")
+      assert Dfa.Grapheme.break?("ab", "c")
     end
   end
 
   describe "standalone line break functions" do
     test "split/1, next/1 and break?/2" do
-      assert Break.Line.split("a b c") == ["a ", "b ", "c"]
-      assert Break.Line.split("") == []
-      assert Break.Line.next("") == nil
-      assert Break.Line.break?("", "x")
-      assert Break.Line.break?("x", "")
-      assert Break.Line.break?("ab ", "cd")
+      assert Dfa.Line.split("a b c") == ["a ", "b ", "c"]
+      assert Dfa.Line.split("") == []
+      assert Dfa.Line.next("") == nil
+      assert Dfa.Line.break?("", "x")
+      assert Dfa.Line.break?("x", "")
+      assert Dfa.Line.break?("ab ", "cd")
     end
   end
 

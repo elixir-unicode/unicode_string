@@ -4,9 +4,8 @@ defmodule Unicode.String.Dfa.Sentence do
   locale tailoring and abbreviation suppressions.
 
   Generated from the `SentenceBreak` state machine tables published in PRI #555.
-  See `Unicode.String.Dfa` for the engine, `Unicode.String.Break.Tailoring` for
-  the tailoring and suppressions, and `Unicode.String.Break.Sentence` for the
-  direct-coded implementation retained as a cross-check.
+  See `Unicode.String.Dfa` for the engine and `Unicode.String.Break.Tailoring`
+  for the tailoring and suppressions.
 
   The arity-1 functions implement UAX #29 as published. The arity-3 and arity-4
   functions add the locale-dependent behaviour on top.

@@ -34,11 +34,21 @@ defmodule Unicode.String.MixProject do
   # Modules excluded from `mix test --cover` so coverage reflects the runtime
   # library, not build tooling (Mix tasks, dictionary/data generators) or the
   # test harness (conformance-data parsers under `test/support`).
+  #
+  # The three compile-time modules cannot report runtime coverage at all.
+  # `Unicode.String.Dfa` is a `__using__` macro whose code is injected into the
+  # four engines and measured there; `…Dfa.Builder` reads the state machine data
+  # while the engines compile; `…ExtendedPictographic` builds a guard expression
+  # that is inlined into its callers. All three report 0% however heavily the
+  # code they generate is exercised.
   defp coverage_ignore_modules do
     [
       ~r/^Mix\.Tasks\./,
       Unicode.String.TestDataParser,
-      Unicode.String.IcuRbbiParser
+      Unicode.String.IcuRbbiParser,
+      Unicode.String.Dfa,
+      Unicode.String.Dfa.Builder,
+      Unicode.String.ExtendedPictographic
     ]
   end
 
@@ -58,12 +68,18 @@ defmodule Unicode.String.MixProject do
       links: links(),
       files: [
         "lib",
-        "priv",
+        # Listed individually rather than as "priv" so that a locally built
+        # `priv/*.so` from the opt-in ICU NIF is never packaged. The NIF is
+        # compiled by the consumer when they ask for it.
+        "priv/dictionaries",
+        "priv/segments",
+        "priv/pri555",
         "logo.png",
         "mix.exs",
         "README*",
         "CHANGELOG*",
-        "LICENSE*"
+        "LICENSE*",
+        "conformance.md"
       ]
     ]
   end
@@ -125,6 +141,7 @@ defmodule Unicode.String.MixProject do
       formatters: ["html", "markdown"],
       extras: [
         "README.md",
+        "conformance.md",
         "LICENSE.md",
         "CHANGELOG.md"
       ],
@@ -154,19 +171,13 @@ defmodule Unicode.String.MixProject do
       "ICU Backend": [
         Unicode.String.Nif
       ],
-      "Break Engines: Table Driven": [
+      "Break Engines": [
         Unicode.String.Dfa,
         Unicode.String.Dfa.Builder,
         Unicode.String.Dfa.Grapheme,
         Unicode.String.Dfa.Line,
         Unicode.String.Dfa.Sentence,
         Unicode.String.Dfa.Word
-      ],
-      "Break Engines: Direct Coded": [
-        Unicode.String.Break.Grapheme,
-        Unicode.String.Break.Line,
-        Unicode.String.Break.Sentence,
-        Unicode.String.Break.Word
       ],
       Internals: [
         Unicode.String.ExtendedPictographic

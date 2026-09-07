@@ -16,8 +16,8 @@ defmodule Unicode.String.Break.Tailoring do
     "Mr." that end in a full stop without ending a sentence.
 
   Neither is expressible in the rules themselves, so both are applied around a
-  break engine rather than inside it. This module is the single home for that
-  behaviour, shared by the direct-coded rule engine and the table-driven one.
+  break engine rather than inside it, and this module is the single home for
+  that behaviour.
   """
 
   alias Unicode.LineBreak

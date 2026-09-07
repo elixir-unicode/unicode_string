@@ -41,8 +41,7 @@ defmodule Unicode.String.Dfa do
 
       # The symbol of every Latin-1 codepoint is known at compile time, so the
       # binary search is replaced by a single tuple index for the bulk of
-      # ordinary Western text. This mirrors the Latin-1 class tables the
-      # direct-coded rule engines use, so the two are compared on equal footing.
+      # ordinary Western text.
       @latin1_limit 0x100
       @latin1_symbols 0..(@latin1_limit - 1)
                       |> Enum.map(fn codepoint ->
