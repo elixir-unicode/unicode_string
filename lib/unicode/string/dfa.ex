@@ -120,6 +120,37 @@ defmodule Unicode.String.Dfa do
         [segment | rule_split(rest)]
       end
 
+      @doc """
+      Returns `true` when a segment boundary falls between `string_before` and
+      `string_after`.
+
+      The automaton always restarts at a boundary, so the question "is there a
+      break at this join" is answered by segmenting from the start of the
+      combined text and asking whether any boundary lands exactly on the join.
+      """
+      def break?("", _string_after), do: true
+      def break?(_string_before, ""), do: true
+
+      def break?(string_before, string_after) do
+        boundary_at?(string_before <> string_after, byte_size(string_before))
+      end
+
+      # `target` is the byte offset the join sits at, counted from the start of
+      # whatever remains. A boundary landing past it means the join is inside a
+      # segment and there is no break there.
+      defp boundary_at?(_string, 0), do: true
+
+      defp boundary_at?(string, target) do
+        {segment, rest} = next(string)
+        length = byte_size(segment)
+
+        cond do
+          length == target -> true
+          length > target -> false
+          true -> boundary_at?(rest, target - length)
+        end
+      end
+
       # Runs the automaton from the start of `string` and returns the byte
       # length of the first segment together with its break type.
       defp next_boundary(<<codepoint::utf8, _rest::binary>> = string) do

@@ -6,6 +6,10 @@ This is the changelog for Unicode String v2.4.0 released on _unreleased_.  For o
 
 ### Enhancements
 
+* Segment all four break types with a table-driven engine generated from the state machine data published in PRI #555. Line breaking now passes all 19,346 cases of `LineBreakTest.txt` where the previous engine passed 99.81%; that engine is retained as an independent cross-check.
+
+* Support CLDR locale tailoring of break classes through `Unicode.String.Break.Tailoring`. Greek sentences break at U+003B and U+037E, and `ja`, `zh` and `zh-Hant` line breaking treats conditional Japanese starters as ideographs rather than non-starters.
+
 * Add an optional ICU4C backend, `Unicode.String.Nif`, selected with `backend: :nif` on `Unicode.String.split/2`. It is opt-in via `UNICODE_STRING_NIF=true` or `config :unicode_string, :nif, true`, requires ICU system libraries and `:elixir_make`, and falls back to the native implementation whenever it is unavailable, so the option is always safe to pass. See `conformance.md` for when it is worth enabling — end to end it is 5-7x faster for line breaking and the dictionary locales, but only 1.3-1.5x for word and grapheme breaking.
 
 ### Performance
@@ -18,11 +22,9 @@ This is the changelog for Unicode String v2.4.0 released on _unreleased_.  For o
 
 * Compile the `Extended_Pictographic` property into a balanced binary tree of comparisons rather than a flat chain of 156 `or` clauses. Because `or` short-circuits on true, the flat form cost all 156 comparisons for every character that is *not* pictographic, which is almost every character in ordinary text. The tree answers in about 8 and remains valid in a guard.
 
-### Experimental
-
-* Add `Unicode.String.Dfa`, a break engine driven by the state machine data proposed in PRI #555, together with the Unicode 18 data files under `priv/pri555/`. Nothing calls it yet. Against the UCD corpora it is 100% conformant on all four break types where the hand-written line breaker reaches 99.81%, and it is 1.5x faster for grapheme, 1.1x for sentence and 2.0x for line breaking, at the cost of 1.3x on word breaking. See `conformance.md` for the full comparison.
-
 ### Bug Fixes
+
+* Apply the line-break dictionary pass in `Unicode.String.stream/2` and `Unicode.String.splitter/2`. Both previously returned different segments from `Unicode.String.split/2` for Thai, Lao, Khmer and Burmese.
 
 * Complete LB30b with its `[\p{Extended_Pictographic}&\p{Cn}] × EM` alternative, so an unassigned pictographic keeps its emoji modifier. These characters carry `lb=ID` or `lb=XX`, so the rule cannot be expressed in line-break classes alone.
 

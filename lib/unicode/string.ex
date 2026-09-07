@@ -293,7 +293,7 @@ defmodule Unicode.String do
     with {:ok, break} <- validate(:break, break),
          {:ok, locale} <- segmentation_locale_from_options(break, options),
          {:ok, _dictionary} <- Dictionary.ensure_dictionary_loaded_if_available(locale) do
-      Stream.unfold(string, &Break.next(&1, locale, break, options))
+      Break.splitter(string, locale, break, options)
     end
   end
 
@@ -566,18 +566,7 @@ defmodule Unicode.String do
 
     with {:ok, break} <- validate(:break, break),
          {:ok, locale} <- segmentation_locale_from_options(break, options) do
-      Stream.resource(
-        fn -> string end,
-        &stream_next(&1, locale, break, options),
-        fn _ -> :ok end
-      )
-    end
-  end
-
-  defp stream_next(string, locale, break, options) do
-    case Break.next(string, locale, break, options) do
-      nil -> {:halt, ""}
-      {break, rest} -> {[break], rest}
+      Break.splitter(string, locale, break, options)
     end
   end
 

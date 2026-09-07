@@ -6,14 +6,18 @@ defmodule Unicode.String.Break do
   This module is a thin dispatcher: it inspects the requested break
   type and locale, delegates dictionary-based word segmentation to
   `Unicode.String.Dictionary` / `Unicode.String.DictionaryBreak`, and
-  routes everything else to the single-pass DFA evaluators in
-  `Unicode.String.Break.Grapheme`, `…Word`, `…Sentence`, and `…Line`.
+  routes everything else to the table-driven break engines.
+
+  Those engines are generated at compile time from the state machine tables
+  published in PRI #555. The direct-coded rule engines under
+  `Unicode.String.Break` implement the same annexes by hand; they are retained
+  as an independent cross-check and are no longer on the dispatch path.
   """
 
-  alias Unicode.String.Break.Grapheme, as: G
-  alias Unicode.String.Break.Line, as: L
-  alias Unicode.String.Break.Sentence, as: S
-  alias Unicode.String.Break.Word, as: W
+  alias Unicode.String.Dfa.Grapheme, as: G
+  alias Unicode.String.Dfa.Line, as: L
+  alias Unicode.String.Dfa.Sentence, as: S
+  alias Unicode.String.Dfa.Word, as: W
   alias Unicode.String.Dictionary
   alias Unicode.String.DictionaryBreak
   alias Unicode.String.Segment
@@ -88,8 +92,8 @@ defmodule Unicode.String.Break do
     to_op(S.break?(string_before, string_after, locale, suppressions))
   end
 
-  defp break_op(:line_break, string_before, string_after, _locale, _options) do
-    to_op(L.break?(string_before, string_after))
+  defp break_op(:line_break, string_before, string_after, locale, _options) do
+    to_op(L.break?(string_before, string_after, locale))
   end
 
   defp to_op(true), do: :break
@@ -120,6 +124,15 @@ defmodule Unicode.String.Break do
     end
   end
 
+  # Sentence breaking carries both of the locale-dependent behaviours — class
+  # tailoring and suppressions — so it takes the same tailor-once path as line
+  # breaking rather than being driven a segment at a time.
+  def split(string, locale, :sentence = break, options) when break in @break_keys do
+    string
+    |> S.split(locale, sentence_suppressions(locale, options))
+    |> reject_white_space(options)
+  end
+
   def split(string, locale, break, options) when break in @break_keys do
     case next(string, locale, break, options) do
       {fore, aft} -> [fore | split(aft, locale, break, options)]
@@ -127,13 +140,65 @@ defmodule Unicode.String.Break do
     end
   end
 
+  # `trim: true` drops segments that are entirely white space.
+  defp reject_white_space(segments, options) do
+    if Keyword.get(options, :trim, false) do
+      Enum.reject(segments, &Unicode.Property.white_space?/1)
+    else
+      segments
+    end
+  end
+
+  defp stream_reject_white_space(segments, options) do
+    if Keyword.get(options, :trim, false) do
+      Stream.reject(segments, &Unicode.Property.white_space?/1)
+    else
+      segments
+    end
+  end
+
+  @doc false
+  # The lazy counterpart of `split/4`, used by `Unicode.String.splitter/2` and
+  # `Unicode.String.stream/2`.
+  #
+  # Line and sentence breaking get their own clauses so that the locale tailoring
+  # is applied once when the stream is built rather than to the remainder at
+  # every boundary. Driving them through `next/4` a segment at a time is
+  # quadratic in the length of the input.
+  def splitter(string, locale, :line, options) do
+    segments =
+      string
+      |> L.splitter(locale)
+      |> stream_reject_white_space(options)
+
+    if maybe_dictionary_script?(string) do
+      Stream.flat_map(segments, &dict_subsplit_line/1)
+    else
+      segments
+    end
+  end
+
+  def splitter(string, locale, :sentence, options) do
+    string
+    |> S.splitter(locale, sentence_suppressions(locale, options))
+    |> stream_reject_white_space(options)
+  end
+
+  def splitter(string, locale, break, options) do
+    Stream.unfold(string, &next(&1, locale, break, options))
+  end
+
   # Standard rule-based line-break split (the path used before the
   # dictionary post-pass was added).
+  #
+  # `Unicode.String.Dfa.Line.split/2` applies the locale's break class tailoring
+  # once for the whole string. Taking one segment at a time here instead would
+  # re-apply it to the remainder at every boundary, which is quadratic in the
+  # length of the input and falls hardest on the locales that have a tailoring.
   defp rule_based_line_split(string, locale, options) do
-    case next(string, locale, :line, options) do
-      {fore, aft} -> [fore | rule_based_line_split(aft, locale, options)]
-      nil -> []
-    end
+    string
+    |> L.split(locale)
+    |> reject_white_space(options)
   end
 
   # Scripts whose runs need dictionary-based line break.
@@ -329,7 +394,7 @@ defmodule Unicode.String.Break do
         S.next(string, locale, sentence_suppressions(locale, options))
 
       :line_break ->
-        L.next(string)
+        L.next(string, locale)
     end
   end
 

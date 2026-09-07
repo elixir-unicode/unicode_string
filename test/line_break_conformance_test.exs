@@ -6,24 +6,29 @@ defmodule Unicode.String.LineBreakConformanceTest do
   @ucd_path "./test/support/test_data/line_break_test.txt"
   @rbbi_path "./test/support/test_data/icu_rbbitst.txt"
 
-  # Current passing-count baselines for the line-break engine. The
-  # engine covers the rules used in realistic prose (see
-  # `Unicode.String.Break.Line` for full coverage). The corpora below
-  # catch regressions: any drop below the baseline fails the build,
-  # and improvements should raise the baseline.
+  # Passing-count baselines for line breaking. The corpora below catch
+  # regressions: any drop below the baseline fails the build, and improvements
+  # should raise the baseline.
   #
-  # Known categories of remaining failures (documented in
-  # `Unicode.String.Break.Line`'s "Limitations" section):
+  # The UCD floor is the whole corpus. Line breaking is fully conformant against
+  # `LineBreakTest.txt` and any failure at all is a regression.
   #
-  # * **CJK loose / normal / strict tailoring** — ICU's `<line>` rules
-  #   in `rbbitst.txt` expect Japanese-locale loose-mode behaviour
-  #   (e.g. `CJ → ID`, ID × HY breakable, breaks between Hiragana/
-  #   Katakana). This module implements only standard `CJ → NS`.
-  #   This accounts for the majority of the remaining ICU failures.
+  # The ICU corpus is not all reachable, and a large part of it cannot be reached
+  # by any implementation as the harness reads it. `IcuRbbiParser` keeps only the
+  # `ss=` attribute of a `<locale>` line and discards the rest, so `ja`,
+  # `ja@lb=loose`, `ja@lb=strict` and `ja@lw=phrase` all arrive labelled `"ja"`.
+  # Several of those blocks carry the same input with different expected output —
+  # one wants a break before a small kana and another wants it kept — so they
+  # cannot all pass under one locale. Failures concentrate there: 42 of the 63 are
+  # `ja` and 11 are `ko`.
   #
-  #
-  @ucd_pass_floor 19_309
-  @icu_pass_floor 176
+  # Making the corpus discriminate would mean preserving `lb=` on the parser side
+  # and implementing the strict / normal / loose line break modes behind it. The
+  # CLDR `ja.xml` tailoring itself (`CJ` as `$ID` rather than `$NS`) is
+  # implemented — see `Unicode.String.Break.Tailoring` — and is net-neutral on
+  # this corpus for exactly the reason above.
+  @ucd_pass_floor 19_346
+  @icu_pass_floor 177
 
   describe "Unicode UCD LineBreakTest.txt (#{@ucd_pass_floor} of 19_346 cases must pass)" do
     test "minimum-pass-count baseline" do

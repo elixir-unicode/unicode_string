@@ -13,7 +13,9 @@ All four break types defined by CLDR are supported: grapheme cluster break, word
 
 ## Rule Source
 
-Each break type is implemented as a *direct-coded rule engine*: the rules of the relevant annex are compiled into ordered guards and function clauses, not into regular expressions and not into a transition table. The string is scanned once, and every position is decided from the character at that position plus a small amount of state carried forward from the characters already seen, so the cost is proportional to the length of the input rather than to the number of rules. Earlier releases evaluated a pair of PCRE regular expressions per rule per position; that engine was replaced in version 2.1.0.
+Each break type is implemented as a *table-driven engine* generated at compile time from the state machine tables published in [PRI #555](https://www.unicode.org/review/pri555/). A symbol table resolves each character to a symbol, and a transition table drives a deterministic automaton across the string in one pass; no rule of the annex appears as code. Adopting a new Unicode version is a data update rather than a re-reading of the rules.
+
+Two earlier engines remain in the tree. A *direct-coded rule engine* under `Unicode.String.Break` compiles the rules of each annex into ordered guards and function clauses; it is no longer on the dispatch path but is retained as an independent cross-check, since two implementations disagreeing is how transcription defects get found. Before that, releases up to 2.1.0 evaluated a pair of PCRE regular expressions per rule per position.
 
 Locale-specific data — sentence break suppressions in particular — is still read from the [CLDR](https://cldr.unicode.org) XML segment rule definitions shipped in `priv/segments/`.
 
@@ -116,11 +118,13 @@ Every rule in the standard is implemented, including those that depend on proper
 | LB28a | U+25CC DOTTED CIRCLE, which is `lb=AL` but plays its own role in a Brahmic syllable |
 | LB30b | `Extended_Pictographic` and `General_Category=Cn`, which together match characters carrying `lb=ID` or `lb=XX` |
 
-The only part of the standard not implemented is locale tailoring; see *Differences from ICU* below.
+CLDR's locale tailoring of the line break classes is implemented for `ja`, `zh` and `zh-Hant`; see *Locale tailoring* below. The line break *modes* — strict, normal and loose — are not.
 
 ### Test coverage
 
-19,309 of 19,346 line break test cases from the Unicode test data file pass (99.81%), and 176 of 240 line break cases from ICU's `rbbitst.txt`. The remaining failures are dominated by the CJK locale tailorings.
+All 19,346 line break test cases from the Unicode test data file pass, and 177 of 240 line break cases from ICU's `rbbitst.txt`.
+
+The ICU corpus is not fully reachable. Its `<locale>` lines carry line break mode attributes — `ja@lb=loose`, `ja@lb=strict`, `ja@lw=phrase` — and several blocks pair the same input with different expected output depending on the mode. Read without those attributes they contradict each other, so no implementation can satisfy them all at once. Of the 63 remaining failures, 42 are `ja` and 11 are `ko`.
 
 ## Dictionary Break Algorithm
 
@@ -158,6 +162,22 @@ The dictionaries are those shipped with CLDR/ICU, converted to trie structures a
 
 Dictionaries must be downloaded before use with `mix unicode.string.download.dictionaries`.
 
+## Locale Tailoring
+
+UAX #14 and UAX #29 define one set of rules for every language. CLDR carries per-locale departures from them in `priv/segments/`, and this library applies the ones below. They are handled by `Unicode.String.Break.Tailoring`, outside the break engines, because a table-driven engine resolves a character to a symbol with a table fixed at compile time and has nowhere to put a per-locale exception.
+
+| Locale | Break | Tailoring |
+|---|---|---|
+| `el` | Sentence | `$STerm` gains U+003B SEMICOLON and U+037E GREEK QUESTION MARK, so Greek text breaks at the erotimatiko |
+| `ja`, `zh`, `zh-Hant` | Line | `Line_Break=Conditional_Japanese_Starter` moves from `$NS` to `$ID`, so small kana break as ideographs rather than as non-starters — CJK *loose* line breaking |
+| any | Sentence | Abbreviation suppressions, listed per locale; see *Abbreviation suppression* above |
+
+A class tailoring is applied by rewriting the affected characters to standard characters carrying the class the locale wants, before the machine runs. Each substitute encodes to the same number of UTF-8 bytes as the character it replaces, so every offset the machine reports still indexes the original string and every segment is sliced from the original. The rewrite never reaches the caller.
+
+The rewrite is applied once per call rather than once per segment. Applying it to the remainder at each boundary would make splitting quadratic in the length of the input, which would fall hardest on exactly the locales that have a tailoring.
+
+Three CLDR tailorings are not implemented. `en-US-POSIX` moves `.` from `$MidNumLet` to `$MidNum` for word breaking. `ja` adds word break rules 13.3 and 13.4, holding runs of Hiragana and of Ideographic characters together — Japanese word breaking uses the dictionary breaker instead. The `fi` and `sv` word break entries redefine `$MidLetter` to the same value root already gives it and so are no-ops.
+
 ## Differences from ICU
 
 ### Same approach
@@ -168,10 +188,11 @@ Dictionaries must be downloaded before use with `mix unicode.string.download.dic
 * 3-word lookahead algorithm for Southeast Asian dictionary break matching ICU's `DictionaryBreakEngine`.
 * Abbreviation suppression for sentence breaks using locale-specific lists.
 * CLDR `$MidLetter` modification for word breaks (excluding colons).
+* Locale tailoring of break classes for Greek sentences and CJK lines; see *Locale Tailoring* above.
 
 ### Different approach
 
-* **Rule engine.** ICU compiles rules into a state machine (RBBI — Rule-Based Break Iterator) driven by generated transition tables. `unicode_string` hand-transcribes the rules into an ordered decision function over a small carried state. Both are single-pass and both cost O(1) per character; ICU's table dispatch is considerably cheaper per step, as the benchmark below shows.
+* **Rule engine.** Both are now table-driven state machines, which was not true before this release. ICU compiles the CLDR rules itself into transition tables at build time (RBBI — Rule-Based Break Iterator); `unicode_string` compiles in the tables published in PRI #555, which are generated from the same rules but by the Unicode Consortium rather than by either implementation. Both are single-pass and cost O(1) per character. ICU remains considerably faster per step, as the benchmark below shows, but the difference is now one of implementation language and tuning rather than of algorithm.
 
 * **CJK dictionary integration.** ICU integrates dictionary lookup directly into the RBBI state machine, triggering dictionary segmentation when the state machine enters an ideographic span. `unicode_string` uses a greedy dictionary match within the standard `split` path for CJK locales.
 
