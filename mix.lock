@@ -21,6 +21,6 @@
   "statistex": {:hex, :statistex, "1.1.1", "73612aa7f79e53c30569be065fd121e380f1cf57bc4c2da5b41be9246da18df9", [:mix], [], "hexpm", "310c4b49b34adf683de3103639006bed233ab54c08a4add65a531448e653857c"},
   "sweet_xml": {:hex, :sweet_xml, "0.7.5", "803a563113981aaac202a1dbd39771562d0ad31004ddbfc9b5090bdcd5605277", [:mix], [], "hexpm", "193b28a9b12891cae351d81a0cead165ffe67df1b73fe5866d10629f4faefb12"},
   "trie": {:hex, :trie, "2.0.7", "09fa6b08cda978fe97e5b68cd4fca68c6d6fba8e941a9e66c75a4b4bf383af91", [:rebar3], [], "hexpm", "6b86092654bc6383d5c72dfbb32b466d3a70d3e95be37538bb5500ee888fa944"},
-  "unicode": {:git, "https://github.com/elixir-unicode/unicode.git", "62bcd75ccb7a8c50b809c5372d77e4944ca67d92", [branch: "unicode-18"]},
+  "unicode": {:git, "https://github.com/elixir-unicode/unicode.git", "d411f584360992e823f67ae0efc1a77e332aecf1", [branch: "unicode-18"]},
   "unicode_set": {:git, "https://github.com/elixir-unicode/unicode_set.git", "8cf43e4f014772d15136f7f4b3d3045082d6cf2b", [branch: "unicode-18"]},
 }
