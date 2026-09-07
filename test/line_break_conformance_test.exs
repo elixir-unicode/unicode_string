@@ -13,20 +13,28 @@ defmodule Unicode.String.LineBreakConformanceTest do
   # The UCD floor is the whole corpus. Line breaking is fully conformant against
   # `LineBreakTest.txt` and any failure at all is a regression.
   #
-  # The ICU corpus is not all reachable, and a large part of it cannot be reached
-  # by any implementation as the harness reads it. `IcuRbbiParser` keeps only the
-  # `ss=` attribute of a `<locale>` line and discards the rest, so `ja`,
-  # `ja@lb=loose`, `ja@lb=strict` and `ja@lw=phrase` all arrive labelled `"ja"`.
-  # Several of those blocks carry the same input with different expected output —
-  # one wants a break before a small kana and another wants it kept — so they
-  # cannot all pass under one locale. Failures concentrate there: 42 of the 63 are
-  # `ja` and 11 are `ko`.
+  # Most of the ICU corpus that fails is not testing UAX #14. Of the 59 failures,
+  # grouped by the full `<locale>` directive rather than by the base locale:
   #
-  # Making the corpus discriminate would mean preserving `lb=` on the parser side
-  # and implementing the strict / normal / loose line break modes behind it. The
-  # CLDR `ja.xml` tailoring itself (`CJ` as `$ID` rather than `$NS`) is
-  # implemented — see `Unicode.String.Break.Tailoring` — and is net-neutral on
-  # this corpus for exactly the reason above.
+  # * 45 are `lw=phrase` (38 `ja`, 7 `ko`) — phrase-based line breaking, a
+  #   separate ICU feature driven by a dictionary, not a tailoring of UAX #14.
+  #
+  # * 6 are `lb=loose`, `lb=normal` or `lb=strict` — the CSS line break modes,
+  #   which are not implemented.
+  #
+  # * 8 are dictionary segmentation differences in Thai and Burmese: which words
+  #   the dictionary chooses, and whether punctuation next to a dictionary run
+  #   attaches to it.
+  #
+  # None is attributable to the line break rules themselves. Every plain-locale
+  # block not depending on the dictionary passes: `root` 18/18, `ko` 10/10,
+  # `ja` 5/5, `fi` 6/6.
+  #
+  # `IcuRbbiParser` collapses `ja@lb=loose` and `ja` to one label, and blocks
+  # under those two pair the same input with different expected output, so no
+  # implementation can satisfy both at once as the corpus is read here. Raising
+  # the ceiling means preserving `lb=` in the parser and implementing the modes
+  # behind it.
   @ucd_pass_floor 19_346
   @icu_pass_floor 177
 

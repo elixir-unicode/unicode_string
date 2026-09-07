@@ -122,9 +122,19 @@ CLDR's locale tailoring of the line break classes is implemented for `ja`, `zh` 
 
 ### Test coverage
 
-All 19,346 line break test cases from the Unicode test data file pass, and 177 of 240 line break cases from ICU's `rbbitst.txt`.
+All 19,346 line break test cases from the Unicode test data file pass, and 177 of 236 line break cases from ICU's `rbbitst.txt`.
 
-The ICU corpus is not fully reachable. Its `<locale>` lines carry line break mode attributes — `ja@lb=loose`, `ja@lb=strict`, `ja@lw=phrase` — and several blocks pair the same input with different expected output depending on the mode. Read without those attributes they contradict each other, so no implementation can satisfy them all at once. Of the 63 remaining failures, 42 are `ja` and 11 are `ko`.
+Most of what fails in the ICU corpus is not testing UAX #14. Grouped by the full `<locale>` directive rather than by the base locale, the 59 failures are:
+
+| Count | Cause |
+|---|---|
+| 45 | `lw=phrase` (38 `ja`, 7 `ko`) — phrase-based line breaking, a separate ICU feature driven by a dictionary rather than a tailoring of UAX #14 |
+| 6 | `lb=loose`, `lb=normal`, `lb=strict` — the CSS line break modes, not implemented |
+| 8 | Dictionary segmentation differences in Thai and Burmese: which words the dictionary chooses, and whether adjacent punctuation attaches to a dictionary run |
+
+None is attributable to the line break rules. Every plain-locale block that does not depend on the dictionary passes: `root` 18/18, `ko` 10/10, `ja` 5/5, `fi` 6/6.
+
+Raising the ceiling further means preserving the `lb=` attribute when reading the corpus and implementing the modes behind it. As the corpus is read today, `ja` and `ja@lb=loose` collapse to one label and pair the same input with different expected output, so no implementation can satisfy both at once.
 
 ## Dictionary Break Algorithm
 

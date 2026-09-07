@@ -95,17 +95,24 @@ defmodule Unicode.String.IcuRbbiParser do
   # Walk through the joined lines maintaining mode/locale state and
   # emit each `<data>…</data>` block as a tuple.
   defp stream_blocks(lines) do
-    Enum.reduce(lines, %{mode: nil, locale: "root", blocks: []}, fn line, state ->
+    Enum.reduce(lines, %{mode: nil, locale: "root", skip_data?: false, blocks: []}, fn line,
+                                                                                       state ->
       cond do
         m = Regex.run(~r/^\s*<locale\s+([^>]+)>/, line) ->
-          %{state | locale: hd(tl(m))}
+          %{state | locale: hd(tl(m)), skip_data?: false}
 
         m = Regex.run(~r/^\s*<(sent|line|word|char|title)>/, line) ->
-          %{state | mode: String.to_atom(hd(tl(m)))}
+          %{state | mode: String.to_atom(hd(tl(m))), skip_data?: false}
 
-        Regex.match?(~r/<rules>/, line) ->
-          # Skip rules-overrides — we test against the standard rules.
-          state
+        Regex.match?(~r/<(rules|badrules)>/, line) ->
+          # A `<rules>` block defines a custom RBBI grammar — `Hello\ World;`,
+          # `$Numbers+{2};` — and the `<data>` that follows it exercises *that*
+          # grammar rather than the standard rules. It is a test of ICU's rule
+          # compiler, not of the annex, so the data is skipped until the next
+          # mode or locale directive. Without this the data is read under
+          # whichever mode and locale were last in force and counted as failures
+          # against rules it was never meant to exercise.
+          %{state | skip_data?: true}
 
         m = Regex.run(~r/^\s*<data>(.*)<\/data>\s*$/, line) ->
           [_, body] = m
@@ -122,7 +129,7 @@ defmodule Unicode.String.IcuRbbiParser do
   # Record a <data> block for the current break mode, ignoring modes we
   # do not exercise.
   defp add_data_block(state, body) do
-    if state.mode in @break_modes do
+    if state.mode in @break_modes and not state.skip_data? do
       %{state | blocks: [{state.mode, state.locale, body} | state.blocks]}
     else
       state
