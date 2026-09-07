@@ -246,7 +246,7 @@ defmodule Unicode.String.Break do
       nil ->
         [segment]
 
-      {locale, _range} ->
+      {locale, range} ->
         Dictionary.ensure_dictionary_loaded_if_available(locale)
 
         case DictionaryBreak.split_with_fallback(segment, locale, &[&1]) do
@@ -257,8 +257,41 @@ defmodule Unicode.String.Break do
             [segment]
 
           parts ->
-            merge_trailing_whitespace(parts)
+            parts
+            |> merge_across_non_dictionary(range)
+            |> merge_trailing_whitespace()
         end
+    end
+  end
+
+  # The rules produced this segment as one unit, so they forbid a break at every
+  # position inside it. The dictionary is licensed to break a run of its own
+  # script and nothing else, so a boundary survives only where the characters on
+  # both sides of it belong to that script.
+  #
+  # Without this the dictionary returns adjacent punctuation as its own span and
+  # each becomes a segment, breaking after an opening bracket where LB14 forbids
+  # it and before a closing one where LB13 does. `Unicode.String.break?/2` and
+  # `Unicode.String.split/2` then disagree about the same position.
+  defp merge_across_non_dictionary([head | rest], range) do
+    rest
+    |> Enum.reduce([head], fn part, [previous | earlier] ->
+      if ends_in_script?(previous, range) and starts_in_script?(part, range) do
+        [part, previous | earlier]
+      else
+        [previous <> part | earlier]
+      end
+    end)
+    |> Enum.reverse()
+  end
+
+  defp starts_in_script?(<<codepoint::utf8, _rest::binary>>, range), do: codepoint in range
+  defp starts_in_script?(_binary, _range), do: false
+
+  defp ends_in_script?(binary, range) do
+    case :unicode.characters_to_list(binary) do
+      [_ | _] = codepoints -> List.last(codepoints) in range
+      _not_valid_utf8 -> false
     end
   end
 

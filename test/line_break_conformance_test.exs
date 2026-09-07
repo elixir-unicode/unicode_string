@@ -13,7 +13,7 @@ defmodule Unicode.String.LineBreakConformanceTest do
   # The UCD floor is the whole corpus. Line breaking is fully conformant against
   # `LineBreakTest.txt` and any failure at all is a regression.
   #
-  # Most of the ICU corpus that fails is not testing UAX #14. Of the 59 failures,
+  # Most of the ICU corpus that fails is not testing UAX #14. Of the 57 failures,
   # grouped by the full `<locale>` directive rather than by the base locale:
   #
   # * 45 are `lw=phrase` (38 `ja`, 7 `ko`) — phrase-based line breaking, a
@@ -22,9 +22,8 @@ defmodule Unicode.String.LineBreakConformanceTest do
   # * 6 are `lb=loose`, `lb=normal` or `lb=strict` — the CSS line break modes,
   #   which are not implemented.
   #
-  # * 8 are dictionary segmentation differences in Thai and Burmese: which words
-  #   the dictionary chooses, and whether punctuation next to a dictionary run
-  #   attaches to it.
+  # * 6 are dictionary segmentation differences in Thai and Burmese: which words
+  #   the dictionary chooses.
   #
   # None is attributable to the line break rules themselves. Every plain-locale
   # block not depending on the dictionary passes: `root` 18/18, `ko` 10/10,
@@ -36,7 +35,7 @@ defmodule Unicode.String.LineBreakConformanceTest do
   # the ceiling means preserving `lb=` in the parser and implementing the modes
   # behind it.
   @ucd_pass_floor 19_346
-  @icu_pass_floor 177
+  @icu_pass_floor 179
 
   describe "Unicode UCD LineBreakTest.txt (#{@ucd_pass_floor} of 19_346 cases must pass)" do
     test "minimum-pass-count baseline" do

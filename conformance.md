@@ -122,15 +122,15 @@ CLDR's locale tailoring of the line break classes is implemented for `ja`, `zh` 
 
 ### Test coverage
 
-All 19,346 line break test cases from the Unicode test data file pass, and 177 of 236 line break cases from ICU's `rbbitst.txt`.
+All 19,346 line break test cases from the Unicode test data file pass, and 179 of 236 line break cases from ICU's `rbbitst.txt`.
 
-Most of what fails in the ICU corpus is not testing UAX #14. Grouped by the full `<locale>` directive rather than by the base locale, the 59 failures are:
+Most of what fails in the ICU corpus is not testing UAX #14. Grouped by the full `<locale>` directive rather than by the base locale, the 57 failures are:
 
 | Count | Cause |
 |---|---|
 | 45 | `lw=phrase` (38 `ja`, 7 `ko`) — phrase-based line breaking, a separate ICU feature driven by a dictionary rather than a tailoring of UAX #14 |
 | 6 | `lb=loose`, `lb=normal`, `lb=strict` — the CSS line break modes, not implemented |
-| 8 | Dictionary segmentation differences in Thai and Burmese: which words the dictionary chooses, and whether adjacent punctuation attaches to a dictionary run |
+| 6 | Dictionary segmentation differences in Thai and Burmese: which words the dictionary chooses |
 
 None is attributable to the line break rules. Every plain-locale block that does not depend on the dictionary passes: `root` 18/18, `ko` 10/10, `ja` 5/5, `fi` 6/6.
 
