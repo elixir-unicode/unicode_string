@@ -128,7 +128,49 @@ defmodule Unicode.String.MixProject do
         "LICENSE.md",
         "CHANGELOG.md"
       ],
+      groups_for_modules: groups_for_modules(),
       skip_undefined_reference_warnings_on: ["changelog", "CHANGELOG.md"]
+    ]
+  end
+
+  # `Unicode.String` is the entry point and stays at the top level; everything
+  # else is grouped so nothing lands in ExDoc's ungrouped catch-all.
+  defp groups_for_modules do
+    [
+      Segmentation: [
+        Unicode.String.Break,
+        Unicode.String.Break.Tailoring,
+        Unicode.String.Segment
+      ],
+      "Dictionary Segmentation": [
+        Unicode.String.Dictionary,
+        Unicode.String.DictionaryBreak
+      ],
+      "Case Mapping": [
+        Unicode.String.Case.Folding,
+        Unicode.String.Case.Mapping,
+        Unicode.String.Case.Mapping.Greek
+      ],
+      "ICU Backend": [
+        Unicode.String.Nif
+      ],
+      "Break Engines: Table Driven": [
+        Unicode.String.Dfa,
+        Unicode.String.Dfa.Builder,
+        Unicode.String.Dfa.Grapheme,
+        Unicode.String.Dfa.Line,
+        Unicode.String.Dfa.Sentence,
+        Unicode.String.Dfa.Word
+      ],
+      "Break Engines: Direct Coded": [
+        Unicode.String.Break.Grapheme,
+        Unicode.String.Break.Line,
+        Unicode.String.Break.Sentence,
+        Unicode.String.Break.Word
+      ],
+      Internals: [
+        Unicode.String.ExtendedPictographic
+      ]
     ]
   end
 

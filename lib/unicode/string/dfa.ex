@@ -1,19 +1,24 @@
 defmodule Unicode.String.Dfa do
-  @moduledoc false
+  @moduledoc """
+  The break-iteration algorithm described in PRI #555 (L2/26-135), section 9.3.2.
 
-  # The break-iteration algorithm described in PRI #555 (L2/26-135), section
-  # 9.3.2. A break type is realised by `use`-ing this module with the name of
-  # the data files to compile in:
-  #
-  #     defmodule Unicode.String.Dfa.Grapheme do
-  #       use Unicode.String.Dfa, type: "GraphemeClusterBreak"
-  #     end
-  #
-  # The automaton recognises the language between one break and the next: it
-  # runs from the last break, remembering the most recent accepting position,
-  # and when no transition exists it reports that position as the next break.
-  # Lookaheads, which only the line break machine uses, let a state report a
-  # position recorded earlier rather than the last accepting one.
+  A break type is realised by `use`-ing this module with the name of the data
+  files to compile in:
+
+      defmodule Unicode.String.Dfa.Grapheme do
+        use Unicode.String.Dfa, type: "GraphemeClusterBreak"
+      end
+
+  The automaton recognises the language between one break and the next: it runs
+  from the last break, remembering the most recent accepting position, and when
+  no transition exists it reports that position as the next break. Lookaheads,
+  which only the line break machine uses, let a state report a position recorded
+  earlier rather than the last accepting one.
+
+  No rule of the annex appears as code here. The rules live in the data files
+  read by `Unicode.String.Dfa.Builder`, which is what makes adopting a new
+  Unicode version a data update rather than a re-reading of the rules.
+  """
 
   defmacro __using__(options) do
     type = Keyword.fetch!(options, :type)

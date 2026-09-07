@@ -5,6 +5,10 @@ defmodule Unicode.String.Break.Word do
   The rules are compiled into ordered guards and function clauses, not into
   regular expressions and not into a transition table.
 
+  This engine is no longer on the dispatch path — `Unicode.String.Dfa.Word` is — but is
+  retained as an independent cross-check, since two implementations disagreeing
+  is how transcription defects get found.
+
   ## State
 
   Per-position state is intentionally compact:

@@ -6,6 +6,10 @@ defmodule Unicode.String.Break.Sentence do
   The rules are compiled into ordered guards and function clauses, not into
   regular expressions and not into a transition table.
 
+  This engine is no longer on the dispatch path — `Unicode.String.Dfa.Sentence` is — but is
+  retained as an independent cross-check, since two implementations disagreeing
+  is how transcription defects get found.
+
   ## Background
 
   The sentence-break algorithm differs from grapheme/word break in two

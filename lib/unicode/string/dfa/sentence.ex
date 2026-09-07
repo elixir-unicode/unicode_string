@@ -1,5 +1,16 @@
 defmodule Unicode.String.Dfa.Sentence do
-  @moduledoc false
+  @moduledoc """
+  Table-driven engine implementing UAX #29 sentence breaking, with CLDR's
+  locale tailoring and abbreviation suppressions.
+
+  Generated from the `SentenceBreak` state machine tables published in PRI #555.
+  See `Unicode.String.Dfa` for the engine, `Unicode.String.Break.Tailoring` for
+  the tailoring and suppressions, and `Unicode.String.Break.Sentence` for the
+  direct-coded implementation retained as a cross-check.
+
+  The arity-1 functions implement UAX #29 as published. The arity-3 and arity-4
+  functions add the locale-dependent behaviour on top.
+  """
 
   use Unicode.String.Dfa, type: "SentenceBreak"
 

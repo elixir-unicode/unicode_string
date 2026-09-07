@@ -6,6 +6,10 @@ defmodule Unicode.String.Break.Grapheme do
   The rules are compiled into ordered guards and function clauses, not into
   regular expressions and not into a transition table.
 
+  This engine is no longer on the dispatch path — `Unicode.String.Dfa.Grapheme` is — but is
+  retained as an independent cross-check, since two implementations disagreeing
+  is how transcription defects get found.
+
   The state carried between characters is intentionally small:
 
   * `prev` — the Grapheme_Cluster_Break property of the previous codepoint

@@ -1,15 +1,21 @@
 defmodule Unicode.String.Dfa.Builder do
-  @moduledoc false
+  @moduledoc """
+  Compile-time reader for the break-iterator state machine data proposed in
+  PRI #555 (L2/26-135).
 
-  # Compile-time reader for the break-iterator state machine data proposed in
-  # PRI #555 (L2/26-135). Three files describe each break type:
-  #
-  #   <Type>Symbols.txt      symbol name ; UnicodeSet ; non-dictionary equivalent
-  #   <Type>States.txt       state name ; accepting ; lookahead ; break type
-  #   <Type>Transitions.txt  from state ; symbol ; to state
-  #
-  # Names are explicitly opaque in the proposal, so everything is reduced to
-  # integer indices here and the names are kept only for diagnostics.
+  Three files describe each break type:
+
+      <Type>Symbols.txt      symbol name ; UnicodeSet ; non-dictionary equivalent
+      <Type>States.txt       state name ; accepting ; lookahead ; break type
+      <Type>Transitions.txt  from state ; symbol ; to state
+
+  Names are explicitly opaque in the proposal, so everything is reduced to
+  integer indices here and the names are kept only for diagnostics.
+
+  The proposal states that the symbols partition the code space. That is checked
+  while reading, so a bad data file becomes a compile error rather than a wrong
+  answer at run time.
+  """
 
   @data_dir "pri555/18.0.0"
 

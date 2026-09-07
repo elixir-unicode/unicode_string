@@ -10,6 +10,10 @@ defmodule Unicode.String.Break.Line do
   seen, so the cost is proportional to the length of the input rather than to
   the number of rules.
 
+  This engine is no longer on the dispatch path — `Unicode.String.Dfa.Line` is —
+  but is retained as an independent cross-check, since two implementations
+  disagreeing is how transcription defects get found.
+
   Every rule in the standard is implemented, including the ones that depend
   on more than a character's line break class: the East Asian width of
   brackets and quotation marks (LB19a, LB30), the initial and final

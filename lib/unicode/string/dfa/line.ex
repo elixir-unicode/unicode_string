@@ -1,5 +1,16 @@
 defmodule Unicode.String.Dfa.Line do
-  @moduledoc false
+  @moduledoc """
+  Table-driven engine implementing UAX #14 line breaking, with CLDR's CJK
+  locale tailoring.
+
+  Generated from the `LineBreak` state machine tables published in PRI #555. See
+  `Unicode.String.Dfa` for the engine, `Unicode.String.Break.Tailoring` for the
+  locale tailoring, and `Unicode.String.Break.Line` for the direct-coded
+  implementation retained as a cross-check.
+
+  The arity-1 functions implement UAX #14 as published. The arity-2 and arity-3
+  functions add the locale tailoring on top.
+  """
 
   use Unicode.String.Dfa, type: "LineBreak", dictionary_pass: true
 
