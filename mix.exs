@@ -189,6 +189,12 @@ defmodule Unicode.String.MixProject do
         Unicode.String.Dfa.Sentence,
         Unicode.String.Dfa.Word
       ],
+      Deprecated: [
+        Unicode.String.Break.Grapheme,
+        Unicode.String.Break.Line,
+        Unicode.String.Break.Sentence,
+        Unicode.String.Break.Word
+      ],
       Internals: [
         Unicode.String.ExtendedPictographic
       ]

@@ -4,13 +4,32 @@
 
 This is the changelog for Unicode String v2.4.0 released on _unreleased_.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
 
+### Module changes
+
+Segmentation is now performed by table-driven engines generated from the state machine data published in [PRI #555](https://www.unicode.org/review/pri555/). **The public API is unchanged** — `Unicode.String.split/2`, `next/2`, `stream/2`, `splitter/2`, `break?/2` and the casing functions behave exactly as before, and code using them needs no modification.
+
+Four previously documented modules implemented the annexes by hand. They are now **deprecated shims** that delegate to the generated engines, so existing code keeps working and emits a compiler warning naming its replacement:
+
+| Deprecated | Replacement |
+|---|---|
+| `Unicode.String.Break.Grapheme` | `Unicode.String.Dfa.Grapheme` |
+| `Unicode.String.Break.Word` | `Unicode.String.Dfa.Word` |
+| `Unicode.String.Break.Sentence` | `Unicode.String.Dfa.Sentence` |
+| `Unicode.String.Break.Line` | `Unicode.String.Dfa.Line` |
+
+Behaviour is unchanged and the arities match — `split/1`, `next/1` and `break?/2` for grapheme, word and line, and `split/3`, `next/3` and `break?/4` for sentence — so migrating is a module rename. The one thing to know is that the former `Unicode.String.Break.Line.split/1` applied the rules alone; that is `Unicode.String.Dfa.Line.rule_split/1`, while `Unicode.String.Dfa.Line.split/1` also runs the dictionary pass for Thai, Lao, Khmer and Burmese.
+
+Line and sentence gain locale-aware variants (`Unicode.String.Dfa.Line.split/2`, `Unicode.String.Dfa.Sentence.split/3`) carrying the CLDR tailoring described below.
+
+These remain internal engines rather than a supported interface; `Unicode.String` is the API to prefer. The shims will be removed in a future major release.
+
+Two modules are **newly public**: `Unicode.String.Dfa`, from which the four break engines are generated, and `Unicode.String.Break.Tailoring`, which holds CLDR's locale tailoring and abbreviation suppressions.
+
 ### Enhancements
 
 * Support Unicode 18.0.0. Rule GB9c no longer requires a leading `Indic_Conjunct_Break=Consonant`, so a linker opens a conjunct sequence from any position including the start of text. Segmentation test data is refreshed to 18.0.0.
 
 * Segment all four break types with a table-driven engine generated from the state machine data published in PRI #555. Line breaking now passes all 19,346 cases of `LineBreakTest.txt` where the previous engine passed 99.81%.
-
-* **Breaking.** Remove the direct-coded rule engine modules `Unicode.String.Break.Grapheme`, `…Word`, `…Sentence` and `…Line`, superseded by the table-driven engine. They were documented modules, so code calling them directly must move to `Unicode.String.split/2` and friends, which are unchanged.
 
 * Support CLDR locale tailoring of break classes through `Unicode.String.Break.Tailoring`. Greek sentences break at U+003B and U+037E, and `ja`, `zh` and `zh-Hant` line breaking treats conditional Japanese starters as ideographs rather than non-starters.
 
