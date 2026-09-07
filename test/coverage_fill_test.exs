@@ -42,20 +42,19 @@ defmodule Unicode.String.CoverageFillTest do
       refute Mapping.downcase(input, :lt) == Mapping.downcase(input)
     end
 
-    test "Lithuanian uppercasing keeps the dot above after a soft-dotted i" do
+    test "Lithuanian uppercasing removes the dot above after a soft-dotted i" do
+      # SpecialCasing.txt leaves the upper and title fields blank for U+0307
+      # After_Soft_Dotted, which means the character is removed.
       input = "i" <> <<0x0307::utf8>>
-      assert Mapping.upcase(input, :lt) == <<0x49, 0x0307::utf8>>
+      assert Mapping.upcase(input, :lt) == "I"
     end
 
-    test "Turkish lowercasing of I before a dot above keeps the dotted i" do
-      # SpecialCasing.txt: "unless an I is before a dot_above, it turns into a
-      # dotless i". Before a dot above the tailoring does not apply and the
-      # default mapping to `i` is used.
-      #
-      # The standard also removes the combining dot above in this sequence.
-      # That is not yet implemented, so the dot is still present here.
+    test "Turkish lowercasing of I before a dot above yields a plain i" do
+      # Two rules combine. `Not_Before_Dot` does not apply because a dot above
+      # follows, so `I` takes its default mapping to `i`; then `After_I` removes
+      # the dot, which the default mapping to `i` already carries.
       input = "I" <> <<0x0307::utf8>>
-      assert Mapping.downcase(input, :tr) == <<0x0069::utf8, 0x0307::utf8>>
+      assert Mapping.downcase(input, :tr) == "i"
     end
 
     test "ASCII punctuation and digits pass through the fast path" do
@@ -63,14 +62,18 @@ defmodule Unicode.String.CoverageFillTest do
       assert Mapping.downcase("123!ABC") == "123!abc"
     end
 
-    test "Turkish I preceded by a dot above keeps its dot (Before_Dot)" do
+    test "Turkish I with a dot above before it is still dotless (Before_Dot)" do
+      # `Before_Dot` asks what follows the `I`, not what precedes it. Nothing
+      # follows here, so the Turkish rule applies and the result is dotless.
       input = <<0x0307::utf8, ?I::utf8>>
-      assert Mapping.downcase(input, :tr) == <<0x0307::utf8, ?i::utf8>>
+      assert Mapping.downcase(input, :tr) == <<0x0307::utf8, 0x0131::utf8>>
     end
 
     test "Lithuanian uppercasing retains a following combining accent" do
+      # The dot above is removed after a soft-dotted letter; the grave that
+      # follows it is not.
       input = <<?i::utf8, 0x0307::utf8, 0x0300::utf8>>
-      assert Mapping.upcase(input, :lt) == <<?I::utf8, 0x0307::utf8, 0x0300::utf8>>
+      assert Mapping.upcase(input, :lt) == <<?I::utf8, 0x0300::utf8>>
     end
 
     test "unknown_locale_error/1 formats the locale" do

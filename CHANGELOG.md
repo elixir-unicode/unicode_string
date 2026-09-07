@@ -28,6 +28,12 @@ This is the changelog for Unicode String v2.4.0 released on _unreleased_.  For o
 
 ### Bug Fixes
 
+* Apply a locale's casing rules to the whole string. A character with no rule for the locale switched the remainder to the locale-independent rules, so any later locale-specific mapping was lost — Lithuanian `i` followed by a combining dot above is the case that shows it.
+
+* Implement the casing rules that remove a character. `SpecialCasing.txt` leaves a mapping blank where the character is dropped in that context, which was read as an absent mapping: the combining dot above is now removed when lower casing after a Turkish or Azeri `I`, and when upper or title casing after a Lithuanian soft-dotted letter.
+
+* Apply the Lithuanian dot-above rule to `J` as well as `I`. `J` was excluded from the generated mappings and handled by the ASCII fast path, so it never gained the dot that an accent above requires.
+
 * Fix Turkish and Azeri lower casing of `I` before a combining dot above. `Before_Dot` is a condition on what follows the character, but was being tested against what precedes it, so `I` became dotless `ı` in a sequence where the standard keeps the dotted `i`.
 
 * Fix locale-dependent casing duplicating the start of a string. Where a contextual rule did not apply, the fallback re-cased the character with an accumulator that already held everything mapped so far, emitting that prefix twice. Affected Turkish, Azeri and Lithuanian.

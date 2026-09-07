@@ -95,15 +95,19 @@ defmodule Unicode.String.Case.Mapping do
         ])
       end
 
-    casing, codepoint, replace, language, "final_sigma" ->
+    casing, codepoint, replace, _language, "final_sigma" ->
       codepoint_bytes = utf8_bytes_for_codepoint.(codepoint)
       replacement = :unicode.characters_to_binary(replace)
 
+      # Sigma is the only contextual rule defined for `:any`, and no locale
+      # overrides it, so the clause matches every locale. Restricting it to
+      # `:any` would send Greek text to the no-rule fallback, which cases one
+      # character at a time and cannot see whether the sigma ends a word.
       defp casing(
              string,
              <<@sigma::utf8, rest::binary>>,
              unquote(casing),
-             unquote(language),
+             locale,
              bytes_so_far,
              acc
            ) do
@@ -112,11 +116,11 @@ defmodule Unicode.String.Case.Mapping do
 
         if Regex.match?(~r/#{@final_sigma_before}/u, prior) &&
              !Regex.match?(~r/#{@final_sigma_after}/u, rest) do
-          casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [
+          casing(string, rest, unquote(casing), locale, bytes_so_far, [
             unquote(replacement) | acc
           ])
         else
-          casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [
+          casing(string, rest, unquote(casing), locale, bytes_so_far, [
             @lower_sigma | acc
           ])
         end
@@ -385,7 +389,9 @@ defmodule Unicode.String.Case.Mapping do
 
   # These next four function clauses optimze for ASCII characters.
   # We need to omit the `i` from all ranges since in Turkish and Azeri
-  # they upcase to a dotted-capital-I
+  # they upcase to a dotted-capital-I, and `I` and `J` from the lower casing
+  # ranges since Lithuanian gives them a dot above when an accent follows and
+  # Turkish and Azeri lower `I` to a dotless one.
 
   defp casing(
          string,
@@ -395,7 +401,7 @@ defmodule Unicode.String.Case.Mapping do
          bytes_so_far,
          acc
        )
-       when byte >= ?A and byte <= ?Z and byte != ?I do
+       when byte >= ?A and byte <= ?Z and byte != ?I and byte != ?J do
     casing(string, rest, casing, language, bytes_so_far + 1, [byte + 32 | acc])
   end
 
@@ -417,21 +423,39 @@ defmodule Unicode.String.Case.Mapping do
          bytes_so_far,
          acc
        )
-       when byte != ?I and byte <= ?~ do
+       when byte != ?I and byte != ?J and byte <= ?~ do
     casing(string, rest, casing, language, bytes_so_far + 1, [byte | acc])
   end
 
   # Generate the mapping functions
 
+  # `SpecialCasing.txt` leaves a mapping field blank when the character is
+  # *removed* in that context, which the parsed data reports as `nil`. A `nil`
+  # on a `:special` entry is therefore a mapping to the empty string, not an
+  # absent mapping. Three entries rely on this: the combining dot above is
+  # dropped when lower casing after a Turkish or Azeri `I`, and when upper or
+  # title casing after a Lithuanian soft-dotted letter.
+  mapping = fn
+    nil, %{type: :special} -> ~c""
+    nil, _casing -> nil
+    mapping, _casing -> mapping
+  end
+
+  # `?I` and `?J` are the ASCII characters with language-specific mappings, so
+  # they are excluded from the ASCII fast path above and handled here instead.
+  cased_ascii = [?i, ?I, ?j, ?J]
+
   for %{codepoint: codepoint, upper: upper} = casing <- Utils.casing_in_order(),
-      upper && upper != codepoint && (codepoint == ?i or codepoint > ?~) do
+      upper = mapping.(upper, casing),
+      upper && upper != codepoint && (codepoint in cased_ascii or codepoint > ?~) do
     %{context: context, language: language} = casing
 
     define_casing_function.(:upcase, codepoint, upper, language, context)
   end
 
   for %{codepoint: codepoint, lower: lower} = casing <- Utils.casing_in_order(),
-      lower && lower != codepoint && (codepoint == ?I or codepoint > ?~) do
+      lower = mapping.(lower, casing),
+      lower && lower != codepoint && (codepoint in cased_ascii or codepoint > ?~) do
     %{language: language, context: context} = casing
 
     # Special casing for capital sigma with no context.
@@ -444,7 +468,8 @@ defmodule Unicode.String.Case.Mapping do
   end
 
   for %{codepoint: codepoint, title: title} = casing <- Utils.casing_in_order(),
-      title && title != codepoint && (codepoint == ?i or codepoint > ?~) do
+      title = mapping.(title, casing),
+      title && title != codepoint && (codepoint in cased_ascii or codepoint > ?~) do
     %{context: context, language: language} = casing
 
     define_casing_function.(:titlecase, codepoint, title, language, context)
@@ -491,10 +516,19 @@ defmodule Unicode.String.Case.Mapping do
     casing(string, rest, casing, language, bytes_so_far, [next | acc])
   end
 
-  # If the language version has no casing, use the default casing by
-  # using the :any language.
-  defp casing(string, rest, casing, _language, bytes_so_far, acc) do
-    casing(string, rest, casing, :any, bytes_so_far, acc)
+  # If the language has no clause for this character, case just this character
+  # with the default rules and then carry on in the original language.
+  #
+  # Re-dispatching the whole remainder as `:any` would drop the language for
+  # everything after the first character it has no rule for. Lithuanian `i`
+  # followed by a combining dot above is the case that shows it: `i` has no
+  # Lithuanian clause, so the dot that follows would be cased as `:any` and its
+  # Lithuanian rule never applied.
+  defp casing(string, <<next::utf8, rest::binary>>, casing, language, bytes_so_far, acc) do
+    character = <<next::utf8>>
+    cased = casing(character, character, casing, :any, 0, [])
+
+    casing(string, rest, casing, language, bytes_so_far + byte_size(character), [cased | acc])
   end
 
   @doc false

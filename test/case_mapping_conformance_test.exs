@@ -78,7 +78,9 @@ defmodule Unicode.String.CaseMappingConformanceTest do
 
       for locale <- [:tr, :az] do
         assert Mapping.downcase("I", locale) == "ı"
-        assert Mapping.downcase("I" <> dot, locale) == "i" <> dot
+        # `I` takes its default mapping before a dot above, and `After_I` then
+        # removes the dot, which `i` already carries.
+        assert Mapping.downcase("I" <> dot, locale) == "i"
       end
 
       assert Mapping.downcase("DIYARBAKIR", :tr) == "dıyarbakır"
