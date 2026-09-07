@@ -81,8 +81,7 @@ defmodule Unicode.String.Segment do
 
   * A list of `{sequence, {operator, before, after}}` tuples.
 
-  * Raises `Unicode.String.Segment.SegmentError` if the locale or segment type
-    is unknown.
+  * Raises `ArgumentError` if the locale or segment type is unknown.
 
   ### Examples
 
@@ -233,8 +232,7 @@ defmodule Unicode.String.Segment do
 
   * A list of abbreviation strings.
 
-  * Raises `Unicode.String.Segment.SegmentError` if the locale or segment type
-    is unknown.
+  * Raises `ArgumentError` if the locale or segment type is unknown.
 
   ### Examples
 

@@ -28,6 +28,10 @@ This is the changelog for Unicode String v2.4.0 released on _unreleased_.  For o
 
 ### Bug Fixes
 
+* Fix Turkish and Azeri lower casing of `I` before a combining dot above. `Before_Dot` is a condition on what follows the character, but was being tested against what precedes it, so `I` became dotless `ı` in a sequence where the standard keeps the dotted `i`.
+
+* Fix locale-dependent casing duplicating the start of a string. Where a contextual rule did not apply, the fallback re-cased the character with an accumulator that already held everything mapped so far, emitting that prefix twice. Affected Turkish, Azeri and Lithuanian.
+
 * Keep dictionary-based line breaking inside its own script, so a boundary is added only between two characters of the dictionary script. Adjacent punctuation no longer becomes its own segment, which had broken after an opening bracket where LB14 forbids it and before a closing one where LB13 does.
 
 * Apply the line-break dictionary pass in `Unicode.String.stream/2` and `Unicode.String.splitter/2`. Both previously returned different segments from `Unicode.String.split/2` for Thai, Lao, Khmer and Burmese.

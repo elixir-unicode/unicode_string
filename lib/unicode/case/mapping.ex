@@ -134,10 +134,15 @@ defmodule Unicode.String.Case.Mapping do
              bytes_so_far,
              acc
            ) do
-        <<prior::binary-size(^bytes_so_far), _remaining::binary>> = string
         bytes_so_far = bytes_so_far + unquote(codepoint_bytes)
 
-        if Regex.match?(~r/#{@before_dot}/u, prior) do
+        # `Before_Dot` asks whether a combining dot above *follows* this
+        # character, so the test is against the remainder of the string. The
+        # `After_*` contexts below are the lookbehind cases and test `prior`.
+        if Regex.match?(~r/#{@before_dot}/u, rest) do
+          # The accumulator starts empty here. Passing `acc` would fold every
+          # character mapped so far into `this`, which is then prepended to
+          # `acc` again, duplicating the whole prefix of the string.
           this =
             casing(
               <<unquote(codepoint)::utf8>>,
@@ -145,7 +150,7 @@ defmodule Unicode.String.Case.Mapping do
               unquote(casing),
               :any,
               0,
-              acc
+              []
             )
 
           casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [this | acc])
@@ -175,6 +180,9 @@ defmodule Unicode.String.Case.Mapping do
             unquote(replacement) | acc
           ])
         else
+          # The accumulator starts empty here. Passing `acc` would fold every
+          # character mapped so far into `this`, which is then prepended to
+          # `acc` again, duplicating the whole prefix of the string.
           this =
             casing(
               <<unquote(codepoint)::utf8>>,
@@ -182,7 +190,7 @@ defmodule Unicode.String.Case.Mapping do
               unquote(casing),
               :any,
               0,
-              acc
+              []
             )
 
           casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [this | acc])
@@ -209,6 +217,9 @@ defmodule Unicode.String.Case.Mapping do
             unquote(replacement) | acc
           ])
         else
+          # The accumulator starts empty here. Passing `acc` would fold every
+          # character mapped so far into `this`, which is then prepended to
+          # `acc` again, duplicating the whole prefix of the string.
           this =
             casing(
               <<unquote(codepoint)::utf8>>,
@@ -216,7 +227,7 @@ defmodule Unicode.String.Case.Mapping do
               unquote(casing),
               :any,
               0,
-              acc
+              []
             )
 
           casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [this | acc])
@@ -243,6 +254,9 @@ defmodule Unicode.String.Case.Mapping do
             unquote(replacement) | acc
           ])
         else
+          # The accumulator starts empty here. Passing `acc` would fold every
+          # character mapped so far into `this`, which is then prepended to
+          # `acc` again, duplicating the whole prefix of the string.
           this =
             casing(
               <<unquote(codepoint)::utf8>>,
@@ -250,7 +264,7 @@ defmodule Unicode.String.Case.Mapping do
               unquote(casing),
               :any,
               0,
-              acc
+              []
             )
 
           casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [this | acc])

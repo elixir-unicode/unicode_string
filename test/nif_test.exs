@@ -64,5 +64,21 @@ defmodule Unicode.String.NifTest do
         end
       end
     end
+
+    test "break_type/1 maps every break name to an ICU iterator type" do
+      types = Enum.map([:grapheme, :word, :line, :sentence], &Nif.break_type/1)
+
+      assert Enum.all?(types, &is_integer/1)
+      assert Enum.uniq(types) == types
+    end
+
+    test "the benchmark helpers prepare an iterator and run it" do
+      if Nif.available?() do
+        # These exist so the benchmark can time ICU without the per-call NIF
+        # marshalling. `benchmark_run/2` returns the boundary count.
+        {:ok, prepared} = Nif.benchmark_prepare("hello world", Nif.break_type(:word), "en")
+        assert Nif.benchmark_run(prepared, 3) > 0
+      end
+    end
   end
 end
