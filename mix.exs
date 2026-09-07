@@ -79,7 +79,8 @@ defmodule Unicode.String.MixProject do
         "README*",
         "CHANGELOG*",
         "LICENSE*",
-        "conformance.md"
+        "conformance.md",
+        "guides"
       ]
     ]
   end
@@ -141,9 +142,18 @@ defmodule Unicode.String.MixProject do
       formatters: ["html", "markdown"],
       extras: [
         "README.md",
+        "guides/introduction.md",
+        "guides/grapheme_break.md",
+        "guides/word_break.md",
+        "guides/sentence_break.md",
+        "guides/line_break.md",
+        "guides/casing.md",
         "conformance.md",
         "LICENSE.md",
         "CHANGELOG.md"
+      ],
+      groups_for_extras: [
+        Guides: Path.wildcard("guides/*.md")
       ],
       groups_for_modules: groups_for_modules(),
       skip_undefined_reference_warnings_on: ["changelog", "CHANGELOG.md"]

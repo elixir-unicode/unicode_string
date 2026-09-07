@@ -270,6 +270,27 @@ defmodule Unicode.String.Case.Mapping do
   removed prior to capitalization as is the normal
   practise for this language.
 
+  ### Arguments
+
+  * `string` is any `t:String.t/0`.
+
+  * `language` is a language atom such as `:tr` or `:el`. The default is `:any`,
+    which applies the base Unicode algorithm with no locale tailoring. The
+    languages with tailored casing are returned by
+    `Unicode.String.special_casing_locales/0`.
+
+  ### Returns
+
+  * The upper cased string.
+
+  ### Examples
+
+      iex> Unicode.String.Case.Mapping.upcase("the quick brown fox")
+      "THE QUICK BROWN FOX"
+
+      iex> Unicode.String.Case.Mapping.upcase("Diyarbakır", :tr)
+      "DİYARBAKIR"
+
   """
   def upcase(string, language \\ :any)
 
@@ -285,6 +306,25 @@ defmodule Unicode.String.Case.Mapping do
   Replace upper case characters with their
   lower case equivalents.
 
+  ### Arguments
+
+  * `string` is any `t:String.t/0`.
+
+  * `language` is a language atom such as `:tr` or `:el`. The default is `:any`,
+    which applies the base Unicode algorithm with no locale tailoring.
+
+  ### Returns
+
+  * The lower cased string.
+
+  ### Examples
+
+      iex> Unicode.String.Case.Mapping.downcase("THE QUICK BROWN FOX")
+      "the quick brown fox"
+
+      iex> Unicode.String.Case.Mapping.downcase("ὈΔΥΣΣΕΎΣ", :el)
+      "ὀδυσσεύς"
+
   """
   def downcase(string, language \\ :any)
 
@@ -293,7 +333,28 @@ defmodule Unicode.String.Case.Mapping do
   end
 
   @doc """
-  Apply to Unicode title case algorithm.
+  Apply the Unicode title case algorithm.
+
+  Only the first character is cased; the remainder of the string is lower cased.
+
+  ### Arguments
+
+  * `string` is any `t:String.t/0`.
+
+  * `language` is a language atom such as `:nl`. The default is `:any`, which
+    applies the base Unicode algorithm with no locale tailoring.
+
+  ### Returns
+
+  * The title cased string.
+
+  ### Examples
+
+      iex> Unicode.String.Case.Mapping.titlecase("the quick brown fox")
+      "The quick brown fox"
+
+      iex> Unicode.String.Case.Mapping.titlecase("ijsselmeer", :nl)
+      "IJsselmeer"
 
   """
   def titlecase(string, language \\ :any)

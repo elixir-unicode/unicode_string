@@ -60,8 +60,20 @@ defmodule Unicode.String.Dictionary do
   ]
 
   @doc """
-  Returns the locales that have a dictionary supporting
-  word breaking.
+  Returns the locales that have a dictionary supporting word breaking.
+
+  These are the locales whose scripts do not mark word boundaries with spaces,
+  so segmenting them requires a dictionary rather than the UAX #29 rules alone.
+
+  ### Returns
+
+  * A list of locale atoms.
+
+  ### Examples
+
+      iex> locales = Unicode.String.Dictionary.known_dictionary_locales()
+      iex> :th in locales and :ja in locales
+      true
 
   """
   def known_dictionary_locales do

@@ -79,6 +79,14 @@ defmodule Unicode.String.DictionaryBreak do
 
   * A list of binary strings representing word segments.
 
+  ### Examples
+
+      iex> Unicode.String.DictionaryBreak.split("", :th)
+      []
+
+      iex> Unicode.String.DictionaryBreak.split("ab", :th)
+      ["ab"]
+
   """
   @spec split(String.t(), atom()) :: [String.t()]
   def split("", _locale), do: []
@@ -103,6 +111,31 @@ defmodule Unicode.String.DictionaryBreak do
   Text is partitioned into ranges belonging to the locale's
   script and ranges that don't. Dictionary breaking is applied
   to the former; `fallback_fn` is called on the latter.
+
+  Partitioning first is what keeps mixed-script text intact. Handing a whole
+  string to a dictionary that only knows one script shatters everything else
+  into single characters.
+
+  ### Arguments
+
+  * `string` is a binary string to segment.
+
+  * `locale` is a dictionary locale atom (`:th`, `:lo`, `:km` or `:my`).
+
+  * `fallback_fn` is a one-argument function applied to each run that is not in
+    the locale's script. It returns a list of segments.
+
+  ### Returns
+
+  * A list of binary strings, in input order.
+
+  ### Examples
+
+      iex> Unicode.String.DictionaryBreak.split_with_fallback("", :th, &[&1])
+      []
+
+      iex> Unicode.String.DictionaryBreak.split_with_fallback("ab", :th, &String.split/1)
+      ["ab"]
 
   """
   @spec split_with_fallback(String.t(), atom(), (String.t() -> [String.t()])) :: [String.t()]

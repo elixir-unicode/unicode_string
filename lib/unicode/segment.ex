@@ -24,8 +24,33 @@ defmodule Unicode.String.Segment do
            when char in ?a..?z or char in ?A..?Z or char in ?0..?9 or char == ?_
 
   @doc """
-  Return the rules as defined by CLDR for a given
-  locale and break type.
+  Returns the segmentation rules defined by CLDR for a locale and break type.
+
+  ### Arguments
+
+  * `locale` is any locale returned by `known_segmentation_locales/0`.
+
+  * `segment_type` is one of `:grapheme_cluster_break`, `:word_break`,
+    `:sentence_break` or `:line_break`.
+
+  * `additional_variables` is a keyword list of variable definitions merged over
+    the ones CLDR defines for the locale. The default is `[]`.
+
+  ### Returns
+
+  * `{:ok, rules}` where `rules` is a list of `{sequence, {operator, before, after}}`
+    tuples ordered by rule sequence number.
+
+  * `{:error, reason}` if the locale or segment type is unknown.
+
+  ### Examples
+
+      iex> {:ok, rules} = Unicode.String.Segment.rules(:en, :sentence_break)
+      iex> is_list(rules) and rules != []
+      true
+
+      iex> Unicode.String.Segment.rules(:xx, :sentence_break)
+      {:error, "Unknown locale \\"xx\\""}
 
   """
   def rules(locale, segment_type, additional_variables \\ []) do
@@ -40,8 +65,30 @@ defmodule Unicode.String.Segment do
   end
 
   @doc """
-  Return the rules as defined by CLDR for a given
-  locale and break type and raises on error.
+  Returns the segmentation rules for a locale and break type, raising on error.
+
+  ### Arguments
+
+  * `locale` is any locale returned by `known_segmentation_locales/0`.
+
+  * `segment_type` is one of `:grapheme_cluster_break`, `:word_break`,
+    `:sentence_break` or `:line_break`.
+
+  * `additional_variables` is a keyword list of variable definitions merged over
+    the ones CLDR defines for the locale. The default is `[]`.
+
+  ### Returns
+
+  * A list of `{sequence, {operator, before, after}}` tuples.
+
+  * Raises `Unicode.String.Segment.SegmentError` if the locale or segment type
+    is unknown.
+
+  ### Examples
+
+      iex> rules = Unicode.String.Segment.rules!(:en, :sentence_break)
+      iex> is_list(rules) and rules != []
+      true
 
   """
   def rules!(locale, segment_type, additional_variables \\ []) do
@@ -77,11 +124,34 @@ defmodule Unicode.String.Segment do
   end
 
   @doc """
-  Compiles a segment rule in the context of a list
-  of variables.
+  Compiles one segmentation rule against a set of variable definitions.
 
-  The compile rule can then be inserted into a
-  rule set.
+  The compiled rule can then be inserted into a rule set and evaluated with
+  `evaluate_rules/2`.
+
+  ### Arguments
+
+  * `rule` is a map with an `:id` (the rule's sequence number) and a `:value`
+    (the rule source, in which `×` means *no break here* and `÷` means *break
+    here*).
+
+  * `variables` is the list of variable definitions that `$Name` references in
+    the rule are expanded against.
+
+  * `regex_options` is a list of options passed to `Regex.compile/2`. The
+    default is `[]`.
+
+  ### Returns
+
+  * `{sequence, {operator, before, after}}` where `operator` is `:break` or
+    `:no_break` and `before` and `after` are compiled regular expressions.
+
+  ### Examples
+
+      iex> {3.0, {operator, _before, _after}} =
+      ...>   Unicode.String.Segment.compile_rule(%{id: 3.0, value: "a × b"}, [])
+      iex> operator
+      :no_break
 
   """
   def compile_rule(rule, variables, regex_options \\ []) when is_map(rule) do
@@ -114,8 +184,32 @@ defmodule Unicode.String.Segment do
   end
 
   @doc """
-  Returns a list of the suppressions for a given
-  locale and segment type.
+  Returns the abbreviation suppressions CLDR defines for a locale and segment type.
+
+  A suppression is an abbreviation such as "Mr." that ends in a full stop
+  without ending a sentence.
+
+  ### Arguments
+
+  * `locale` is any locale returned by `known_segmentation_locales/0`.
+
+  * `segment_type` is one of `:grapheme_cluster_break`, `:word_break`,
+    `:sentence_break` or `:line_break`. Only `:sentence_break` has suppressions.
+
+  ### Returns
+
+  * `{:ok, suppressions}` where `suppressions` is a list of strings.
+
+  * `{:error, reason}` if the locale or segment type is unknown.
+
+  ### Examples
+
+      iex> {:ok, suppressions} = Unicode.String.Segment.suppressions(:en, :sentence_break)
+      iex> "Alt." in suppressions
+      true
+
+      iex> Unicode.String.Segment.suppressions(:xx, :sentence_break)
+      {:error, "Unknown locale \\"xx\\""}
 
   """
   def suppressions(locale, segment_type) do
@@ -125,8 +219,28 @@ defmodule Unicode.String.Segment do
   end
 
   @doc """
-  Returns a list of the suppressions for a given
-  locale and segment type and raises on error.
+  Returns the abbreviation suppressions for a locale and segment type, raising
+  on error.
+
+  ### Arguments
+
+  * `locale` is any locale returned by `known_segmentation_locales/0`.
+
+  * `segment_type` is one of `:grapheme_cluster_break`, `:word_break`,
+    `:sentence_break` or `:line_break`. Only `:sentence_break` has suppressions.
+
+  ### Returns
+
+  * A list of abbreviation strings.
+
+  * Raises `Unicode.String.Segment.SegmentError` if the locale or segment type
+    is unknown.
+
+  ### Examples
+
+      iex> suppressions = Unicode.String.Segment.suppressions!(:en, :sentence_break)
+      iex> "Alt." in suppressions
+      true
 
   """
   def suppressions!(locale, segment_type) do
@@ -150,8 +264,32 @@ defmodule Unicode.String.Segment do
   end
 
   @doc """
-  Evaluates a list of rules against a given
-  string.
+  Evaluates a compiled rule set at one position in a string.
+
+  Rules are tried in sequence order and the first one that matches decides the
+  position, which is how the ordered rule lists of UAX #14 and UAX #29 are
+  defined to work.
+
+  ### Arguments
+
+  * `string` is either a string, in which case the position tested is its start,
+    or a `{string_before, string_after}` tuple naming the position between them.
+
+  * `rules` is a compiled rule set as returned by `rules/3`.
+
+  ### Returns
+
+  * `{:break, {string_before, {matched, rest}}}` when a break is permitted at
+    the position.
+
+  * `{:no_break, {string_before, {matched, rest}}}` when it is not.
+
+  ### Examples
+
+      iex> {:ok, rules} = Unicode.String.Segment.rules(:en, :sentence_break)
+      iex> {operator, _match} = Unicode.String.Segment.evaluate_rules("Hello there.", rules)
+      iex> operator
+      :no_break
 
   """
   def evaluate_rules(string, rules) when is_binary(string) do
@@ -359,8 +497,20 @@ defmodule Unicode.String.Segment do
   end
 
   @doc """
-  Returns a list of the known locales that have
-  segmentation data.
+  Returns the locales for which CLDR ships segmentation data.
+
+  A locale not in this list falls back to `:root`, which carries the untailored
+  UAX #14 and UAX #29 rules.
+
+  ### Returns
+
+  * A list of locale atoms.
+
+  ### Examples
+
+      iex> locales = Unicode.String.Segment.known_segmentation_locales()
+      iex> :root in locales and :ja in locales
+      true
 
   """
   def known_segmentation_locales do
@@ -370,10 +520,30 @@ defmodule Unicode.String.Segment do
   end
 
   @doc """
-  Returns a list of the ancestor locales
-  of the a given locale.
+  Returns a locale and its ancestors, most specific first.
 
-  The list includes the given locale.
+  Segmentation data is merged along this chain, so a locale inherits everything
+  its ancestors define and overrides only what it states itself.
+
+  ### Arguments
+
+  * `locale_name` is a locale *string* such as `"en-US"`. Note that this differs
+    from `known_segmentation_locales/0`, which returns atoms.
+
+  ### Returns
+
+  * `{:ok, locales}` where `locales` is a list of locale strings beginning with
+    `locale_name` and ending with `"root"`.
+
+  * `{:error, reason}` if the locale is unknown.
+
+  ### Examples
+
+      iex> Unicode.String.Segment.ancestors("en-US")
+      {:ok, ["en-US", "en", "root"]}
+
+      iex> Unicode.String.Segment.ancestors("xx-YY")
+      {:error, "Unknown locale \\"xx-YY\\""}
 
   """
 

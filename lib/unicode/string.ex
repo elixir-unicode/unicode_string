@@ -760,7 +760,11 @@ defmodule Unicode.String do
   Returns a list of locales that have special
   casing rules.
 
-  ### Example
+  ### Returns
+
+  * A list of locale atoms.
+
+  ### Examples
 
       iex> Unicode.String.special_casing_locales()
       [:az, :el, :lt, :nl, :tr]
