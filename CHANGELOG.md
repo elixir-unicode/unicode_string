@@ -2,7 +2,7 @@
 
 ## Unicode String v2.4.0
 
-This is the changelog for Unicode String v2.4.0 released on _unreleased_.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
+This is the changelog for Unicode String v2.4.0 released on September 18th, 2026.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
 
 ### Module changes
 
@@ -23,7 +23,7 @@ Line and sentence gain locale-aware variants (`Unicode.String.Dfa.Line.split/2`,
 
 These remain internal engines rather than a supported interface; `Unicode.String` is the API to prefer. The shims will be removed in a future major release.
 
-Two modules are **newly public**: `Unicode.String.Dfa`, from which the four break engines are generated, and `Unicode.String.Break.Tailoring`, which holds CLDR's locale tailoring and abbreviation suppressions.
+Two modules are newly public: `Unicode.String.Dfa`, from which the four break engines are generated, and `Unicode.String.Break.Tailoring`, which holds CLDR's locale tailoring and abbreviation suppressions.
 
 ### Enhancements
 
