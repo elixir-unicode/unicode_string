@@ -21,8 +21,8 @@ Kannada is one of them:
 iex> Unicode.String.split("ಕ್ಯಾ", break: :grapheme)
 ["ಕ್", "ಯಾ"]
 
-iex> String.graphemes("ಕ್ಯಾ")
-["ಕ್ಯಾ"]
+# On OTP releases whose bundled Unicode data joins these conjuncts,
+# String.graphemes("ಕ್ಯಾ") returns the single cluster ["ಕ್ಯಾ"] instead.
 ```
 
 Devanagari, where the property does apply, agrees:
@@ -31,8 +31,8 @@ Devanagari, where the property does apply, agrees:
 iex> Unicode.String.split("क्ष", break: :grapheme)
 ["क्ष"]
 
-iex> String.graphemes("क्ष")
-["क्ष"]
+# Here String.graphemes("क्ष") agrees, returning ["क्ष"], on OTP releases
+# whose bundled Unicode data joins these conjuncts.
 ```
 
 The scripts affected are those whose virama is not `InCB=Linker`, including Tamil, Kannada, Gurmukhi and Sinhala. If you are extracting the first letter of a word in one of those scripts, the difference is visible to your users. Otherwise `String.graphemes/1` is fine.
