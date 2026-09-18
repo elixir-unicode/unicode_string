@@ -44,6 +44,14 @@ defmodule Unicode.String.GraphemeBreakTest do
       assert graphemes(indic) == [indic]
     end
 
+    test "GB9c: linker-consonant forms one cluster (UAX #29 revision 48)" do
+      # Unicode 18 revises GB9c to admit a Linker with no preceding Consonant:
+      # \p{InCB=Linker} \p{InCB=Extend}* × \p{InCB=Consonant}. Here U+094D
+      # (VIRAMA, InCB=Linker) precedes U+0915 (KA, InCB=Consonant).
+      linker_consonant = <<0x094D::utf8, 0x0915::utf8>>
+      assert graphemes(linker_consonant) == [linker_consonant]
+    end
+
     test "GB11: emoji ZWJ sequences form one cluster" do
       family = "👨‍👩‍👧"
       assert graphemes("a" <> family <> "b") == ["a", family, "b"]

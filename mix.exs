@@ -1,7 +1,7 @@
 defmodule Unicode.String.MixProject do
   use Mix.Project
 
-  @version "2.3.1"
+  @version "2.4.0"
 
   def project do
     [
@@ -93,10 +93,8 @@ defmodule Unicode.String.MixProject do
 
   defp deps do
     [
-      {:unicode_set, github: "elixir-unicode/unicode_set", branch: "unicode-18"},
-      # Unicode 18 draft data. Transitive via :unicode_set, so this needs
-      # `override: true` to win over the hex requirement.
-      {:unicode, github: "elixir-unicode/unicode", branch: "unicode-18", override: true},
+      {:unicode_set, "~> 1.8"},
+      {:unicode, "~> 2.1"},
       {:trie, "~> 2.0"},
       {:localize, "~> 1.0-rc", optional: true},
       {:jason, "~> 1.0", optional: true},
