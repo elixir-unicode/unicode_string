@@ -35,7 +35,7 @@ Implements **extended grapheme clusters** as defined in [UAX #29 Section 3.1](ht
 
 ### Difference from Erlang/OTP grapheme clusters
 
-Erlang's `string` module — which underlies Elixir's `String.first/1` and `String.graphemes/1` — does implement GB9c. The difference is in how the sets that rule operates on are derived.
+Erlang's `unicode_util` module — which underlies Elixir's `String.graphemes/1`, `String.first/1` and `String.length/1`, as well as Erlang's own `string` module — has implemented GB9c since OTP 28. The main difference is in how the sets that rule operates on are derived. OTP also departs from UAX #29 in three narrower ways, described at the end of this section.
 
 UAX #29 defines GB9c over the `Indic_Conjunct_Break` property, a derived property curated for this purpose: 23 codepoints have `InCB=Linker`. OTP instead derives its equivalent sets from `IndicSyllabicCategory.txt`, in [`gen_unicode_mod.escript`](https://github.com/erlang/otp/blob/master/lib/stdlib/uc_spec/gen_unicode_mod.escript), which generates the `unicode_util` module at build time:
 
@@ -46,16 +46,26 @@ Consonants = maps:get(consonant, GBP) ++ maps:get(vowel_independent, GBP) ++ [{1
 
 Every Indic virama therefore counts as a linker, producing 41 rather than 23, and independent vowels count as consonants, so OTP's sets are strict supersets of the property's — 1,943 extra consonants as well as 21 extra linkers. (OTP 29 reports `unicode_util:spec_version()` of `{17,0}`, where the property defines 20 linkers rather than 18.0's 23; the derivation is the same either way.) The consequence is that OTP joins conjuncts in scripts where `Indic_Conjunct_Break` does not. U+0CCD KANNADA SIGN VIRAMA is `InCB=Extend` in the UCD but a linker to OTP, so a Kannada conjunct stays together under `String.graphemes/1` and breaks under UAX #29.
 
-Where the two sets agree the results agree: Devanagari U+0915 U+094D U+0937 is a single cluster under both, because U+094D is `InCB=Linker` and both consonants are `InCB=Consonant`.
+Where the two sets agree the results agree, apart from the narrower cases below: Devanagari U+0915 U+094D U+0937 is a single cluster under both on OTP 28 and later, because U+094D is `InCB=Linker` and both consonants are `InCB=Consonant`.
 
 Example with Kannada `ಕ್ಯಾಥಿ` (KA + VIRAMA + YA + AA-vowel + THA + I-vowel):
 
 | Algorithm | First cluster | Second cluster | Third cluster |
 |-----------|--------------|----------------|---------------|
-| Erlang/OTP | ಕ್ಯಾ (4 codepoints) | ಥಿ (2 codepoints) | — |
+| Erlang/OTP 28 and later | ಕ್ಯಾ (4 codepoints) | ಥಿ (2 codepoints) | — |
 | UAX #29 / `unicode_string` | ಕ್ (2 codepoints) | ಯಾ (2 codepoints) | ಥಿ (2 codepoints) |
 
-The scripts affected are those whose virama is not `InCB=Linker` — Kannada, Tamil, Gurmukhi and Sinhala among them. Devanagari, Bengali, Gujarati, Oriya, Telugu and Malayalam are unaffected, since their viramas are in both sets. The distinction matters for any operation that extracts the "first letter" of a word in one of the affected scripts.
+OTP 27 and earlier predate GB9c and segment it as UAX #29 does. The scripts affected are those whose virama is not `InCB=Linker` — Kannada, Tamil, Gurmukhi and Sinhala among them. Devanagari, Bengali, Gujarati, Oriya, Telugu and Malayalam are unaffected by this difference, since their viramas are in both sets. The distinction matters for any operation that counts characters or extracts the "first letter" of a word in one of the affected scripts.
+
+The three narrower departures can arise in any script:
+
+* **The GB9c chain.** Between the linker and the next consonant UAX #29 allows only `InCB=Extend` and `InCB=Linker`, but OTP continues the chain through any character it treats as extending, including spacing marks and U+200C ZERO WIDTH NON-JOINER. ZWNJ is `InCB=None`, and after a virama it asks for the virama to be shown instead of a conjunct: U+0915 U+094D U+200C U+0937 is two clusters under UAX #29 and one under OTP 28 and later.
+
+* **Extending characters after an emoji joiner.** After `\p{Extended_Pictographic} Extend* ZWJ`, OTP ends the cluster before anything that is not `Extended_Pictographic`, although rules GB9 and GB9a keep a following combining mark, joiner or spacing mark in the cluster. U+1F44D U+200D U+1F3FD is one cluster under UAX #29 and two under OTP.
+
+* **Spacing marks in emoji sequences.** OTP counts a spacing mark as part of the `Extend*` in rule GB11, so U+1F600 U+0903 U+200D U+1F600 is one cluster under OTP and two under UAX #29.
+
+The last two date back to OTP 22.
 
 ### Test coverage
 
@@ -272,4 +282,4 @@ The practical conclusion is that the NIF is worth enabling for **line breaking a
 
 ## Unicode Version
 
-Rules and property data correspond to Unicode 18.0. Note that Unicode 18 changed rule GB9c: a linker no longer requires a preceding `Indic_Conjunct_Break=Consonant`, so a conjunct sequence can open from any position including the start of text. The draft UAX #29 prose had not been updated to reflect this at the time of writing, though `GraphemeBreakTest-18.0.0.txt` had.
+Rules and property data correspond to Unicode 18.0. Note that Unicode 18 changed rule GB9c: a linker no longer requires a preceding `Indic_Conjunct_Break=Consonant`, so a conjunct sequence can open from any position including the start of text. UAX #29 revision 49, published with Unicode 18.0, gives the revised rule as `\p{InCB=Linker} \p{InCB=Extend}* × \p{InCB=Consonant}`. OTP 29 implements Unicode 17.0, so `String.graphemes/1` also differs from this library on the sequences this change affects.
