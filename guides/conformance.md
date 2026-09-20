@@ -1,6 +1,6 @@
-# UAX #29 Conformance and ICU Comparison
+# Conformance
 
-This document describes how `unicode_string` conforms to the Unicode segmentation standards and where it differs from the ICU reference implementation.
+This guide describes how `unicode_string` conforms to the Unicode segmentation standards — [UAX #29](https://unicode.org/reports/tr29/) for grapheme, word and sentence breaking and [UAX #14](https://www.unicode.org/reports/tr14/) for line breaking — and where it differs from the ICU reference implementation.
 
 ## Standards Implemented
 
@@ -15,7 +15,7 @@ All four break types defined by CLDR are supported: grapheme cluster break, word
 
 Each break type is implemented as a *table-driven engine* generated at compile time from the state machine tables published in [PRI #555](https://www.unicode.org/review/pri555/). A symbol table resolves each character to a symbol, and a transition table drives a deterministic automaton across the string in one pass; no rule of the annex appears as code. Adopting a new Unicode version is a data update rather than a re-reading of the rules.
 
-Two earlier engines have been retired. Releases up to 2.1.0 evaluated a pair of PCRE regular expressions per rule per position. Releases from 2.1.0 to 2.3.1 used a *direct-coded rule engine* that compiled each annex's rules into ordered guards and function clauses; it reached 99.81% on `LineBreakTest.txt` where the published tables reach 100%, and it was removed once those tables took over.
+Two earlier engines have been retired. Releases up to 2.1.0 evaluated a pair of PCRE regular expressions per rule per position. Releases from 2.1.0 to 2.3.1 used a *direct-coded rule engine* that compiled each annex's rules into ordered guards and function clauses; it reached 99.81% on `LineBreakTest.txt` where the published tables reach 100%, and it left the dispatch path once those tables took over. Its four modules remain under `Unicode.String.Break` as deprecated shims delegating to the generated engines, so code that called them directly keeps working; they will be removed in a future major release.
 
 Locale-specific data — sentence break suppressions in particular — is still read from the [CLDR](https://cldr.unicode.org) XML segment rule definitions shipped in `priv/segments/`.
 

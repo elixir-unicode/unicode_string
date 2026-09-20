@@ -38,7 +38,7 @@ defmodule Unicode.String.Nif do
   visibly the CJK `loose`/`normal`/`strict` line break modes that the native
   implementation does not have, and it uses its own dictionaries for Chinese,
   Japanese, Thai, Lao, Khmer and Burmese rather than the ones this library
-  downloads. Where the two disagree, `conformance.md` describes why.
+  downloads. Where the two disagree, the Conformance guide describes why.
 
   """
 

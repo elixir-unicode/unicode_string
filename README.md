@@ -23,7 +23,7 @@ Adds functions supporting some string algorithms in the Unicode standard. For ex
 * [Sentence Break](guides/sentence_break.md) — sentence boundaries and abbreviation suppressions.
 * [Line Break](guides/line_break.md) — where a line may be wrapped, and CJK tailoring.
 * [Casing](guides/casing.md) — locale-aware upper, lower and title casing, and case-insensitive comparison.
-* [Conformance](conformance.md) — conformance results and differences from ICU.
+* [Conformance](guides/conformance.md) — conformance results and differences from ICU.
 
 ## Installation
 
@@ -213,7 +213,7 @@ For Chinese and Japanese, the standard [UAX #29](https://unicode.org/reports/tr2
 
 When text contains a mix of dictionary-script characters and other scripts (e.g., a Khmer sentence with embedded Latin words), the `split_with_fallback/3` function partitions the text into same-script runs. Dictionary breaking is applied to the target-script ranges, and a fallback function (typically the standard UAX #29 word breaker) handles the rest. The results are concatenated to produce a single segmentation covering the full string.
 
-See `conformance.md` for details on conformance with the UAX #29 break algorithm and differences between this implementation and ICU.
+See the [Conformance guide](guides/conformance.md) for details on conformance with the UAX #29 break algorithm and differences between this implementation and ICU.
 
 ## Segment Streaming
 

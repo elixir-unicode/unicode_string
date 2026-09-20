@@ -98,8 +98,8 @@ iex> Unicode.String.upcase("the quick brown fox")
 
 ## Conformance
 
-The four break types are generated from the state machine tables published in [PRI #555](https://www.unicode.org/review/pri555/) rather than transcribed from the prose of the annexes, and all four pass the full Unicode conformance corpora. See [`conformance.md`](conformance.md) for the detail, including where this library differs from ICU.
+The four break types are generated from the state machine tables published in [PRI #555](https://www.unicode.org/review/pri555/) rather than transcribed from the prose of the annexes, and all four pass the full Unicode conformance corpora. See the [Conformance guide](conformance.md) for the detail, including where this library differs from ICU.
 
 ## An optional ICU backend
 
-An opt-in NIF binding to ICU4C is available for workloads where segmentation is the bottleneck. It is off by default, needs ICU system libraries, and falls back to the native implementation whenever it is unavailable, so `backend: :nif` is always safe to pass. `conformance.md` has the measurements and the cases where it is worth enabling.
+An opt-in NIF binding to ICU4C is available for workloads where segmentation is the bottleneck. It is off by default, needs ICU system libraries, and falls back to the native implementation whenever it is unavailable, so `backend: :nif` is always safe to pass. The [Conformance guide](conformance.md) has the measurements and the cases where it is worth enabling.

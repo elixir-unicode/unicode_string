@@ -1,7 +1,7 @@
 defmodule Unicode.String.MixProject do
   use Mix.Project
 
-  @version "2.4.0"
+  @version "2.4.1"
 
   def project do
     [
@@ -79,7 +79,6 @@ defmodule Unicode.String.MixProject do
         "README*",
         "CHANGELOG*",
         "LICENSE*",
-        "conformance.md",
         "guides"
       ]
     ]
@@ -146,7 +145,7 @@ defmodule Unicode.String.MixProject do
         "guides/sentence_break.md",
         "guides/line_break.md",
         "guides/casing.md",
-        "conformance.md",
+        "guides/conformance.md",
         "LICENSE.md",
         "CHANGELOG.md"
       ],

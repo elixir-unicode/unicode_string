@@ -43,7 +43,7 @@ Two modules are newly public: `Unicode.String.Dfa`, from which the four break en
 
 * Support CLDR locale tailoring of break classes through `Unicode.String.Break.Tailoring`. Greek sentences break at U+003B and U+037E, and `ja`, `zh` and `zh-Hant` line breaking treats conditional Japanese starters as ideographs rather than non-starters.
 
-* Add an optional ICU4C backend, `Unicode.String.Nif`, selected with `backend: :nif` on `Unicode.String.split/2`. It is opt-in via `UNICODE_STRING_NIF=true` or `config :unicode_string, :nif, true`, requires ICU system libraries and `:elixir_make`, and falls back to the native implementation whenever it is unavailable, so the option is always safe to pass. See `conformance.md` for when it is worth enabling — end to end it is 5-7x faster for line breaking and the dictionary locales, but only 1.3-1.5x for word and grapheme breaking.
+* Add an optional ICU4C backend, `Unicode.String.Nif`, selected with `backend: :nif` on `Unicode.String.split/2`. It is opt-in via `UNICODE_STRING_NIF=true` or `config :unicode_string, :nif, true`, requires ICU system libraries and `:elixir_make`, and falls back to the native implementation whenever it is unavailable, so the option is always safe to pass. See the [Conformance guide](guides/conformance.md) for when it is worth enabling — end to end it is 5-7x faster for line breaking and the dictionary locales, but only 1.3-1.5x for word and grapheme breaking.
 
 ### Performance
 
