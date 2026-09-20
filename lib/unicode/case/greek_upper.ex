@@ -12,6 +12,12 @@ defmodule Unicode.String.Case.Mapping.Greek do
                  "[^[:ccc=Not_Reordered:][:ccc=Iota_Subscript:]]*?[\\u0345]"
                )
 
+  # Compiled here rather than interpolated into a sigil at the point of use: an
+  # interpolated sigil recompiles its pattern on every call, and these patterns
+  # are large once the property sets are expanded.
+  @remove_accents_regex Regex.compile!(@remove_accents, "u")
+  @remove_iota_regex Regex.compile!(@remove_iota, "u")
+
   @doc """
   This implementation currently implements the `el-Upper` transform
   from CLDR.
@@ -74,8 +80,8 @@ defmodule Unicode.String.Case.Mapping.Greek do
   def upcase(string) do
     string
     |> String.normalize(:nfd)
-    |> String.replace(~r/#{@remove_accents}/u, "")
-    |> String.replace(~r/#{@remove_iota}/u, "")
+    |> String.replace(@remove_accents_regex, "")
+    |> String.replace(@remove_iota_regex, "")
     |> String.normalize(:nfc)
     |> Unicode.String.Case.Mapping.upcase(:any)
   end

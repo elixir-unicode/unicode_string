@@ -1,5 +1,13 @@
 # Changelog
 
+## Unicode String v2.4.1
+
+This is the changelog for Unicode String v2.4.1 released on _unreleased_.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
+
+### Performance
+
+* Compile the regular expressions that locale-specific casing tests its context with, rather than interpolating them into a sigil at the point of use. An interpolated sigil is not a literal so it recompiled a pattern of roughly 9KB on every character it examined: Greek lower casing is 49x faster, Turkish 46x, and Greek upper casing 11x.
+
 ## Unicode String v2.4.0
 
 This is the changelog for Unicode String v2.4.0 released on September 18th, 2026.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)

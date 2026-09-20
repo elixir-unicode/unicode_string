@@ -63,6 +63,13 @@ defmodule Unicode.String.Case.Mapping do
 
   # These regexes can probably be converted to another form
   # which may further enable binary optimmization.
+  #
+  # Each is compiled here rather than written as `~r/#{@pattern}/u` at the point
+  # of use. An interpolated sigil is not a literal, so it compiles its pattern
+  # on every evaluation, and these patterns are large — expanding the property
+  # sets gives roughly 9KB each. Compiling one costs about 107us against 3us to
+  # match with it already compiled, and a contextual rule evaluates one or two
+  # per character.
   @final_sigma_before Unicode.Regex.expand_regex("\\p{cased}(\\p{Case_Ignorable})*")
   @final_sigma_after Unicode.Regex.expand_regex("(\\p{Case_Ignorable})*\\p{cased}")
 
@@ -70,6 +77,13 @@ defmodule Unicode.String.Case.Mapping do
   @more_above Unicode.Regex.expand_regex("[^\\p{ccc=230}\\p{ccc=0}]*[\\p{ccc=230}]")
   @before_dot Unicode.Regex.expand_regex("([^\\p{ccc=230}\\p{ccc=0}])*[\u0307]")
   @after_i Unicode.Regex.expand_regex("[I]([^\\p{ccc=230}\\p{ccc=0}])*")
+
+  @final_sigma_before_regex Regex.compile!(@final_sigma_before, "u")
+  @final_sigma_after_regex Regex.compile!(@final_sigma_after, "u")
+  @after_soft_dotted_regex Regex.compile!(@after_soft_dotted, "u")
+  @more_above_regex Regex.compile!(@more_above, "u")
+  @before_dot_regex Regex.compile!(@before_dot, "u")
+  @after_i_regex Regex.compile!(@after_i, "u")
 
   utf8_bytes_for_codepoint = fn codepoint ->
     byte_size(<<codepoint::utf8>>)
@@ -114,8 +128,8 @@ defmodule Unicode.String.Case.Mapping do
         <<prior::binary-size(^bytes_so_far), _remaining::binary>> = string
         bytes_so_far = bytes_so_far + unquote(codepoint_bytes)
 
-        if Regex.match?(~r/#{@final_sigma_before}/u, prior) &&
-             !Regex.match?(~r/#{@final_sigma_after}/u, rest) do
+        if Regex.match?(@final_sigma_before_regex, prior) &&
+             !Regex.match?(@final_sigma_after_regex, rest) do
           casing(string, rest, unquote(casing), locale, bytes_so_far, [
             unquote(replacement) | acc
           ])
@@ -143,7 +157,7 @@ defmodule Unicode.String.Case.Mapping do
         # `Before_Dot` asks whether a combining dot above *follows* this
         # character, so the test is against the remainder of the string. The
         # `After_*` contexts below are the lookbehind cases and test `prior`.
-        if Regex.match?(~r/#{@before_dot}/u, rest) do
+        if Regex.match?(@before_dot_regex, rest) do
           # The accumulator starts empty here. Passing `acc` would fold every
           # character mapped so far into `this`, which is then prepended to
           # `acc` again, duplicating the whole prefix of the string.
@@ -179,7 +193,7 @@ defmodule Unicode.String.Case.Mapping do
            ) do
         bytes_so_far = bytes_so_far + unquote(codepoint_bytes)
 
-        if Regex.match?(~r/#{@more_above}/u, rest) do
+        if Regex.match?(@more_above_regex, rest) do
           casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [
             unquote(replacement) | acc
           ])
@@ -216,7 +230,7 @@ defmodule Unicode.String.Case.Mapping do
         <<prior::binary-size(^bytes_so_far), _remaining::binary>> = string
         bytes_so_far = bytes_so_far + unquote(codepoint_bytes)
 
-        if Regex.match?(~r/#{@after_soft_dotted}/u, prior) do
+        if Regex.match?(@after_soft_dotted_regex, prior) do
           casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [
             unquote(replacement) | acc
           ])
@@ -253,7 +267,7 @@ defmodule Unicode.String.Case.Mapping do
         <<prior::binary-size(^bytes_so_far), _remaining::binary>> = string
         bytes_so_far = bytes_so_far + unquote(codepoint_bytes)
 
-        if Regex.match?(~r/#{@after_i}/u, prior) do
+        if Regex.match?(@after_i_regex, prior) do
           casing(string, rest, unquote(casing), unquote(language), bytes_so_far, [
             unquote(replacement) | acc
           ])
