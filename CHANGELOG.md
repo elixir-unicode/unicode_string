@@ -6,7 +6,7 @@ This is the changelog for Unicode String v2.4.1 released on September 20th, 2026
 
 ### Deprecations
 
-* `Unicode.String.Break.Grapheme`, `…Word`, `…Sentence` and `…Line` are removed in 2.5.0. They have delegated to `Unicode.String.Dfa.*` since 2.4.0 and each function now names 2.5.0 in the warning it emits; the arities match, so migrating is a module rename.
+* `Unicode.String.Break.Grapheme`, `…Word`, `…Sentence` and `…Line` are deprecated and will be removed in 2.5.0. They have delegated to `Unicode.String.Dfa.*` since 2.4.0 and each function now names 2.5.0 in the warning it emits; the arities match, so migrating is a module rename.
 
 ### Performance
 
