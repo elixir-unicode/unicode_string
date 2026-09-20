@@ -4,6 +4,10 @@
 
 This is the changelog for Unicode String v2.4.1 released on _unreleased_.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
 
+### Deprecations
+
+* `Unicode.String.Break.Grapheme`, `…Word`, `…Sentence` and `…Line` are removed in 2.5.0. They have delegated to `Unicode.String.Dfa.*` since 2.4.0 and each function now names 2.5.0 in the warning it emits; the arities match, so migrating is a module rename.
+
 ### Performance
 
 * Resolve uncontextual case mappings from a lookup table rather than one generated function clause each, which takes `casing/6` from 4,776 clauses to 37 and a clean compile from 47 seconds to 4.4. Non-ASCII case conversion is roughly 1.4x slower in exchange; ASCII and the locale-specific rules are unchanged.
@@ -31,7 +35,7 @@ Behaviour is unchanged and the arities match — `split/1`, `next/1` and `break?
 
 Line and sentence gain locale-aware variants (`Unicode.String.Dfa.Line.split/2`, `Unicode.String.Dfa.Sentence.split/3`) carrying the CLDR tailoring described below.
 
-These remain internal engines rather than a supported interface; `Unicode.String` is the API to prefer. The shims will be removed in a future major release.
+These remain internal engines rather than a supported interface; `Unicode.String` is the API to prefer. The shims will be removed in 2.5.0.
 
 Two modules are newly public: `Unicode.String.Dfa`, from which the four break engines are generated, and `Unicode.String.Break.Tailoring`, which holds CLDR's locale tailoring and abbreviation suppressions.
 

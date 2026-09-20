@@ -1,6 +1,7 @@
 defmodule Unicode.String.Break.Word do
   @moduledoc """
-  Deprecated. Use `Unicode.String.Dfa.Word` instead.
+  Deprecated. Use `Unicode.String.Dfa.Word` instead. This module is removed
+  in 2.5.0.
 
   This module implemented the annex by hand. Segmentation is now driven by the
   state machine tables published in PRI #555, and this module delegates to the
@@ -14,14 +15,14 @@ defmodule Unicode.String.Break.Word do
   alias Unicode.String.Dfa
 
   @doc "Returns `{segment, rest}`, or `nil` when `string` is empty."
-  @deprecated "Use Unicode.String.Dfa.Word.next/1 instead"
+  @deprecated "Use Unicode.String.Dfa.Word.next/1 instead. Removed in 2.5.0"
   defdelegate next(string), to: Dfa.Word
 
   @doc "Splits `string` into segments."
-  @deprecated "Use Unicode.String.Dfa.Word.split/1 instead"
+  @deprecated "Use Unicode.String.Dfa.Word.split/1 instead. Removed in 2.5.0"
   defdelegate split(string), to: Dfa.Word, as: :split
 
   @doc "Returns `true` when a boundary falls between the two strings."
-  @deprecated "Use Unicode.String.Dfa.Word.break?/2 instead"
+  @deprecated "Use Unicode.String.Dfa.Word.break?/2 instead. Removed in 2.5.0"
   defdelegate break?(string_before, string_after), to: Dfa.Word
 end
