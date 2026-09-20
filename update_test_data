@@ -1,15 +1,26 @@
 #! /bin/bash
-# Update the test data from Unicode.
+# Update the segmentation conformance test data from Unicode.
 #
-# This branch tracks the Unicode 18.0.0 draft, so the data comes from
-# /Public/draft/. Once 18.0.0 is released, /Public/UCD/latest/ will serve
-# it and this can go back to pointing there.
-BASE=https://www.unicode.org/Public/draft/ucd/auxiliary
-wget $BASE/GraphemeBreakTest.txt \
-  -O ./test/support/test_data/grapheme_break_test.txt
-wget $BASE/WordBreakTest.txt \
-  -O ./test/support/test_data/word_break_test.txt
-wget $BASE/SentenceBreakTest.txt \
-  -O ./test/support/test_data/sentence_break_test.txt
-wget $BASE/LineBreakTest.txt \
-  -O ./test/support/test_data/line_break_test.txt
+# Unicode 18.0.0 is released, so /Public/UCD/latest/ serves it. Track a future
+# draft by pointing BASE at /Public/draft/ucd/auxiliary instead.
+#
+# The ICU corpus in test/support/test_data/icu_rbbitst.txt is vendored from
+# ICU rather than Unicode and is not refreshed here.
+set -euo pipefail
+
+BASE=https://www.unicode.org/Public/UCD/latest/ucd/auxiliary
+DEST=./test/support/test_data
+
+fetch() {
+  echo "  $1 -> $2"
+  curl -fsS "$BASE/$1" -o "$DEST/$2"
+}
+
+fetch GraphemeBreakTest.txt grapheme_break_test.txt
+fetch WordBreakTest.txt word_break_test.txt
+fetch SentenceBreakTest.txt sentence_break_test.txt
+fetch LineBreakTest.txt line_break_test.txt
+
+echo
+echo "Version headers now in $DEST:"
+head -1 "$DEST"/*_break_test.txt | grep -E "^#" | sed 's/^/  /'

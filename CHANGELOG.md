@@ -6,6 +6,8 @@ This is the changelog for Unicode String v2.4.1 released on _unreleased_.  For o
 
 ### Performance
 
+* Resolve uncontextual case mappings from a lookup table rather than one generated function clause each, which takes `casing/6` from 4,776 clauses to 37 and a clean compile from 47 seconds to 4.4. Non-ASCII case conversion is roughly 1.4x slower in exchange; ASCII and the locale-specific rules are unchanged.
+
 * Compile the regular expressions that locale-specific casing tests its context with, rather than interpolating them into a sigil at the point of use. An interpolated sigil is not a literal so it recompiled a pattern of roughly 9KB on every character it examined: Greek lower casing is 49x faster, Turkish 46x, and Greek upper casing 11x.
 
 ## Unicode String v2.4.0

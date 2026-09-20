@@ -459,34 +459,57 @@ defmodule Unicode.String.Case.Mapping do
   # they are excluded from the ASCII fast path above and handled here instead.
   cased_ascii = [?i, ?I, ?j, ?J]
 
-  for %{codepoint: codepoint, upper: upper} = casing <- Utils.casing_in_order(),
-      upper = mapping.(upper, casing),
-      upper && upper != codepoint && (codepoint in cased_ascii or codepoint > ?~) do
-    %{context: context, language: language} = casing
+  fields = [{:upcase, :upper}, {:downcase, :lower}, {:titlecase, :title}]
 
-    define_casing_function.(:upcase, codepoint, upper, language, context)
+  in_scope = fn codepoint, replacement ->
+    replacement && replacement != codepoint &&
+      (codepoint in cased_ascii or codepoint > ?~)
   end
 
-  for %{codepoint: codepoint, lower: lower} = casing <- Utils.casing_in_order(),
-      lower = mapping.(lower, casing),
-      lower && lower != codepoint && (codepoint in cased_ascii or codepoint > ?~) do
-    %{language: language, context: context} = casing
+  # Only a rule that reads the text around the character needs a function clause
+  # of its own; there are nine of those. The rest are a plain substitution keyed
+  # by casing, language and code point, so they go in one map rather than one
+  # clause each. As clauses they were 4,776 of them and took 47 seconds to
+  # compile, which was the whole cost of building this library.
+  #
+  # Sigma is excluded for `:downcase`: it is the one code point with both a
+  # contextual and an uncontextual rule for `:any`, and its uncontextual case is
+  # handled by a clause of its own further down.
+  @simple_mappings (for entry <- Utils.casing_in_order(),
+                        is_nil(entry.context),
+                        {casing, field} <- fields,
+                        replacement = mapping.(Map.fetch!(entry, field), entry),
+                        in_scope.(entry.codepoint, replacement),
+                        not (casing == :downcase and entry.codepoint == @sigma),
+                        into: %{} do
+                      {{casing, entry.language, entry.codepoint},
+                       :unicode.characters_to_binary(replacement)}
+                    end)
 
-    # Special casing for capital sigma with no context.
-    # see the default implementations of casing/5 at the
-    # end of this file. Don't generate a function clause for
-    # this codepoint here.
-    unless codepoint == @sigma and is_nil(context) do
-      define_casing_function.(:downcase, codepoint, lower, language, context)
-    end
+  for entry <- Utils.casing_in_order(),
+      entry.context,
+      {casing, field} <- fields,
+      replacement = mapping.(Map.fetch!(entry, field), entry),
+      in_scope.(entry.codepoint, replacement) do
+    define_casing_function.(casing, entry.codepoint, replacement, entry.language, entry.context)
   end
 
-  for %{codepoint: codepoint, title: title} = casing <- Utils.casing_in_order(),
-      title = mapping.(title, casing),
-      title && title != codepoint && (codepoint in cased_ascii or codepoint > ?~) do
-    %{context: context, language: language} = casing
+  # Every uncontextual mapping, in one clause. `remaining` and `rest` bracket the
+  # character just matched, so its width comes from their sizes rather than from
+  # re-encoding the code point.
+  defp casing(
+         string,
+         <<codepoint::utf8, rest::binary>> = remaining,
+         casing,
+         language,
+         bytes_so_far,
+         acc
+       )
+       when is_map_key(@simple_mappings, {casing, language, codepoint}) do
+    replacement = :erlang.map_get({casing, language, codepoint}, @simple_mappings)
+    bytes_so_far = bytes_so_far + byte_size(remaining) - byte_size(rest)
 
-    define_casing_function.(:titlecase, codepoint, title, language, context)
+    casing(string, rest, casing, language, bytes_so_far, [replacement | acc])
   end
 
   # End of string, return accumulator
