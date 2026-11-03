@@ -46,7 +46,15 @@ defmodule UnicodeString.Casing.Test do
       assert Unicode.String.casing_locale(~l"lt") == {:ok, :lt}
       assert Unicode.String.casing_locale(~l"en") == {:ok, :any}
       assert Unicode.String.casing_locale(~l"ar") == {:ok, :any}
+      assert Unicode.String.casing_locale(~l"nl-BE") == {:ok, :nl}
+      assert Unicode.String.casing_locale(~l"el-CY") == {:ok, :el}
     end
+  end
+
+  test "Resolving the casing locale from a regional locale name" do
+    assert Unicode.String.casing_locale("nl-BE") == {:ok, :nl}
+    assert Unicode.String.casing_locale("tr_TR") == {:ok, :tr}
+    assert Unicode.String.casing_locale(:nl_BE) == {:ok, :nl}
   end
 
   test "Resolving the casing locale from a string" do

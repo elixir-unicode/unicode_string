@@ -29,3 +29,6 @@ mise.toml
 c_src/*.o
 c_src/env.mk
 priv/*.so
+
+# Session context for Claude
+CLAUDE.local.md

@@ -1,5 +1,17 @@
 # Changelog
 
+## Unicode String v2.4.2
+
+This is the changelog for Unicode String v2.4.2 released on _unreleased_.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)
+
+### Performance
+
+* Resolve the `:locale` option by validating it once and looking up the `Localize.LanguageTag`'s CLDR locale id and subtags among the known locales, rather than scoring every known locale with `Localize.LanguageTag.best_match/2` on each call. With Localize present the match cost about 130 µs per `split/2` call, twice for word breaking; it now costs about 1 µs.
+
+### Enhancements
+
+* Without Localize, a locale name now falls back through each shorter prefix (`zh-Hant-HK`, then `zh-Hant`, then `zh`) rather than straight to its language, and `zh_Hant` and `zh-Hant` are both accepted.
+
 ## Unicode String v2.4.1
 
 This is the changelog for Unicode String v2.4.1 released on September 20th, 2026.  For older changelogs please consult the release tag on [GitHub](https://github.com/elixir-unicode/unicode_string/tags)

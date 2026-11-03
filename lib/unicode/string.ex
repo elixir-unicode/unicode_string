@@ -57,6 +57,33 @@ defmodule Unicode.String do
   @default_locale "root"
   @default_break :word
 
+  # These locales have some additional processing
+  # beyond that specified in SpecialCasing.txt
+  @special_casing_locales [:nl, :el]
+  @casing_locales (@special_casing_locales ++ Unicode.Utils.known_casing_locales())
+                  |> Enum.sort()
+
+  @segmentation_locales Segment.known_segmentation_locales()
+  @dictionary_locales Dictionary.known_dictionary_locales()
+
+  # A caller's locale is resolved to one of the locales a data set knows by
+  # looking up candidate names, so each set is keyed by its locale names in one
+  # spelling. The known locales are hyphenated (`:"zh-Hant"`) while callers
+  # write either `"zh-Hant"` or `"zh_Hant"`, so keys and candidates are both
+  # spelled with underscores.
+  @casing_locale_map Map.new(
+                       @casing_locales,
+                       &{String.replace(Atom.to_string(&1), "-", "_"), &1}
+                     )
+  @segmentation_locale_map Map.new(
+                             @segmentation_locales,
+                             &{String.replace(Atom.to_string(&1), "-", "_"), &1}
+                           )
+  @dictionary_locale_map Map.new(
+                           @dictionary_locales,
+                           &{String.replace(Atom.to_string(&1), "-", "_"), &1}
+                         )
+
   @doc """
   Compares two strings in a case insensitive
   manner.
@@ -750,12 +777,6 @@ defmodule Unicode.String do
     end
   end
 
-  # These locales have some additional processing
-  # beyond that specified in SpecialCasing.txt
-  @special_casing_locales [:nl, :el]
-  @casing_locales (@special_casing_locales ++ Unicode.Utils.known_casing_locales())
-                  |> Enum.sort()
-
   @doc """
   Returns a list of locales that have special
   casing rules.
@@ -791,17 +812,19 @@ defmodule Unicode.String do
   defp casing_locale_from_options(options) do
     options
     |> Keyword.get(:locale)
-    |> match_locale(@casing_locales, :any)
+    |> locale_candidates()
+    |> match_locale(@casing_locale_map, :any)
     |> wrap(:ok)
   end
 
-  @segmentation_locales Segment.known_segmentation_locales()
-  @dictionary_locales Dictionary.known_dictionary_locales()
-
   defp segmentation_locale_from_options(:word, options) do
-    locale = Keyword.get(options, :locale)
-    segmentation_locale = match_locale(locale, @segmentation_locales, :root)
-    dictionary_locale = match_locale(locale, @dictionary_locales, nil)
+    candidates =
+      options
+      |> Keyword.get(:locale)
+      |> locale_candidates()
+
+    segmentation_locale = match_locale(candidates, @segmentation_locale_map, :root)
+    dictionary_locale = match_locale(candidates, @dictionary_locale_map, nil)
 
     if dictionary_locale do
       Dictionary.ensure_dictionary_loaded_if_available(dictionary_locale)
@@ -814,7 +837,8 @@ defmodule Unicode.String do
   defp segmentation_locale_from_options(_break, options) do
     options
     |> Keyword.get(:locale)
-    |> match_locale(@segmentation_locales, :root)
+    |> locale_candidates()
+    |> match_locale(@segmentation_locale_map, :root)
     |> wrap(:ok)
   end
 
@@ -823,12 +847,11 @@ defmodule Unicode.String do
     dictionary_locale_from_options(locale: locale)
   end
 
-  @dictionary_locales Dictionary.known_dictionary_locales()
-
   defp dictionary_locale_from_options(options) do
     options
     |> Keyword.get(:locale)
-    |> match_locale(@dictionary_locales, nil)
+    |> locale_candidates()
+    |> match_locale(@dictionary_locale_map, nil)
     |> wrap(:ok)
   end
 
@@ -836,50 +859,95 @@ defmodule Unicode.String do
     {atom, term}
   end
 
-  defp match_locale(nil, _known_locales, default) do
-    default
+  # The first candidate name the data set knows wins; `default` when none does.
+  defp match_locale(candidates, known_locale_map, default) do
+    Enum.find_value(candidates, default, &Map.get(known_locale_map, &1))
+  end
+
+  # The names to look up for a caller's locale, most specific first.
+  #
+  # With Localize available the locale is validated once, here, and the
+  # candidates are read from the resulting `Localize.LanguageTag`: its CLDR
+  # locale id, then language-script-territory, language-script,
+  # language-territory and language. A tag that already carries its
+  # `:cldr_locale_id` has been validated before and is read as it stands;
+  # nothing re-parses or scores it. Without Localize the candidates are the
+  # locale name and each of its shorter prefixes.
+  defp locale_candidates(nil) do
+    []
+  end
+
+  defp locale_candidates(locale) when is_atom(locale) do
+    locale_candidates(Atom.to_string(locale))
   end
 
   if Code.ensure_loaded?(Localize.LanguageTag) do
-    # Scores above 10 from Localize.LanguageTag.best_match/3 indicate
-    # unrelated locales and should fall back to the default.
-    @max_match_distance 10
+    defp locale_candidates(%Localize.LanguageTag{} = language_tag) do
+      case Localize.validate_locale(language_tag) do
+        {:ok, language_tag} -> tag_candidates(language_tag)
+        {:error, _reason} -> []
+      end
+    end
 
-    defp match_locale(locale, known_locales, default) do
-      case Localize.LanguageTag.best_match(locale, known_locales) do
-        {:ok, matched_locale, score} when score <= @max_match_distance ->
-          matched_locale
-
-        {:ok, _locale, _score} ->
-          default
-
-        {:error, _reason} ->
-          default
+    defp locale_candidates(locale) when is_binary(locale) do
+      case Localize.validate_locale(locale) do
+        {:ok, language_tag} -> tag_candidates(language_tag)
+        {:error, _reason} -> prefix_candidates(locale)
       end
     end
   else
-    defp match_locale(locale, known_locales, default) when is_atom(locale) do
-      if locale in known_locales do
-        locale
-      else
-        match_locale(Atom.to_string(locale), known_locales, default)
-      end
+    defp locale_candidates(locale) when is_binary(locale) do
+      prefix_candidates(locale)
+    end
+  end
+
+  defp locale_candidates(_other) do
+    []
+  end
+
+  if Code.ensure_loaded?(Localize.LanguageTag) do
+    # `und` is the root locale, which every data set answers with its default.
+    defp tag_candidates(%Localize.LanguageTag{cldr_locale_id: :und}) do
+      []
     end
 
-    defp match_locale(locale, known_locales, default) when is_binary(locale) do
-      case Enum.find(known_locales, &(Atom.to_string(&1) == locale)) do
-        nil ->
-          case String.split(locale, ["-", "_"], parts: 2) do
-            [^locale] -> default
-            [language, _rest] -> match_locale(language, known_locales, default)
-          end
+    defp tag_candidates(%Localize.LanguageTag{} = language_tag) do
+      %{cldr_locale_id: locale_id, language: language, script: script, territory: territory} =
+        language_tag
 
-        matched ->
-          matched
-      end
+      [
+        normalize_locale_name(Atom.to_string(locale_id)),
+        subtag_name([language, script, territory]),
+        subtag_name([language, script]),
+        subtag_name([language, territory]),
+        subtag_name([language])
+      ]
+      |> Enum.uniq()
     end
 
-    defp match_locale(_locale, _known_locales, default), do: default
+    defp subtag_name(subtags) do
+      subtags
+      |> Enum.reject(&is_nil/1)
+      |> Enum.map_join("_", &Atom.to_string/1)
+    end
+  end
+
+  # "zh-Hant-HK" is looked up as "zh_Hant_HK", "zh_Hant" and "zh".
+  defp prefix_candidates(locale) do
+    subtags =
+      locale
+      |> normalize_locale_name()
+      |> String.split("_")
+
+    for count <- length(subtags)..1//-1 do
+      subtags
+      |> Enum.take(count)
+      |> Enum.join("_")
+    end
+  end
+
+  defp normalize_locale_name(locale) do
+    String.replace(locale, "-", "_")
   end
 
   @breaks [:word, :grapheme, :line, :sentence]

@@ -93,7 +93,7 @@ defmodule Unicode.String.MixProject do
   defp deps do
     [
       {:unicode_set, "~> 1.8"},
-      {:unicode, "~> 2.1"},
+      {:unicode, "~> 2.2"},
       {:trie, "~> 2.0"},
       {:localize, "~> 1.0-rc", optional: true},
       {:jason, "~> 1.0", optional: true},
