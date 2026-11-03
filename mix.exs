@@ -194,6 +194,9 @@ defmodule Unicode.String.MixProject do
       ],
       Internals: [
         Unicode.String.ExtendedPictographic
+      ],
+      "Mix Tasks": [
+        Mix.Tasks.Unicode.String.Download.Dictionaries
       ]
     ]
   end

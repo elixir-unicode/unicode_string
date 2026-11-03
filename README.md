@@ -5,25 +5,25 @@
 [![Hex.pm](https://img.shields.io/hexpm/dw/unicode_string.svg?)](https://hex.pm/packages/unicode_string)
 [![Hex.pm](https://img.shields.io/hexpm/l/unicode_string.svg)](https://hex.pm/packages/unicode_string)
 
-Adds functions supporting some string algorithms in the Unicode standard. For example:
+Locale-aware string algorithms from the Unicode standard: case folding, case mapping, and grapheme, word, sentence and line segmentation.
 
-* The [Unicode Case Folding](https://www.unicode.org/versions/Unicode15.0.0/ch03.pdf) algorithm to provide case-independent equality checking irrespective of language or script with `Unicode.String.fold/2` and `Unicode.String.equals_ignoring_case?/2`
+## Features
 
-* The [Unicode Code Mapping](https://www.unicode.org/versions/Unicode15.0.0/ch03.pdf) algorithm that implements locale-aware `Unicode.String.upcase/2`, `Unicode.String.downcase/2` and `Unicode.String.titlecase/2`.
+* **Case folding** — case-insensitive comparison with `Unicode.String.fold/2` and `Unicode.String.equals_ignoring_case?/3`, following the [Unicode Case Folding](https://www.unicode.org/versions/Unicode15.0.0/ch03.pdf) algorithm.
 
-* The [Unicode Segmentation](https://unicode.org/reports/tr29/) algorithm to detect, break, split or stream strings into grapheme clusters, words and sentences.
+* **Locale-aware case mapping** — `Unicode.String.upcase/2`, `Unicode.String.downcase/2` and `Unicode.String.titlecase/2`, with the Turkish, Azeri, Lithuanian, Dutch and Greek rules of the [Unicode Case Mapping](https://www.unicode.org/versions/Unicode15.0.0/ch03.pdf) algorithm.
 
-* The [Unicode Line Breaking](https://www.unicode.org/reports/tr14/) algorithm to determine line breaks (breaks meaning where word-wrapping would be acceptable).
+* **Segmentation** — grapheme cluster, word and sentence breaking with `Unicode.String.split/2`, `Unicode.String.next/2` and `Unicode.String.stream/2`, generated from the [Unicode Segmentation](https://unicode.org/reports/tr29/) state machines and tailored per locale from CLDR.
 
-## Guides
+* **Line breaking** — where a line may be wrapped, following the [Unicode Line Breaking](https://www.unicode.org/reports/tr14/) algorithm.
 
-* [Introduction](guides/introduction.md) — an overview of the library and the four break types.
-* [Grapheme Cluster Break](guides/grapheme_break.md) — user-perceived characters, emoji and Indic conjuncts.
-* [Word Break](guides/word_break.md) — word segmentation, CLDR tailoring and dictionary locales.
-* [Sentence Break](guides/sentence_break.md) — sentence boundaries and abbreviation suppressions.
-* [Line Break](guides/line_break.md) — where a line may be wrapped, and CJK tailoring.
-* [Casing](guides/casing.md) — locale-aware upper, lower and title casing, and case-insensitive comparison.
-* [Conformance](guides/conformance.md) — conformance results and differences from ICU.
+* **Dictionary word breaking** — Chinese, Japanese, Thai, Lao, Khmer and Burmese, using the CLDR dictionaries.
+
+* **Optional ICU backend** — an opt-in NIF that hands segmentation to ICU4C for workloads that need its speed.
+
+## Supported Elixir and OTP versions
+
+This library supports **Elixir 1.17 and later** on **OTP 27 and later**.
 
 ## Installation
 
@@ -32,13 +32,12 @@ The package can be installed by adding `:unicode_string` to your list of depende
 ```elixir
 def deps do
   [
-    {:unicode_string, "~> 2.1"},
-    ...
+    {:unicode_string, "~> 2.4"}
   ]
 end
 ```
 
-Then run `mix dep.get`.
+Then run `mix deps.get`.
 
 > #### Word Break Dictionary Download {: .info}
 >
@@ -52,8 +51,9 @@ Then run `mix dep.get`.
 
 The [Unicode Case Folding](https://www.unicode.org/versions/Unicode15.0.0/ch03.pdf) algorithm defines how to perform case folding. This allows comparison of strings in a case-insensitive fashion. It does not define the means to compare ignoring diacritical marks (accents). Some examples follow, for details see:
 
-* `Unicode.String.fold/2`
-* `Unicode.String.equals_ignoring_case?/3`
+* `Unicode.String.fold/2`.
+
+* `Unicode.String.equals_ignoring_case?/3`.
 
 > #### Note {: .info}
 >
@@ -78,19 +78,25 @@ The [Unicode Case Mapping](https://www.unicode.org/versions/Unicode15.0.0/ch03.p
 Three case mapping functions are provided:
 
 * `Unicode.String.upcase/2` which will convert text to upper case characters.
+
 * `Unicode.String.downcase/2` which will convert text to lower case characters.
-* `Unicode.String.titlecase/2` which will convert text to title case.  Title case means that the first character or each word is set to upper case and all other characters in the word are set to lower case. `Unicode.String.split/2` is used to split the string into words before title casing.
+
+* `Unicode.String.titlecase/2` which will convert text to title case. Title case means that the first character of each word is set to upper case and all other characters in the word are set to lower case. `Unicode.String.split/2` is used to split the string into words before title casing.
 
 Each function operates in a locale-aware manner implementing some basic capabilities:
 
 * Casing rules for the Turkish dotted capital `I` and dotless small `i`.
+
 * Casing rules for the retention of dots over `i` for Lithuanian letters with additional accents.
+
 * Titlecasing of IJ at the start of words in Dutch.
+
 * Removal of diacritics when upper casing letters in Greek.
 
 There are other casing rules that are not currently implemented such as:
 
 * Titlecasing of second or subsequent letters in words in orthographies that include caseless letters such as apostrophes.
+
 * Uppercasing of U+00DF `ß` latin small letter sharp `s` to U+1E9E `ẞ` latin capital letter sharp `s`.
 
 ```elixir
@@ -119,12 +125,17 @@ iex> Unicode.String.titlecase("ijsselmeer", locale: :nl)
 
 The [Unicode Segmentation](https://unicode.org/reports/tr29/) annex details the algorithm to be applied with segmenting text (Elixir strings) into words, sentences, graphemes and line breaks. Some examples follow, for details see:
 
-* `Unicode.String.split/2`
-* `Unicode.String.break?/2`
-* `Unicode.String.break/2`
-* `Unicode.String.splitter/2`
-* `Unicode.String.next/2`
-* `Unicode.String.stream/2`
+* `Unicode.String.split/2`.
+
+* `Unicode.String.break?/2`.
+
+* `Unicode.String.break/2`.
+
+* `Unicode.String.splitter/2`.
+
+* `Unicode.String.next/2`.
+
+* `Unicode.String.stream/2`.
 
 ```elixir
 # Split text at a word boundary.
@@ -170,24 +181,29 @@ Some languages, commonly East Asian and Southeast Asian languages, don't typical
 
 This implementation supports dictionary-based word breaking for:
 
-* Chinese (`zh`, `zh-Hant`, `zh-Hans`, `zh-Hant-HK`, `yue`, `yue-Hans`) locales,
-* Japanese (`ja`) using the same dictionary as for Chinese,
-* Thai (`th`),
-* Lao (`lo`),
-* Khmer (`km`) and
+* Chinese (`zh`, `zh-Hant`, `zh-Hant-HK`, `yue`, `yue-Hant` and `yue-Hans`) locales.
+
+* Japanese (`ja`) using the same dictionary as for Chinese.
+
+* Thai (`th`).
+
+* Lao (`lo`).
+
+* Khmer (`km`).
+
 * Burmese (`my`).
 
 The dictionaries are those used in [CLDR](https://cldr.unicode.org) since they are under an open source license and are consistent with [ICU](https://icu.unicode.org).
 
 Note that these dictionaries need to be downloaded with `mix unicode.string.download.dictionaries` prior to use. Each dictionary will be parsed and loaded into [persistent_term](https://www.erlang.org/doc/man/persistent_term) on demand. Note that each dictionary has a sizable memory footprint as measured by `:persistent_term.info/0`:
 
-| Dictionary  | Memory Mb   |
-| ----------- | ----------: |
-| Chinese     | 104.8       |
-| Thai        | 9.6         |
-| Lao         | 11.4        |
-| Khmer       | 38.8        |
-| Burmese     | 23.1        |
+| Dictionary | Memory Mb |
+|---|---|
+| Chinese | 104.8 |
+| Thai | 9.6 |
+| Lao | 11.4 |
+| Khmer | 38.8 |
+| Burmese | 23.1 |
 
 #### How dictionary break works
 
@@ -213,7 +229,7 @@ For Chinese and Japanese, the standard [UAX #29](https://unicode.org/reports/tr2
 
 When text contains a mix of dictionary-script characters and other scripts (e.g., a Khmer sentence with embedded Latin words), the `split_with_fallback/3` function partitions the text into same-script runs. Dictionary breaking is applied to the target-script ranges, and a fallback function (typically the standard UAX #29 word breaker) handles the rest. The results are concatenated to produce a single segmentation covering the full string.
 
-See the [Conformance guide](guides/conformance.md) for details on conformance with the UAX #29 break algorithm and differences between this implementation and ICU.
+See the [Conformance guide](https://hexdocs.pm/unicode_string/conformance.html) for details on conformance with the UAX #29 break algorithm and differences between this implementation and ICU.
 
 ## Segment Streaming
 
@@ -238,4 +254,26 @@ iex> Enum.map Unicode.String.stream("this is a list of words", trim: true),
 ## References
 
 * Unicode maintains a [break testing utility](https://util.unicode.org/UnicodeJsps/breaks.jsp).
+
+## Documentation
+
+* [Introduction](https://hexdocs.pm/unicode_string/introduction.html) — an overview of the library and the four break types.
+
+* [Grapheme Cluster Break](https://hexdocs.pm/unicode_string/grapheme_break.html) — user-perceived characters, emoji and Indic conjuncts.
+
+* [Word Break](https://hexdocs.pm/unicode_string/word_break.html) — word segmentation, CLDR tailoring and dictionary locales.
+
+* [Sentence Break](https://hexdocs.pm/unicode_string/sentence_break.html) — sentence boundaries and abbreviation suppressions.
+
+* [Line Break](https://hexdocs.pm/unicode_string/line_break.html) — where a line may be wrapped, and CJK tailoring.
+
+* [Casing](https://hexdocs.pm/unicode_string/casing.html) — locale-aware upper, lower and title casing, and case-insensitive comparison.
+
+* [Conformance](https://hexdocs.pm/unicode_string/conformance.html) — conformance results and differences from ICU.
+
+The full API documentation is on [HexDocs](https://hexdocs.pm/unicode_string).
+
+## License
+
+Unicode String is released under the Apache License 2.0. See [LICENSE.md](https://github.com/elixir-unicode/unicode_string/blob/v2.4.2/LICENSE.md).
 
